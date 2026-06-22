@@ -1,0 +1,194 @@
+:root {
+    --bg-color: #07111f;
+    --bg-elevated: rgba(15, 23, 42, 0.78);
+    --panel-bg: rgba(15, 23, 42, 0.62);
+    --panel-border: rgba(148, 163, 184, 0.18);
+    --text-color: #f8fafc;
+    --text-muted: #94a3b8;
+    --primary-color: #38bdf8;
+    --primary-strong: #0ea5e9;
+    --accent-color: #8b5cf6;
+    --success-color: #34d399;
+    --danger-color: #fb7185;
+    --font-main: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    --font-display: 'EB Garamond', Georgia, serif;
+    --font-tech: 'Orbitron', monospace;
+    --shadow-soft: 0 24px 70px rgba(2, 8, 23, 0.38);
+    --radius-xl: 32px;
+    --radius-lg: 26px;
+    --radius-md: 20px;
+    --panel-radius: 26px;
+    --control-radius: 20px;
+    --field-radius: 24px;
+    --field-bg: rgba(255, 255, 255, 0.08);
+    --field-bg-hover: rgba(255, 255, 255, 0.11);
+    --field-border: rgba(148, 163, 184, 0.24);
+    --field-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 12px 30px rgba(2, 8, 23, 0.18);
+}
+
+body.light-mode {
+    --bg-color: #f3f7fb;
+    --bg-elevated: rgba(255, 255, 255, 0.82);
+    --panel-bg: rgba(255, 255, 255, 0.88);
+    --panel-border: rgba(148, 163, 184, 0.24);
+    --text-color: #0f172a;
+    --text-muted: #475569;
+    --shadow-soft: 0 24px 60px rgba(15, 23, 42, 0.12);
+    --panel-radius: 26px;
+    --control-radius: 20px;
+    --field-radius: 24px;
+    --field-bg: rgba(255, 255, 255, 0.62);
+    --field-bg-hover: rgba(255, 255, 255, 0.78);
+    --field-border: rgba(148, 163, 184, 0.28);
+    --field-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7), 0 16px 34px rgba(148, 163, 184, 0.18);
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+html {
+    font-size: clamp(14px, 0.72vw + 11px, 18px);
+    scroll-behavior: smooth;
+}
+
+body {
+    min-height: 100vh;
+    background:
+        radial-gradient(circle at top, rgba(56, 189, 248, 0.14), transparent 32%),
+        linear-gradient(180deg, #061120 0%, #07111f 44%, #06101b 100%);
+    color: var(--text-color);
+    font-family: var(--font-main);
+    line-height: 1.6;
+    overflow-x: hidden;
+    transition: background-color 0.25s ease, color 0.25s ease;
+}
+
+body.light-mode {
+    background:
+        radial-gradient(circle at top, rgba(56, 189, 248, 0.1), transparent 32%),
+        linear-gradient(180deg, #f8fafc 0%, #eef4f8 50%, #f7fafc 100%);
+}
+
+button,
+input,
+textarea,
+select {
+    font: inherit;
+}
+
+button {
+    border: 0;
+    background: none;
+    cursor: pointer;
+}
+
+a {
+    color: inherit;
+    text-decoration: none;
+}
+
+ul {
+    padding-left: 1.2rem;
+}
+
+#app-root {
+    min-height: 100vh;
+}
+
+.page {
+    min-height: 100vh;
+    padding: clamp(1rem, 2vw, 2rem);
+}
+
+.page-shell {
+    width: min(100%, 1180px);
+    margin: 0 auto;
+}
+
+.narrow-shell {
+    width: min(100%, 840px);
+}
+
+.page-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: clamp(1.5rem, 3vw, 2.5rem);
+}
+
+.page-header h1,
+.page-header h2,
+.page-header h3 {
+    font-family: var(--font-display);
+    line-height: 0.98;
+    letter-spacing: -0.03em;
+}
+
+.page-support {
+    color: var(--text-muted);
+    margin-top: 0.45rem;
+}
+
+.eyebrow {
+    display: inline-block;
+    margin-bottom: 0.8rem;
+    color: var(--primary-color);
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+}
+
+.app-loader {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    background: rgba(2, 6, 23, 0.96);
+    transition: opacity 0.3s ease;
+}
+
+.app-loader.is-hidden {
+    opacity: 0;
+    pointer-events: none;
+}
+
+.loader-spinner,
+#transition-loader .spinner {
+    width: 54px;
+    height: 54px;
+    border: 4px solid rgba(255, 255, 255, 0.18);
+    border-top-color: var(--primary-color);
+    border-radius: 999px;
+    animation: spin 1s linear infinite;
+}
+
+.loader-text,
+.loader-error {
+    color: #e2e8f0;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+@media (max-width: 720px) {
+    .page {
+        padding: 1rem;
+    }
+
+    .page-header {
+        flex-direction: column;
+    }
+}

@@ -1,0 +1,35 @@
+.brand-lockup {
+    display: flex;
+    align-items: center;
+    gap: 0.9rem;
+}
+
+.brand-mark {
+    width: 48px;
+    height: 48px;
+    border-radius: 999px;
+    display: grid;
+    place-items: center;
+    color: #fff;
+    font-family: var(--font-tech);
+    background: linear-gradient(135deg, var(--primary-color), var(--accent-color));
+}
+
+.brand-copy h1 {
+    font-family: var(--font-tech);
+    font-size: 1.05rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.brand-copy p {
+    color: var(--text-muted);
+}
+
+.step-index {
+    display: inline-flex;
+    margin-bottom: 0.7rem;
+    color: var(--primary-color);
+    font-family: var(--font-tech);
+    font-size: 0.9rem;
+}

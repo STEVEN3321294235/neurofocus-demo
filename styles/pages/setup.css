@@ -1,0 +1,127 @@
+.setup-card {
+    display: grid;
+    gap: 1rem;
+    position: relative;
+    overflow: hidden;
+}
+
+.setup-flow-inline {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+    margin-bottom: 1rem;
+}
+
+.setup-flow-inline span {
+    min-width: 0;
+    padding: 0.55rem 0.8rem;
+    border-radius: 999px;
+    border: 1px solid rgba(148, 163, 184, 0.18);
+    background: rgba(255, 255, 255, 0.06);
+    color: var(--text-muted);
+    font-size: 0.82rem;
+    overflow-wrap: anywhere;
+}
+
+.setup-option-grid,
+.difficulty-list {
+    display: grid;
+    gap: 1rem;
+}
+
+.setup-option-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.option-card,
+.difficulty-btn {
+    width: 100%;
+    padding: 1.25rem;
+    text-align: left;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--panel-border);
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.03));
+    color: var(--text-color);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.option-card strong,
+.option-card span {
+    display: block;
+}
+
+.option-card strong {
+    margin-bottom: 0.35rem;
+}
+
+.option-card span {
+    color: var(--text-muted);
+}
+
+.option-card:hover,
+.difficulty-btn:hover {
+    transform: translateY(-1px);
+    border-color: rgba(93, 168, 184, 0.5);
+    box-shadow: 0 18px 38px rgba(2, 8, 23, 0.22);
+}
+
+.option-danger {
+    border-left: 4px solid var(--danger-color);
+}
+
+.option-safe {
+    border-left: 4px solid var(--success-color);
+}
+
+.mode-helper-card {
+    padding: 1rem 1.1rem;
+    border-radius: var(--radius-md);
+    border: 1px solid rgba(148, 163, 184, 0.18);
+    background: rgba(255, 255, 255, 0.82);
+    box-shadow: 0 12px 28px rgba(15, 23, 42, 0.08);
+    backdrop-filter: blur(16px);
+}
+
+.mode-helper-title {
+    margin-bottom: 0.4rem;
+    color: #0f172a;
+    font-family: var(--font-tech);
+    font-size: 0.82rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.mode-helper-detail {
+    color: #475569;
+}
+
+.difficulty-btn {
+    text-align: center;
+    font-family: var(--font-tech);
+    font-size: 1.05rem;
+    min-height: 4rem;
+}
+
+.diff-easy {
+    border-left: 4px solid #4ade80;
+}
+
+.diff-medium {
+    border-left: 4px solid #facc15;
+}
+
+.diff-hard {
+    border-left: 4px solid #ef4444;
+}
+
+@media (max-width: 780px) {
+    .setup-option-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .setup-flow-inline {
+        display: grid;
+        grid-template-columns: 1fr;
+    }
+}

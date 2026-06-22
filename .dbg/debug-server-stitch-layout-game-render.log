@@ -1,0 +1,19 @@
+[Debug Server] Trying http://127.0.0.1:7777...
+[Debug Server] Listening on http://127.0.0.1:7777
+@@DEBUG_SERVER_INFO
+{
+  "base_url": "http://127.0.0.1:7777",
+  "api_url": "http://127.0.0.1:7777/event",
+  "session_id": "stitch-layout-game-render",
+  "log_dir": "/Users/cck108/Library/Mobile Documents/com~apple~CloudDocs/EEG 2026 2/.dbg",
+  "log_file": "/Users/cck108/Library/Mobile Documents/com~apple~CloudDocs/EEG 2026 2/.dbg/trae-debug-log-stitch-layout-game-render.ndjson",
+  "env_file": "/Users/cck108/Library/Mobile Documents/com~apple~CloudDocs/EEG 2026 2/.dbg/stitch-layout-game-render.env",
+  "endpoints": {
+    "POST /event": "Submit log event",
+    "GET /health": "Server health check",
+    "GET /logs": "Get all logs (supports ?last=N&hypothesisId=X&runId=Y)",
+    "DELETE /logs": "Clear all logs for this session"
+  }
+}
+@@END_DEBUG_SERVER_INFO
+[Debug Server] Idle for 1200s, exiting...

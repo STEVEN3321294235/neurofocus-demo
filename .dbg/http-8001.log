@@ -1,0 +1,314 @@
+::1 - - [21/Jun/2026 19:35:48] "GET / HTTP/1.1" 304 -
+::1 - - [21/Jun/2026 19:35:49] "GET /app/main.js HTTP/1.1" 200 -
+::1 - - [21/Jun/2026 19:35:49] "GET /styles/main.css HTTP/1.1" 304 -
+::1 - - [21/Jun/2026 19:35:49] "GET /styles/shared/base.css HTTP/1.1" 304 -
+::1 - - [21/Jun/2026 19:35:49] "GET /styles/shared/components.css HTTP/1.1" 304 -
+::1 - - [21/Jun/2026 19:35:49] "GET /styles/shared/utilities.css HTTP/1.1" 304 -
+::1 - - [21/Jun/2026 19:35:49] "GET /styles/pages/auth.css HTTP/1.1" 304 -
+::1 - - [21/Jun/2026 19:35:49] "GET /styles/pages/setup.css HTTP/1.1" 304 -
+::1 - - [21/Jun/2026 19:35:49] "GET /styles/pages/home.css HTTP/1.1" 200 -
+::1 - - [21/Jun/2026 19:35:49] "GET /styles/pages/game.css HTTP/1.1" 304 -
+::1 - - [21/Jun/2026 19:35:49] "GET /styles/pages/results.css HTTP/1.1" 304 -
+::1 - - [21/Jun/2026 19:35:49] "GET /app/router.js HTTP/1.1" 200 -
+::1 - - [21/Jun/2026 19:35:49] "GET /components/controlBar.js HTTP/1.1" 200 -
+::1 - - [21/Jun/2026 19:35:49] "GET /services/authService.js HTTP/1.1" 304 -
+::1 - - [21/Jun/2026 19:35:49] "GET /app/state.js HTTP/1.1" 304 -
+::1 - - [21/Jun/2026 19:35:49] "GET /services/storageService.js HTTP/1.1" 304 -
+::1 - - [21/Jun/2026 19:35:49] "GET /pages/home/index.js HTTP/1.1" 200 -
+::1 - - [21/Jun/2026 19:35:49] "GET /pages/game/index.js HTTP/1.1" 200 -
+::1 - - [21/Jun/2026 19:35:49] "GET /pages/auth/index.js HTTP/1.1" 304 -
+::1 - - [21/Jun/2026 19:35:49] "GET /pages/setup/index.js HTTP/1.1" 304 -
+::1 - - [21/Jun/2026 19:35:49] "GET /pages/results/index.js HTTP/1.1" 304 -
+::1 - - [21/Jun/2026 19:35:49] "GET /app/i18n.js HTTP/1.1" 304 -
+::1 - - [21/Jun/2026 19:35:49] "GET /services/eegBridgeService.js HTTP/1.1" 304 -
+::1 - - [21/Jun/2026 19:35:51] code 404, message File not found
+::1 - - [21/Jun/2026 19:35:51] "GET /@vite/client HTTP/1.1" 404 -
+::1 - - [21/Jun/2026 19:36:59] "HEAD /assets/EGGShip2.glb HTTP/1.1" 200 -
+::1 - - [21/Jun/2026 19:36:59] "HEAD /assets/foam.jpg HTTP/1.1" 200 -
+::1 - - [21/Jun/2026 19:36:59] "HEAD /assets/splash.png HTTP/1.1" 200 -
+::1 - - [21/Jun/2026 19:36:59] "HEAD /assets/sky_day.hdr HTTP/1.1" 200 -
+::1 - - [21/Jun/2026 19:40:23] "GET / HTTP/1.1" 200 -
+::1 - - [21/Jun/2026 19:40:23] "GET /styles/main.css HTTP/1.1" 200 -
+::1 - - [21/Jun/2026 19:40:23] "GET /app/main.js HTTP/1.1" 200 -
+::1 - - [21/Jun/2026 19:40:24] "GET /components/controlBar.js HTTP/1.1" 200 -
+::1 - - [21/Jun/2026 19:40:24] "GET /app/router.js HTTP/1.1" 200 -
+::1 - - [21/Jun/2026 19:40:24] "GET /app/state.js HTTP/1.1" 200 -
+::1 - - [21/Jun/2026 19:40:24] "GET /services/authService.js HTTP/1.1" 200 -
+::1 - - [21/Jun/2026 19:40:24] "GET /services/storageService.js HTTP/1.1" 200 -
+::1 - - [21/Jun/2026 19:40:24] "GET /styles/shared/components.css HTTP/1.1" 200 -
+::1 - - [21/Jun/2026 19:40:24] "GET /styles/pages/game.css HTTP/1.1" 200 -
+::1 - - [21/Jun/2026 19:40:26] "GET /styles/shared/base.css HTTP/1.1" 200 -
+::1 - - [21/Jun/2026 19:40:26] "GET /styles/shared/utilities.css HTTP/1.1" 200 -
+::1 - - [21/Jun/2026 19:40:26] "GET /styles/pages/auth.css HTTP/1.1" 200 -
+::1 - - [21/Jun/2026 19:40:26] "GET /styles/pages/setup.css HTTP/1.1" 200 -
+::1 - - [21/Jun/2026 19:40:26] "GET /styles/pages/results.css HTTP/1.1" 200 -
+::1 - - [21/Jun/2026 19:40:26] "GET /styles/pages/home.css HTTP/1.1" 200 -
+::1 - - [21/Jun/2026 19:40:26] "GET /pages/home/index.js HTTP/1.1" 200 -
+::1 - - [21/Jun/2026 19:40:26] "GET /pages/auth/index.js HTTP/1.1" 200 -
+::1 - - [21/Jun/2026 19:40:27] "GET /pages/setup/index.js HTTP/1.1" 200 -
+::1 - - [21/Jun/2026 19:40:27] "GET /pages/game/index.js HTTP/1.1" 200 -
+::1 - - [21/Jun/2026 19:40:27] "GET /pages/results/index.js HTTP/1.1" 200 -
+::1 - - [21/Jun/2026 19:40:28] "GET /app/i18n.js HTTP/1.1" 200 -
+::1 - - [21/Jun/2026 19:40:28] "GET /services/eegBridgeService.js HTTP/1.1" 200 -
+::1 - - [21/Jun/2026 19:40:29] "GET /assets/foam.jpg HTTP/1.1" 200 -
+::1 - - [21/Jun/2026 19:40:30] code 404, message File not found
+::1 - - [21/Jun/2026 19:40:30] "GET /@vite/client HTTP/1.1" 404 -
+::1 - - [21/Jun/2026 20:50:07] "GET / HTTP/1.1" 304 -
+::1 - - [21/Jun/2026 20:50:08] "GET /styles/main.css HTTP/1.1" 304 -
+::1 - - [21/Jun/2026 20:50:08] "GET /app/main.js HTTP/1.1" 200 -
+::1 - - [21/Jun/2026 20:50:08] "GET /styles/shared/components.css HTTP/1.1" 304 -
+::1 - - [21/Jun/2026 20:50:08] "GET /styles/shared/utilities.css HTTP/1.1" 304 -
+::1 - - [21/Jun/2026 20:50:08] "GET /styles/shared/base.css HTTP/1.1" 304 -
+::1 - - [21/Jun/2026 20:50:08] "GET /styles/pages/setup.css HTTP/1.1" 200 -
+::1 - - [21/Jun/2026 20:50:08] "GET /styles/pages/game.css HTTP/1.1" 200 -
+::1 - - [21/Jun/2026 20:50:08] "GET /styles/pages/auth.css HTTP/1.1" 200 -
+::1 - - [21/Jun/2026 20:50:08] "GET /styles/pages/results.css HTTP/1.1" 200 -
+::1 - - [21/Jun/2026 20:50:08] "GET /styles/pages/home.css HTTP/1.1" 200 -
+::1 - - [21/Jun/2026 20:50:10] "GET /app/router.js HTTP/1.1" 200 -
+::1 - - [21/Jun/2026 20:50:10] "GET /app/state.js HTTP/1.1" 304 -
+::1 - - [21/Jun/2026 20:50:10] "GET /components/controlBar.js HTTP/1.1" 304 -
+::1 - - [21/Jun/2026 20:50:10] "GET /services/authService.js HTTP/1.1" 304 -
+::1 - - [21/Jun/2026 20:50:10] "GET /services/storageService.js HTTP/1.1" 304 -
+::1 - - [21/Jun/2026 20:50:11] "GET /pages/auth/index.js HTTP/1.1" 200 -
+::1 - - [21/Jun/2026 20:50:11] "GET /pages/home/index.js HTTP/1.1" 200 -
+::1 - - [21/Jun/2026 20:50:11] "GET /pages/setup/index.js HTTP/1.1" 200 -
+::1 - - [21/Jun/2026 20:50:12] "GET /pages/game/index.js HTTP/1.1" 200 -
+::1 - - [21/Jun/2026 20:50:12] "GET /pages/results/index.js HTTP/1.1" 200 -
+::1 - - [21/Jun/2026 20:50:12] "GET /app/i18n.js HTTP/1.1" 304 -
+::1 - - [21/Jun/2026 20:50:12] "GET /services/eegBridgeService.js HTTP/1.1" 304 -
+::1 - - [21/Jun/2026 20:50:13] "GET /assets/stitch-hero-visual.svg HTTP/1.1" 200 -
+::1 - - [21/Jun/2026 20:50:14] code 404, message File not found
+::1 - - [21/Jun/2026 20:50:14] "GET /@vite/client HTTP/1.1" 404 -
+::1 - - [21/Jun/2026 21:39:23] "GET / HTTP/1.1" 304 -
+::1 - - [21/Jun/2026 21:39:24] "GET /styles/main.css HTTP/1.1" 304 -
+::1 - - [21/Jun/2026 21:39:24] "GET /app/main.js HTTP/1.1" 200 -
+::1 - - [21/Jun/2026 21:39:24] "GET /styles/shared/components.css HTTP/1.1" 304 -
+::1 - - [21/Jun/2026 21:39:24] "GET /styles/shared/utilities.css HTTP/1.1" 304 -
+::1 - - [21/Jun/2026 21:39:24] "GET /styles/shared/base.css HTTP/1.1" 304 -
+::1 - - [21/Jun/2026 21:39:24] "GET /styles/pages/home.css HTTP/1.1" 200 -
+::1 - - [21/Jun/2026 21:39:24] "GET /styles/pages/auth.css HTTP/1.1" 304 -
+::1 - - [21/Jun/2026 21:39:24] "GET /styles/pages/setup.css HTTP/1.1" 304 -
+::1 - - [21/Jun/2026 21:39:24] "GET /styles/pages/game.css HTTP/1.1" 304 -
+::1 - - [21/Jun/2026 21:39:24] "GET /styles/pages/results.css HTTP/1.1" 304 -
+::1 - - [21/Jun/2026 21:39:24] "GET /app/router.js HTTP/1.1" 200 -
+::1 - - [21/Jun/2026 21:39:24] "GET /app/state.js HTTP/1.1" 304 -
+::1 - - [21/Jun/2026 21:39:24] "GET /components/controlBar.js HTTP/1.1" 304 -
+::1 - - [21/Jun/2026 21:39:24] "GET /services/authService.js HTTP/1.1" 304 -
+::1 - - [21/Jun/2026 21:39:24] "GET /services/storageService.js HTTP/1.1" 304 -
+::1 - - [21/Jun/2026 21:39:27] "GET /pages/home/index.js HTTP/1.1" 200 -
+::1 - - [21/Jun/2026 21:39:27] "GET /pages/auth/index.js HTTP/1.1" 304 -
+::1 - - [21/Jun/2026 21:39:27] "GET /pages/setup/index.js HTTP/1.1" 304 -
+::1 - - [21/Jun/2026 21:39:27] "GET /pages/results/index.js HTTP/1.1" 304 -
+::1 - - [21/Jun/2026 21:39:27] "GET /pages/game/index.js HTTP/1.1" 200 -
+::1 - - [21/Jun/2026 21:39:27] "GET /app/i18n.js HTTP/1.1" 304 -
+::1 - - [21/Jun/2026 21:39:27] "GET /services/eegBridgeService.js HTTP/1.1" 304 -
+::1 - - [21/Jun/2026 21:39:29] "GET /assets/stitch-brain-hero.jpg HTTP/1.1" 200 -
+::1 - - [21/Jun/2026 21:39:30] code 404, message File not found
+::1 - - [21/Jun/2026 21:39:30] "GET /@vite/client HTTP/1.1" 404 -
+::1 - - [21/Jun/2026 21:55:09] "GET / HTTP/1.1" 200 -
+::1 - - [21/Jun/2026 21:55:11] "GET /app/main.js HTTP/1.1" 200 -
+::1 - - [21/Jun/2026 21:55:11] "GET /styles/main.css HTTP/1.1" 200 -
+::1 - - [21/Jun/2026 21:55:12] "GET /app/router.js HTTP/1.1" 200 -
+::1 - - [21/Jun/2026 21:55:12] "GET /app/state.js HTTP/1.1" 200 -
+::1 - - [21/Jun/2026 21:55:12] "GET /services/authService.js HTTP/1.1" 200 -
+::1 - - [21/Jun/2026 21:55:12] "GET /components/controlBar.js HTTP/1.1" 200 -
+::1 - - [21/Jun/2026 21:55:12] "GET /services/storageService.js HTTP/1.1" 200 -
+::1 - - [21/Jun/2026 21:55:12] "GET /styles/shared/components.css HTTP/1.1" 200 -
+::1 - - [21/Jun/2026 21:55:12] "GET /styles/pages/setup.css HTTP/1.1" 200 -
+::1 - - [21/Jun/2026 21:55:12] "GET /styles/pages/game.css HTTP/1.1" 200 -
+::1 - - [21/Jun/2026 21:55:12] "GET /styles/shared/utilities.css HTTP/1.1" 200 -
+::1 - - [21/Jun/2026 21:55:13] "GET /styles/shared/base.css HTTP/1.1" 200 -
+::1 - - [21/Jun/2026 21:55:13] "GET /styles/pages/auth.css HTTP/1.1" 200 -
+::1 - - [21/Jun/2026 21:55:13] "GET /styles/pages/results.css HTTP/1.1" 200 -
+::1 - - [21/Jun/2026 21:55:13] "GET /styles/pages/home.css HTTP/1.1" 200 -
+::1 - - [21/Jun/2026 21:55:13] "GET /pages/home/index.js HTTP/1.1" 200 -
+::1 - - [21/Jun/2026 21:55:13] "GET /pages/auth/index.js HTTP/1.1" 200 -
+::1 - - [21/Jun/2026 21:55:13] "GET /pages/setup/index.js HTTP/1.1" 200 -
+::1 - - [21/Jun/2026 21:55:13] "GET /pages/game/index.js HTTP/1.1" 200 -
+::1 - - [21/Jun/2026 21:55:13] "GET /pages/results/index.js HTTP/1.1" 200 -
+::1 - - [21/Jun/2026 21:55:13] "GET /app/i18n.js HTTP/1.1" 200 -
+::1 - - [21/Jun/2026 21:55:14] "GET /services/eegBridgeService.js HTTP/1.1" 200 -
+::1 - - [21/Jun/2026 21:55:15] "GET /assets/stitch-brain-hero.jpg HTTP/1.1" 200 -
+::1 - - [21/Jun/2026 21:55:16] code 404, message File not found
+::1 - - [21/Jun/2026 21:55:16] "GET /@vite/client HTTP/1.1" 404 -
+::1 - - [21/Jun/2026 21:55:22] "GET /pages/game/runtime.js HTTP/1.1" 200 -
+::1 - - [21/Jun/2026 21:55:22] "GET /bgm/nature.mp3 HTTP/1.1" 200 -
+----------------------------------------
+Exception occurred during processing of request from ('::1', 62862, 0, 0)
+Traceback (most recent call last):
+  File "/opt/homebrew/Cellar/python@3.13/3.13.5/Frameworks/Python.framework/Versions/3.13/lib/python3.13/socketserver.py", line 697, in process_request_thread
+    self.finish_request(request, client_address)
+    ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.13/3.13.5/Frameworks/Python.framework/Versions/3.13/lib/python3.13/http/server.py", line 1320, in finish_request
+    self.RequestHandlerClass(request, client_address, self,
+    ~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                             directory=args.directory)
+                             ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.13/3.13.5/Frameworks/Python.framework/Versions/3.13/lib/python3.13/http/server.py", line 672, in __init__
+    super().__init__(*args, **kwargs)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.13/3.13.5/Frameworks/Python.framework/Versions/3.13/lib/python3.13/socketserver.py", line 766, in __init__
+    self.handle()
+    ~~~~~~~~~~~^^
+  File "/opt/homebrew/Cellar/python@3.13/3.13.5/Frameworks/Python.framework/Versions/3.13/lib/python3.13/http/server.py", line 436, in handle
+    self.handle_one_request()
+    ~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/opt/homebrew/Cellar/python@3.13/3.13.5/Frameworks/Python.framework/Versions/3.13/lib/python3.13/http/server.py", line 424, in handle_one_request
+    method()
+    ~~~~~~^^
+  File "/opt/homebrew/Cellar/python@3.13/3.13.5/Frameworks/Python.framework/Versions/3.13/lib/python3.13/http/server.py", line 679, in do_GET
+    self.copyfile(f, self.wfile)
+    ~~~~~~~~~~~~~^^^^^^^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.13/3.13.5/Frameworks/Python.framework/Versions/3.13/lib/python3.13/http/server.py", line 881, in copyfile
+    shutil.copyfileobj(source, outputfile)
+    ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.13/3.13.5/Frameworks/Python.framework/Versions/3.13/lib/python3.13/shutil.py", line 204, in copyfileobj
+    fdst_write(buf)
+    ~~~~~~~~~~^^^^^
+  File "/opt/homebrew/Cellar/python@3.13/3.13.5/Frameworks/Python.framework/Versions/3.13/lib/python3.13/socketserver.py", line 845, in write
+    self._sock.sendall(b)
+    ~~~~~~~~~~~~~~~~~~^^^
+BrokenPipeError: [Errno 32] Broken pipe
+----------------------------------------
+::1 - - [23/Jun/2026 01:17:58] "GET / HTTP/1.1" 200 -
+::1 - - [23/Jun/2026 01:17:58] "GET /app/main.js HTTP/1.1" 200 -
+::1 - - [23/Jun/2026 01:17:59] "GET /styles/main.css HTTP/1.1" 304 -
+::1 - - [23/Jun/2026 01:17:59] "GET /styles/shared/base.css HTTP/1.1" 200 -
+::1 - - [23/Jun/2026 01:17:59] "GET /styles/shared/components.css HTTP/1.1" 200 -
+::1 - - [23/Jun/2026 01:17:59] "GET /styles/pages/home.css HTTP/1.1" 200 -
+::1 - - [23/Jun/2026 01:17:59] "GET /styles/pages/game.css HTTP/1.1" 200 -
+::1 - - [23/Jun/2026 01:17:59] "GET /styles/shared/utilities.css HTTP/1.1" 304 -
+::1 - - [23/Jun/2026 01:17:59] "GET /styles/pages/setup.css HTTP/1.1" 200 -
+::1 - - [23/Jun/2026 01:17:59] "GET /styles/pages/auth.css HTTP/1.1" 200 -
+::1 - - [23/Jun/2026 01:17:59] "GET /styles/pages/results.css HTTP/1.1" 200 -
+::1 - - [23/Jun/2026 01:17:59] "GET /app/state.js HTTP/1.1" 304 -
+::1 - - [23/Jun/2026 01:17:59] "GET /app/router.js HTTP/1.1" 200 -
+::1 - - [23/Jun/2026 01:17:59] "GET /components/controlBar.js HTTP/1.1" 200 -
+::1 - - [23/Jun/2026 01:17:59] "GET /services/authService.js HTTP/1.1" 304 -
+::1 - - [23/Jun/2026 01:17:59] "GET /services/storageService.js HTTP/1.1" 304 -
+::1 - - [23/Jun/2026 01:17:59] "GET /pages/auth/index.js HTTP/1.1" 200 -
+::1 - - [23/Jun/2026 01:17:59] "GET /pages/home/index.js HTTP/1.1" 200 -
+::1 - - [23/Jun/2026 01:17:59] "GET /pages/results/index.js HTTP/1.1" 200 -
+::1 - - [23/Jun/2026 01:17:59] "GET /pages/setup/index.js HTTP/1.1" 200 -
+::1 - - [23/Jun/2026 01:17:59] "GET /pages/game/index.js HTTP/1.1" 200 -
+::1 - - [23/Jun/2026 01:17:59] "GET /app/i18n.js HTTP/1.1" 200 -
+::1 - - [23/Jun/2026 01:17:59] "GET /services/eegBridgeService.js HTTP/1.1" 304 -
+::1 - - [23/Jun/2026 01:17:59] code 404, message File not found
+::1 - - [23/Jun/2026 01:17:59] "GET /@vite/client HTTP/1.1" 404 -
+::1 - - [23/Jun/2026 01:24:39] "GET / HTTP/1.1" 304 -
+::1 - - [23/Jun/2026 01:24:39] "GET /app/main.js HTTP/1.1" 304 -
+::1 - - [23/Jun/2026 01:24:39] "GET /styles/pages/game.css HTTP/1.1" 304 -
+::1 - - [23/Jun/2026 01:24:39] "GET /styles/pages/auth.css HTTP/1.1" 304 -
+::1 - - [23/Jun/2026 01:24:39] "GET /styles/pages/setup.css HTTP/1.1" 304 -
+::1 - - [23/Jun/2026 01:24:39] "GET /styles/shared/components.css HTTP/1.1" 304 -
+::1 - - [23/Jun/2026 01:24:39] "GET /styles/shared/base.css HTTP/1.1" 304 -
+::1 - - [23/Jun/2026 01:24:39] "GET /styles/pages/home.css HTTP/1.1" 304 -
+::1 - - [23/Jun/2026 01:24:39] "GET /styles/pages/results.css HTTP/1.1" 304 -
+::1 - - [23/Jun/2026 01:24:39] "GET /components/controlBar.js HTTP/1.1" 304 -
+::1 - - [23/Jun/2026 01:24:39] "GET /app/router.js HTTP/1.1" 304 -
+::1 - - [23/Jun/2026 01:24:39] "GET /pages/game/index.js HTTP/1.1" 304 -
+::1 - - [23/Jun/2026 01:24:39] "GET /pages/home/index.js HTTP/1.1" 304 -
+::1 - - [23/Jun/2026 01:24:39] "GET /pages/auth/index.js HTTP/1.1" 304 -
+::1 - - [23/Jun/2026 01:24:39] "GET /pages/setup/index.js HTTP/1.1" 304 -
+::1 - - [23/Jun/2026 01:24:39] "GET /pages/results/index.js HTTP/1.1" 304 -
+::1 - - [23/Jun/2026 01:24:39] "GET /app/i18n.js HTTP/1.1" 304 -
+::1 - - [23/Jun/2026 01:24:40] code 404, message File not found
+::1 - - [23/Jun/2026 01:24:40] "GET /@vite/client HTTP/1.1" 404 -
+::1 - - [23/Jun/2026 01:28:55] "GET / HTTP/1.1" 304 -
+::1 - - [23/Jun/2026 01:28:55] "GET /app/main.js HTTP/1.1" 304 -
+::1 - - [23/Jun/2026 01:28:55] "GET /styles/shared/components.css HTTP/1.1" 304 -
+::1 - - [23/Jun/2026 01:28:55] "GET /styles/shared/base.css HTTP/1.1" 304 -
+::1 - - [23/Jun/2026 01:28:55] "GET /styles/pages/setup.css HTTP/1.1" 304 -
+::1 - - [23/Jun/2026 01:28:55] "GET /styles/pages/auth.css HTTP/1.1" 304 -
+::1 - - [23/Jun/2026 01:28:55] "GET /styles/pages/home.css HTTP/1.1" 200 -
+::1 - - [23/Jun/2026 01:28:55] "GET /styles/pages/game.css HTTP/1.1" 304 -
+::1 - - [23/Jun/2026 01:28:55] "GET /styles/pages/results.css HTTP/1.1" 304 -
+::1 - - [23/Jun/2026 01:28:55] "GET /app/router.js HTTP/1.1" 304 -
+::1 - - [23/Jun/2026 01:28:55] "GET /components/controlBar.js HTTP/1.1" 304 -
+::1 - - [23/Jun/2026 01:28:55] "GET /pages/home/index.js HTTP/1.1" 304 -
+::1 - - [23/Jun/2026 01:28:55] "GET /pages/auth/index.js HTTP/1.1" 304 -
+::1 - - [23/Jun/2026 01:28:55] "GET /pages/setup/index.js HTTP/1.1" 304 -
+::1 - - [23/Jun/2026 01:28:55] "GET /pages/results/index.js HTTP/1.1" 304 -
+::1 - - [23/Jun/2026 01:28:55] "GET /pages/game/index.js HTTP/1.1" 304 -
+::1 - - [23/Jun/2026 01:28:55] "GET /app/i18n.js HTTP/1.1" 304 -
+::1 - - [23/Jun/2026 01:28:55] code 404, message File not found
+::1 - - [23/Jun/2026 01:28:55] "GET /@vite/client HTTP/1.1" 404 -
+::1 - - [23/Jun/2026 01:28:59] code 404, message File not found
+::1 - - [23/Jun/2026 01:28:59] "GET /@vite/client HTTP/1.1" 404 -
+::1 - - [23/Jun/2026 02:12:36] "GET / HTTP/1.1" 200 -
+::1 - - [23/Jun/2026 02:12:37] "GET /app/main.js HTTP/1.1" 200 -
+::1 - - [23/Jun/2026 02:12:37] "GET /styles/shared/base.css HTTP/1.1" 200 -
+::1 - - [23/Jun/2026 02:12:37] "GET /styles/shared/components.css HTTP/1.1" 200 -
+::1 - - [23/Jun/2026 02:12:37] "GET /styles/pages/home.css HTTP/1.1" 200 -
+::1 - - [23/Jun/2026 02:12:37] "GET /styles/pages/setup.css HTTP/1.1" 200 -
+::1 - - [23/Jun/2026 02:12:37] "GET /styles/pages/results.css HTTP/1.1" 304 -
+::1 - - [23/Jun/2026 02:12:37] "GET /styles/pages/auth.css HTTP/1.1" 200 -
+::1 - - [23/Jun/2026 02:12:37] "GET /styles/pages/game.css HTTP/1.1" 200 -
+::1 - - [23/Jun/2026 02:12:37] "GET /app/router.js HTTP/1.1" 200 -
+::1 - - [23/Jun/2026 02:12:37] "GET /components/controlBar.js HTTP/1.1" 200 -
+::1 - - [23/Jun/2026 02:12:37] "GET /pages/home/index.js HTTP/1.1" 200 -
+::1 - - [23/Jun/2026 02:12:37] "GET /pages/auth/index.js HTTP/1.1" 200 -
+::1 - - [23/Jun/2026 02:12:37] "GET /pages/setup/index.js HTTP/1.1" 200 -
+::1 - - [23/Jun/2026 02:12:37] "GET /pages/game/index.js HTTP/1.1" 200 -
+::1 - - [23/Jun/2026 02:12:37] "GET /pages/results/index.js HTTP/1.1" 200 -
+::1 - - [23/Jun/2026 02:12:37] "GET /app/i18n.js HTTP/1.1" 200 -
+::1 - - [23/Jun/2026 02:12:37] "GET /assets/Homepage_Day.jpg HTTP/1.1" 200 -
+::1 - - [23/Jun/2026 02:12:37] code 404, message File not found
+::1 - - [23/Jun/2026 02:12:37] "GET /@vite/client HTTP/1.1" 404 -
+::1 - - [23/Jun/2026 02:22:11] "GET / HTTP/1.1" 304 -
+::1 - - [23/Jun/2026 02:22:11] "GET /app/main.js HTTP/1.1" 304 -
+::1 - - [23/Jun/2026 02:22:11] "GET /styles/shared/base.css HTTP/1.1" 304 -
+::1 - - [23/Jun/2026 02:22:11] "GET /styles/pages/auth.css HTTP/1.1" 304 -
+::1 - - [23/Jun/2026 02:22:11] "GET /styles/shared/components.css HTTP/1.1" 304 -
+::1 - - [23/Jun/2026 02:22:11] "GET /styles/pages/setup.css HTTP/1.1" 304 -
+::1 - - [23/Jun/2026 02:22:11] "GET /styles/pages/home.css HTTP/1.1" 304 -
+::1 - - [23/Jun/2026 02:22:11] "GET /styles/pages/results.css HTTP/1.1" 304 -
+::1 - - [23/Jun/2026 02:22:11] "GET /styles/pages/game.css HTTP/1.1" 304 -
+::1 - - [23/Jun/2026 02:22:11] "GET /app/router.js HTTP/1.1" 304 -
+::1 - - [23/Jun/2026 02:22:11] "GET /components/controlBar.js HTTP/1.1" 304 -
+::1 - - [23/Jun/2026 02:22:11] "GET /pages/home/index.js HTTP/1.1" 304 -
+::1 - - [23/Jun/2026 02:22:11] "GET /pages/setup/index.js HTTP/1.1" 304 -
+::1 - - [23/Jun/2026 02:22:11] "GET /pages/auth/index.js HTTP/1.1" 304 -
+::1 - - [23/Jun/2026 02:22:11] "GET /pages/game/index.js HTTP/1.1" 304 -
+::1 - - [23/Jun/2026 02:22:11] "GET /pages/results/index.js HTTP/1.1" 304 -
+::1 - - [23/Jun/2026 02:22:11] "GET /app/i18n.js HTTP/1.1" 304 -
+::1 - - [23/Jun/2026 02:22:12] code 404, message File not found
+::1 - - [23/Jun/2026 02:22:12] "GET /@vite/client HTTP/1.1" 404 -
+::1 - - [23/Jun/2026 02:22:18] "GET / HTTP/1.1" 200 -
+::1 - - [23/Jun/2026 02:22:19] "GET /app/main.js HTTP/1.1" 200 -
+::1 - - [23/Jun/2026 02:22:19] "GET /styles/main.css HTTP/1.1" 200 -
+::1 - - [23/Jun/2026 02:22:19] "GET /styles/shared/utilities.css HTTP/1.1" 200 -
+::1 - - [23/Jun/2026 02:22:19] "GET /styles/shared/components.css HTTP/1.1" 200 -
+::1 - - [23/Jun/2026 02:22:19] "GET /styles/shared/base.css HTTP/1.1" 200 -
+::1 - - [23/Jun/2026 02:22:19] "GET /styles/pages/auth.css HTTP/1.1" 200 -
+::1 - - [23/Jun/2026 02:22:19] "GET /styles/pages/setup.css HTTP/1.1" 200 -
+::1 - - [23/Jun/2026 02:22:19] "GET /styles/pages/home.css HTTP/1.1" 200 -
+::1 - - [23/Jun/2026 02:22:19] "GET /styles/pages/results.css HTTP/1.1" 200 -
+::1 - - [23/Jun/2026 02:22:19] "GET /styles/pages/game.css HTTP/1.1" 200 -
+::1 - - [23/Jun/2026 02:22:19] "GET /app/router.js HTTP/1.1" 200 -
+::1 - - [23/Jun/2026 02:22:19] "GET /app/state.js HTTP/1.1" 200 -
+::1 - - [23/Jun/2026 02:22:19] "GET /services/storageService.js HTTP/1.1" 200 -
+::1 - - [23/Jun/2026 02:22:19] "GET /components/controlBar.js HTTP/1.1" 200 -
+::1 - - [23/Jun/2026 02:22:19] "GET /services/authService.js HTTP/1.1" 200 -
+::1 - - [23/Jun/2026 02:22:19] "GET /pages/home/index.js HTTP/1.1" 200 -
+::1 - - [23/Jun/2026 02:22:19] "GET /pages/setup/index.js HTTP/1.1" 200 -
+::1 - - [23/Jun/2026 02:22:19] "GET /pages/auth/index.js HTTP/1.1" 200 -
+::1 - - [23/Jun/2026 02:22:19] "GET /pages/game/index.js HTTP/1.1" 200 -
+::1 - - [23/Jun/2026 02:22:19] "GET /pages/results/index.js HTTP/1.1" 200 -
+::1 - - [23/Jun/2026 02:22:19] "GET /app/i18n.js HTTP/1.1" 200 -
+::1 - - [23/Jun/2026 02:22:19] "GET /services/eegBridgeService.js HTTP/1.1" 200 -
+::1 - - [23/Jun/2026 02:22:19] "GET /assets/Homepage_Day.jpg HTTP/1.1" 200 -
+::1 - - [23/Jun/2026 02:22:19] code 404, message File not found
+::1 - - [23/Jun/2026 02:22:19] "GET /favicon.ico HTTP/1.1" 404 -
+::1 - - [23/Jun/2026 02:22:23] "GET /pages/game/runtime.js HTTP/1.1" 200 -
+::1 - - [23/Jun/2026 02:22:23] "GET /bgm/rightanswer.mp3 HTTP/1.1" 200 -
+::1 - - [23/Jun/2026 02:22:23] "GET /bgm/error.mp3 HTTP/1.1" 200 -
+::1 - - [23/Jun/2026 02:22:23] "GET /bgm/nature.mp3 HTTP/1.1" 200 -
+::1 - - [23/Jun/2026 02:22:24] "GET /assets/sky_day%202.hdr HTTP/1.1" 200 -
+::1 - - [23/Jun/2026 02:22:24] "GET /assets/EGGShip2.glb HTTP/1.1" 200 -
+::1 - - [23/Jun/2026 02:22:24] "GET /assets/water_normal.jpg HTTP/1.1" 200 -
+::1 - - [23/Jun/2026 02:22:24] code 404, message File not found
+::1 - - [23/Jun/2026 02:22:24] "GET /assets/foam.jpg HTTP/1.1" 404 -
+::1 - - [23/Jun/2026 02:22:24] "GET /assets/splash.png HTTP/1.1" 200 -
+::1 - - [23/Jun/2026 02:22:24] code 404, message File not found
+::1 - - [23/Jun/2026 02:22:24] "GET /favicon.ico HTTP/1.1" 404 -

@@ -1,0 +1,11 @@
+17:08:48 WebSocket server started on ws://localhost:8765
+17:51:15 Searching for paired MindWave serial port...
+17:51:15 Opening paired MindWave serial port: /dev/cu.MindWaveMobile
+17:51:15 MindWave serial connected: /dev/cu.MindWaveMobile
+17:51:16 MindWave connected but no EEG data yet. Check power and sensor contact.
+17:51:17 Serial connection error on /dev/cu.MindWaveMobile: read failed: [Errno 9] Bad file descriptor
+17:51:22 Searching for paired MindWave serial port...
+17:51:23 Opening paired MindWave serial port: /dev/cu.MindWaveMobile
+17:51:23 MindWave serial connected: /dev/cu.MindWaveMobile
+17:51:24 MindWave connected but no EEG data yet. Check power and sensor contact.
+17:51:51 Serial connection error on /dev/cu.MindWaveMobile: read failed: [Errno 9] Bad file descriptor

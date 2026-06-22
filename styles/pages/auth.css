@@ -1,0 +1,128 @@
+.page-auth,
+.page-setup {
+    display: flex;
+    align-items: center;
+}
+
+.auth-layout,
+.setup-layout {
+    display: grid;
+    grid-template-columns: minmax(260px, 0.8fr) minmax(0, 1fr);
+    gap: 1.2rem;
+    align-items: stretch;
+}
+
+.auth-intro,
+.setup-intro,
+.auth-panel,
+.setup-panel {
+    border-radius: var(--radius-xl);
+}
+
+.auth-intro,
+.setup-intro {
+    padding: clamp(1.25rem, 3vw, 2rem);
+    display: grid;
+    gap: 1rem;
+}
+
+.auth-intro h1,
+.setup-intro h1 {
+    font-family: var(--font-display);
+    font-size: clamp(2.3rem, 5vw, 3.5rem);
+    line-height: 0.95;
+}
+
+.auth-intro p,
+.setup-intro p,
+.auth-intro-points span,
+.setup-flow-list span {
+    color: var(--text-muted);
+}
+
+.auth-intro-points,
+.setup-flow-list {
+    display: grid;
+    gap: 0.8rem;
+}
+
+.auth-intro-points div,
+.setup-flow-list div {
+    padding: 1rem 1.05rem;
+    border-radius: 1rem;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.setup-flow-list div {
+    display: flex;
+    gap: 0.8rem;
+    align-items: center;
+}
+
+.setup-flow-list strong {
+    width: 2.2rem;
+    height: 2.2rem;
+    border-radius: 999px;
+    display: inline-grid;
+    place-items: center;
+    color: #fff;
+    background: linear-gradient(135deg, var(--primary-color), var(--accent-color));
+}
+
+.auth-panel,
+.setup-panel {
+    padding: clamp(1.25rem, 3vw, 2rem);
+    border: 1px solid var(--panel-border);
+    background: var(--panel-bg);
+    box-shadow: var(--shadow-soft);
+    backdrop-filter: blur(18px);
+}
+
+.auth-layout-compact,
+.setup-layout-compact {
+    display: block;
+}
+
+.auth-panel-compact,
+.setup-panel-compact {
+    max-width: 760px;
+    margin: 0 auto;
+}
+
+.auth-card {
+    display: grid;
+    gap: 1rem;
+    position: relative;
+    overflow: hidden;
+}
+
+.auth-card::before {
+    content: '';
+    position: absolute;
+    inset: auto -2rem -2rem auto;
+    width: 10rem;
+    height: 10rem;
+    border-radius: 999px;
+    background: radial-gradient(circle, rgba(93, 168, 184, 0.2), transparent 68%);
+    pointer-events: none;
+}
+
+@media (max-width: 980px) {
+    .auth-layout,
+    .setup-layout {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 720px) {
+    .page-auth,
+    .page-setup {
+        align-items: flex-start;
+    }
+
+    .auth-panel,
+    .setup-panel {
+        padding: 1.1rem;
+    }
+}
