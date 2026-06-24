@@ -1,1 +1,7 @@
 node_modules
+.venv/
+.dbg/
+.vercel/
+bridge_log.txt
+*.log
+*.ndjson

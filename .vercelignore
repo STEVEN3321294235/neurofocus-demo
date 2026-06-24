@@ -5,3 +5,11 @@ dist
 .trae
 .log
 .figma
+.venv
+.dbg
+.vercel
+bridge_log.txt
+debug-*.md
+eeg_bridge.py
+run_eeg_game.sh
+docs/
