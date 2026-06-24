@@ -43,7 +43,15 @@ function isCompactViewport() {
 function getAdaptiveRenderScale() {
     const dpr = window.devicePixelRatio || 1;
     const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-    if (isMobile) return Math.min(dpr, 1.0); // Limit DPR on mobile to 1.0 to prevent severe lag
+    const isWindows = /Windows/i.test(navigator.userAgent);
+    
+    // Limit DPR on mobile to 1.0 to prevent severe lag
+    if (isMobile) return Math.min(dpr, 1.0); 
+    
+    // Windows laptops often struggle with high DPR + PostProcessing (Bloom/SMAA) on integrated graphics
+    // Cap to 1.0 or 1.25 to save battery and boost FPS to 60.
+    if (isWindows) return Math.min(dpr, 1.25); 
+    
     if (isCompactViewport()) return Math.min(dpr, 1.5);
     return Math.min(dpr, 2);
 }

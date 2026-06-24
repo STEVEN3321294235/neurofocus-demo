@@ -173,27 +173,39 @@ class EEGBridge:
         fallback = []
 
         for port in list_ports.comports():
-            device = (port.device or "").lower()
+            device = (port.device or "")
             description = (port.description or "").lower()
-            text = f"{device} {description}"
+            text = f"{device.lower()} {description}"
 
             if "mindwave" in text or "neurosky" in text:
-                preferred.append(port.device)
+                preferred.append(device)
             elif device.startswith("/dev/cu.") and "incoming-port" not in text and "debug-console" not in text:
-                fallback.append(port.device)
+                fallback.append(device)
+            elif device.upper().startswith("COM"):
+                # Windows COM ports fallback
+                fallback.append(device)
 
         if preferred:
             port = preferred[0]
-            tty_port = port.replace("/dev/cu.", "/dev/tty.", 1)
-            if port.startswith("/dev/cu.") and os.path.exists(tty_port):
-                return tty_port
+            if port.startswith("/dev/cu."):
+                tty_port = port.replace("/dev/cu.", "/dev/tty.", 1)
+                if os.path.exists(tty_port):
+                    return tty_port
             return port
+            
         if fallback:
+            # On Windows, there might be multiple COM ports. 
+            # We try the last one first, as it's often the newly added Bluetooth SPP.
+            if any(p.upper().startswith("COM") for p in fallback):
+                return fallback[-1]
+                
             port = fallback[0]
-            tty_port = port.replace("/dev/cu.", "/dev/tty.", 1)
-            if port.startswith("/dev/cu.") and os.path.exists(tty_port):
-                return tty_port
+            if port.startswith("/dev/cu."):
+                tty_port = port.replace("/dev/cu.", "/dev/tty.", 1)
+                if os.path.exists(tty_port):
+                    return tty_port
             return port
+            
         return None
 
     def serial_worker(self):
