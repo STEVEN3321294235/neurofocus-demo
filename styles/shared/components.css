@@ -200,6 +200,37 @@ select:focus {
     color: #fda4af;
 }
 
+html[data-platform='windows'] .info-card,
+html[data-platform='windows'] .comparison-card,
+html[data-platform='windows'] .metric-card,
+html[data-platform='windows'] .auth-card,
+html[data-platform='windows'] .setup-card,
+html[data-platform='windows'] input[type="text"],
+html[data-platform='windows'] input[type="password"],
+html[data-platform='windows'] input[type="email"],
+html[data-platform='windows'] textarea,
+html[data-platform='windows'] select {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+}
+
+html[data-platform='windows'] .info-card,
+html[data-platform='windows'] .comparison-card,
+html[data-platform='windows'] .metric-card,
+html[data-platform='windows'] .auth-card,
+html[data-platform='windows'] .setup-card {
+    box-shadow: 0 10px 24px rgba(15, 23, 42, 0.1);
+}
+
+html[data-platform='windows'] input[type="text"],
+html[data-platform='windows'] input[type="password"],
+html[data-platform='windows'] input[type="email"],
+html[data-platform='windows'] textarea,
+html[data-platform='windows'] select {
+    box-shadow: none;
+    background: var(--field-bg);
+}
+
 .section-heading {
     margin-bottom: 1.2rem;
 }
