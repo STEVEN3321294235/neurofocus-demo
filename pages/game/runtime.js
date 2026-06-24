@@ -9,7 +9,7 @@ import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { SMAAPass } from 'three/addons/postprocessing/SMAAPass.js';
 import { setState } from '../../app/state.js';
-import { getCameraFocusScore, getCameraTrackingStatus } from '../../services/focusInputService.js?v=2026-06-24-23';
+import { getCameraFocusScore, getCameraTrackingStatus, stopCameraPreview } from '../../services/focusInputService.js?v=2026-06-24-23';
 
 // --- Configuration & State ---
 const CONFIG = {
@@ -37,14 +37,13 @@ const CONFIG = {
 let runtimeResultsHandler = null;
 
 function isCompactViewport() {
-    // Only consider it compact if width is very small (mobile phones), not just narrow height on desktop
-    return window.innerWidth < 768;
+    return window.innerWidth < 800 || window.innerHeight < 500;
 }
 
 function getAdaptiveRenderScale() {
     const dpr = window.devicePixelRatio || 1;
-    // Don't degrade heavily just for height. Keep it crisp.
-    if (window.innerWidth <= 540) return Math.min(dpr, 1.5);
+    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+    if (isMobile) return Math.min(dpr, 1.0); // Limit DPR on mobile to 1.0 to prevent severe lag
     if (isCompactViewport()) return Math.min(dpr, 1.5);
     return Math.min(dpr, 2);
 }
@@ -229,29 +228,36 @@ const ROUTER = {
 // --- Game Stats & Persistence ---
 const GAME_STATS = {
     saveBest(distance, accuracy, timeMs) {
-        const bestDist = parseFloat(localStorage.getItem('best_distance') || '0');
-        const bestAcc = parseFloat(localStorage.getItem('best_accuracy') || '0');
-        const bestTime = parseFloat(localStorage.getItem('best_time') || '999999999'); // Lower is better? Or maybe longest time? Usually time is "speedrun" style (lower better) or "survival" (higher better).
-        // For this game, it's 10 questions. So faster is better? Or just "Time Taken".
-        // Let's assume Time Taken (Lower is better).
-        
-        const isNewDist = distance > bestDist;
-        const isNewAcc = accuracy > bestAcc;
-        const isNewTime = timeMs < bestTime && accuracy === 100; // Only track best time for perfect runs? Or just best time. Let's say best time regardless.
-        
-        if (distance > bestDist) localStorage.setItem('best_distance', distance.toFixed(1));
-        if (accuracy > bestAcc) localStorage.setItem('best_accuracy', accuracy.toFixed(1));
-        if (timeMs < bestTime) localStorage.setItem('best_time', timeMs.toString());
-        
-        return { isNewDist, isNewAcc, isNewTime };
+        try {
+            const bestDist = parseFloat(localStorage.getItem('best_distance') || '0');
+            const bestAcc = parseFloat(localStorage.getItem('best_accuracy') || '0');
+            const bestTime = parseFloat(localStorage.getItem('best_time') || '999999999'); 
+            
+            const isNewDist = distance > bestDist;
+            const isNewAcc = accuracy > bestAcc;
+            const isNewTime = timeMs < bestTime && accuracy === 100;
+            
+            if (distance > bestDist) localStorage.setItem('best_distance', distance.toFixed(1));
+            if (accuracy > bestAcc) localStorage.setItem('best_accuracy', accuracy.toFixed(1));
+            if (timeMs < bestTime) localStorage.setItem('best_time', timeMs.toString());
+            
+            return { isNewDist, isNewAcc, isNewTime };
+        } catch (e) {
+            console.warn('localStorage error:', e);
+            return { isNewDist: false, isNewAcc: false, isNewTime: false };
+        }
     },
     
     getBest() {
-        return {
-            distance: localStorage.getItem('best_distance') || '—',
-            accuracy: localStorage.getItem('best_accuracy') || '—',
-            time: localStorage.getItem('best_time') || '—'
-        };
+        try {
+            return {
+                distance: localStorage.getItem('best_distance') || '—',
+                accuracy: localStorage.getItem('best_accuracy') || '—',
+                time: localStorage.getItem('best_time') || '—'
+            };
+        } catch (e) {
+            return { distance: '—', accuracy: '—', time: '—' };
+        }
     },
     
     formatTime(ms) {
@@ -2996,8 +3002,10 @@ function init3DScene() {
     
     // 3. Renderer
     const compactViewport = isCompactViewport();
+    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+    
     renderer = new THREE.WebGLRenderer({
-        antialias: true,
+        antialias: !isMobile, // Disable antialiasing on mobile for performance
         alpha: true,
         powerPreference: 'high-performance'
     }); 
@@ -4712,6 +4720,12 @@ function disposeGameSession() {
     if (countdown) {
         countdown.classList.remove('active');
         countdown.style.display = 'none';
+    }
+
+    try {
+        stopCameraPreview();
+    } catch (e) {
+        console.warn('Error stopping camera preview:', e);
     }
 
     leaveEEGMode(false);

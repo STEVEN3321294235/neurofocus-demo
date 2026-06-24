@@ -1,5 +1,6 @@
 .page-game {
     padding: 0;
+    background-color: #06101d;
 }
 
 #canvas-container {
@@ -1077,6 +1078,66 @@
     #question-panel {
         bottom: calc(env(safe-area-inset-bottom, 0px) + 4.85rem);
         max-height: min(46vh, 20rem);
+    }
+}
+
+/* Mobile Landscape Optimizations (e.g. iPhone horizontal) */
+@media (max-height: 450px) and (orientation: landscape) {
+    #ui-container {
+        --game-side-panel-width: clamp(10rem, 20vw, 15rem);
+        --game-hud-padding: 0.4rem;
+        --game-hud-font: 0.65rem;
+        --game-hud-font-sm: 0.55rem;
+    }
+
+    #user-info {
+        top: 0.5rem;
+        left: max(0.5rem, env(safe-area-inset-left));
+        font-size: 0.7rem;
+    }
+
+    #top-bar {
+        top: 0.5rem;
+        right: max(0.5rem, env(safe-area-inset-right));
+    }
+
+    .top-buttons button {
+        min-height: 32px;
+        padding: 0.4rem 0.8rem;
+        font-size: 0.75rem;
+    }
+
+    #focus-indicator {
+        top: 2.5rem;
+        left: max(0.5rem, env(safe-area-inset-left));
+    }
+
+    #question-panel {
+        top: 2.5rem;
+        right: max(0.5rem, env(safe-area-inset-right));
+    }
+
+    #play-time-display {
+        left: max(0.5rem, env(safe-area-inset-left));
+        bottom: max(0.5rem, env(safe-area-inset-bottom));
+        font-size: 1.2rem;
+    }
+
+    #score-display {
+        right: max(0.5rem, env(safe-area-inset-right));
+        bottom: max(0.5rem, env(safe-area-inset-bottom));
+        font-size: 1.2rem;
+    }
+
+    #streak-display {
+        right: max(0.5rem, env(safe-area-inset-right));
+        bottom: max(2.5rem, env(safe-area-inset-bottom) + 2rem);
+        font-size: 1.2rem;
+    }
+    
+    .status-chip {
+        padding: 0.1rem 0.3rem;
+        font-size: 0.5rem;
     }
 }
 

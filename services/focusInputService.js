@@ -134,7 +134,9 @@ async function predictWebcam() {
 
     const now = performance.now();
     const currentTime = hiddenVideoEl.currentTime;
-    const shouldProcessFrame = lastVideoTime !== currentTime || (now - lastPredictionAt) >= 250;
+    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+    const predictionInterval = isMobile ? 150 : 60; // 150ms (~6 fps) for mobile, 60ms (~16 fps) for desktop
+    const shouldProcessFrame = lastVideoTime !== currentTime && (now - lastPredictionAt) >= predictionInterval;
     if (shouldProcessFrame) {
         lastVideoTime = currentTime;
         lastPredictionAt = now;

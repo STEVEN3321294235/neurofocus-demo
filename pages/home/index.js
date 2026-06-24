@@ -2,6 +2,7 @@ import { getState, setState } from '../../app/state.js';
 import { setLang as persistLang, setTheme as persistTheme } from '../../services/storageService.js';
 import { applyStoredTheme } from '../../components/controlBar.js?v=2026-06-24-21';
 import { importGameRuntime } from '../../services/runtimeLoader.js?v=2026-06-24-21';
+import { stopCameraPreview } from '../../services/focusInputService.js?v=2026-06-24-23';
 
 // #region debug-point A:home-report
 const DEBUG_SERVER_URL = window.__TRAE_DEBUG_SERVER_URL__ || null;
@@ -58,19 +59,19 @@ export default {
             : 'assets/Homepage_Moon_2.jpg';
         return `
             <main class="page page-home page-home-stitch">
-                <nav class="fixed top-0 left-0 right-0 z-50 glass-panel border-b border-slate-200 dark:border-white/10 transition-all duration-500">
-                    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                        <div class="home-nav-shell flex flex-wrap items-center justify-between gap-x-4 gap-y-3 py-4 md:h-20 md:flex-nowrap">
-                            <div class="flex-shrink-0 flex items-center gap-2 cursor-pointer transition-transform duration-300 hover:scale-105">
-                                <span class="material-symbols-outlined text-primary text-4xl">psychology</span>
-                                <span class="font-display font-bold text-2xl tracking-tight dark:text-white text-slate-900 transition-colors duration-500">
-                                    ${dualText('Floating boat adventure on attention training', '專注力訓練飄浮船探險')}
+                <nav class="fixed top-0 left-0 right-0 z-50 glass-panel border-b border-slate-200 dark:border-white/10 transition-all duration-500 overflow-hidden">
+                    <div class="max-w-7xl mx-auto px-2 sm:px-6 lg:px-8">
+                        <div class="flex items-center justify-between py-2 md:py-4 h-14 md:h-20 gap-2 md:gap-4 overflow-x-auto no-scrollbar">
+                            <div class="flex-shrink-0 flex items-center gap-1.5 cursor-pointer transition-transform duration-300 hover:scale-105">
+                                <span class="material-symbols-outlined text-primary text-2xl md:text-4xl">psychology</span>
+                                <span class="font-display font-bold text-base md:text-2xl tracking-tight dark:text-white text-slate-900 transition-colors duration-500 whitespace-nowrap">
+                                    ${dualText('NeuroFocus', 'NeuroFocus')}
                                 </span>
                             </div>
-                            <div class="home-control-row flex w-full items-center justify-end gap-3 md:w-auto md:flex-nowrap md:justify-start md:gap-6">
+                            <div class="flex items-center justify-end gap-1.5 md:gap-6 flex-shrink-0">
                                 ${renderThemeToggle(state.theme)}
                                 ${renderLanguageToggle(state.lang)}
-                                <button type="button" class="bg-primary hover:bg-[#4a8a98] text-white px-6 py-2.5 rounded-full text-sm font-semibold shadow-lg shadow-primary/20 transition-all duration-300 hover:-translate-y-0.5 border border-transparent" data-enter-app>
+                                <button type="button" class="bg-primary hover:bg-[#4a8a98] text-white px-4 py-1.5 md:px-6 md:py-2.5 rounded-full text-xs md:text-sm font-semibold shadow-lg shadow-primary/20 transition-all duration-300 hover:-translate-y-0.5 border border-transparent whitespace-nowrap" data-enter-app>
                                     ${dualText('Start', '進入遊戲')}
                                 </button>
                             </div>
@@ -346,6 +347,10 @@ export default {
     },
 
     mount({ root, router }) {
+        try {
+            stopCameraPreview();
+        } catch (e) {}
+
         // #region debug-point A:home-mounted
         reportHomeDebug('A', 'spa home page mounted', {
             sectionCount: root.querySelectorAll('section').length,
