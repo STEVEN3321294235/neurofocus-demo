@@ -26,4 +26,13 @@
 
 ## Status
 
-- Awaiting instrumentation.
+- Instrumentation complete.
+- Evidence collected from Windows:
+  - Homepage rAF sample is ~31-32 FPS.
+  - `devicePixelRatio` is only `0.9375`, so high-DPR overdraw is rejected.
+  - No homepage evidence indicates eager `importGameRuntime()` during initial load.
+- Confirmed root cause:
+  - Windows homepage performance is dominated by CSS visual effects, especially layered glassmorphism blur, large shadowed overlay cards, image filters, and looping float/pulse animations.
+- Minimal fix applied:
+  - Add `html[data-platform="windows"]` platform flag.
+  - Reduce homepage-only effects on Windows by disabling blur filters, hover image scaling, heavy image filters, and continuous float/radar animations.

@@ -269,6 +269,46 @@ body[data-lang='en'] .lang-hk {
     100% { transform: translateY(0px); }
 }
 
+html[data-platform='windows'] .glass-panel,
+html[data-platform='windows'] .glass-card,
+html[data-platform='windows'] .glass-btn,
+html[data-platform='windows'] .hero-overlay-card,
+html[data-platform='windows'] .hero-note-pill {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+}
+
+html[data-platform='windows'] .glass-panel {
+    background: rgba(15, 23, 32, 0.94);
+}
+
+html[data-platform='windows']:not(.dark) .glass-panel,
+html[data-platform='windows']:not(.dark) .glass-card,
+html[data-platform='windows']:not(.dark) .glass-btn,
+html[data-platform='windows']:not(.dark) .hero-overlay-card,
+html[data-platform='windows']:not(.dark) .hero-note-pill {
+    background: rgba(255, 255, 255, 0.96);
+}
+
+html[data-platform='windows'] .glass-card,
+html[data-platform='windows'] .hero-overlay-card {
+    box-shadow: 0 10px 24px rgba(15, 23, 42, 0.12);
+}
+
+html[data-platform='windows'] .brain-visual {
+    filter: none;
+    transform: none;
+}
+
+html[data-platform='windows'] .hero-visual-frame:hover .brain-visual {
+    transform: none;
+}
+
+html[data-platform='windows'] .animate-float,
+html[data-platform='windows'] .radar-ring {
+    animation: none;
+}
+
 @media (max-width: 767px) {
     .home-nav-shell {
         align-items: flex-start;

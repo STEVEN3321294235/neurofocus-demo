@@ -42,6 +42,7 @@ async function bootstrap() {
 
     document.body.dataset.lang = lang;
     document.documentElement.lang = lang === 'hk' ? 'zh-HK' : 'en';
+    document.documentElement.dataset.platform = /Windows/i.test(navigator.userAgent) ? 'windows' : 'default';
     applyStoredTheme(theme);
 
     await initRouter(document.getElementById('app-root'));
