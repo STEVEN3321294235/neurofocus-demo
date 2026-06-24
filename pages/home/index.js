@@ -5,13 +5,14 @@ import { importGameRuntime } from '../../services/runtimeLoader.js?v=2026-06-24-
 import { stopCameraPreview } from '../../services/focusInputService.js?v=2026-06-24-23';
 
 // #region debug-point A:home-report
-const DEBUG_SERVER_URL = window.__TRAE_DEBUG_SERVER_URL__ || null;
+const DEBUG_SERVER_URL = window.__TRAE_DEBUG_SERVER_URL__ || localStorage.getItem('__TRAE_DEBUG_SERVER_URL__') || null;
+const DEBUG_SESSION_ID = 'windows-home-fps';
 const reportHomeDebug = (hypothesisId, msg, data = {}) => {
     if (!DEBUG_SERVER_URL) return Promise.resolve();
     return fetch(DEBUG_SERVER_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sessionId: 'stitch-layout-game-render', runId: 'post-fix', hypothesisId, location: 'pages/home/index.js', msg: `[DEBUG] ${msg}`, data, ts: Date.now() })
+        body: JSON.stringify({ sessionId: DEBUG_SESSION_ID, runId: 'pre-fix', hypothesisId, location: 'pages/home/index.js', msg: `[DEBUG] ${msg}`, data, ts: Date.now() })
     }).catch(() => {});
 };
 // #endregion
@@ -358,8 +359,38 @@ export default {
             hasStitchMarkup: root.innerHTML.includes('glass-panel') || root.innerHTML.includes('bg-gradient-light'),
             stylesheetCount: document.styleSheets.length,
             computedBackground: window.getComputedStyle(root.querySelector('.brain-visual') || root).backgroundImage || null,
-            titleFontFamily: window.getComputedStyle(root.querySelector('.home-title-stitch') || root).fontFamily || null
+            titleFontFamily: window.getComputedStyle(root.querySelector('.home-title-stitch') || root).fontFamily || null,
+            userAgent: navigator.userAgent,
+            devicePixelRatio: window.devicePixelRatio || 1,
+            viewport: `${window.innerWidth}x${window.innerHeight}`,
+            hardwareConcurrency: navigator.hardwareConcurrency || null,
+            memoryGb: navigator.deviceMemory || null,
+            fadeElementCount: root.querySelectorAll('.fade-up-element').length,
+            animatedFloatCount: root.querySelectorAll('.animate-float').length,
+            glassCardCount: root.querySelectorAll('.glass-card, .glass-panel, .glass-btn').length
         });
+        // #endregion
+
+        // #region debug-point B:home-raf-sample
+        let frameCount = 0;
+        let firstTs = 0;
+        let lastTs = 0;
+        const sampleFrames = (ts) => {
+            if (!firstTs) firstTs = ts;
+            lastTs = ts;
+            frameCount += 1;
+            if (frameCount < 30) {
+                window.requestAnimationFrame(sampleFrames);
+                return;
+            }
+            const elapsed = Math.max(1, lastTs - firstTs);
+            reportHomeDebug('B', 'home raf sample complete', {
+                frameCount,
+                elapsedMs: Math.round(elapsed),
+                approxFps: Math.round((frameCount / elapsed) * 1000)
+            });
+        };
+        window.requestAnimationFrame(sampleFrames);
         // #endregion
 
         const fadeUpElements = root.querySelectorAll('.fade-up-element');
