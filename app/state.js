@@ -6,7 +6,9 @@ const state = {
     authView: 'login',
     inputMode: 'idle',
     setupStep: 'mode',
-    difficulty: null
+    difficulty: null,
+    cameraConsent: 'unknown',
+    focusSource: 'simulation-fallback'
 };
 
 const listeners = new Set();
@@ -32,6 +34,8 @@ export function resetFlowState() {
         inputMode: 'idle',
         setupStep: 'mode',
         difficulty: null,
-        authView: 'login'
+        authView: 'login',
+        cameraConsent: 'unknown',
+        focusSource: 'simulation-fallback'
     });
 }

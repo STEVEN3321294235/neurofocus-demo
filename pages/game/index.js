@@ -1,16 +1,17 @@
 import { getState, resetFlowState, setState } from '../../app/state.js';
-import { t } from '../../app/i18n.js';
+import { t } from '../../app/i18n.js?v=2026-06-24-21';
 import { logout } from '../../services/authService.js';
-import { disposeMode, syncRuntimeState } from '../../services/eegBridgeService.js';
+import { disposeMode, syncRuntimeState } from '../../services/eegBridgeService.js?v=2026-06-24-21';
+import { importGameRuntime } from '../../services/runtimeLoader.js?v=2026-06-24-21';
 
 async function getRuntime() {
-    return import('./runtime.js');
+    return importGameRuntime('/pages/game/runtime.js');
 }
 
 // #region debug-point C:game-page-report
 const DEBUG_SERVER_URL = window.__TRAE_DEBUG_SERVER_URL__ || null;
 const reportGamePageDebug = (hypothesisId, msg, data = {}) => {
-    if (!DEBUG_SERVER_URL) return Promise.resolve();
+    if (!DEBUG_SERVER_URL || DEBUG_SERVER_URL.includes('127.0.0.1:7777')) return Promise.resolve();
     return fetch(DEBUG_SERVER_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -27,7 +28,14 @@ export default {
                 <div id="canvas-container"></div>
                 <div id="ui-container">
                     <div id="portrait-warning">
-                        <div class="warning-icon">Rotate</div>
+                        <div class="warning-icon" aria-hidden="true">
+                            <span class="warning-arc warning-arc-left"></span>
+                            <span class="warning-arc warning-arc-right"></span>
+                            <span class="warning-phone">
+                                <span class="warning-speaker"></span>
+                                <span class="warning-home"></span>
+                            </span>
+                        </div>
                         <h2>${t('game_rotate_title')}</h2>
                         <p>${t('game_rotate_desc')}</p>
                     </div>
@@ -87,6 +95,10 @@ export default {
                     <div id="question-panel" style="display: none;">
                         <div class="hologram"></div>
                         <div class="header" id="question-header">${t('game_question_title')}</div>
+                        <div class="meta-row">
+                            <span id="question-skill-chip" class="question-meta-chip">Logic</span>
+                            <span id="question-band-chip" class="question-meta-chip">Ages 11-13</span>
+                        </div>
                         <div class="content" id="question-text">${t('game_loading_text')}</div>
                         <div class="options" id="question-options"></div>
                         <div class="timer" id="question-timer"></div>
@@ -126,6 +138,9 @@ export default {
             user: state.currentUser,
             lang: state.lang,
             difficulty: state.difficulty,
+            inputMode: state.inputMode,
+            focusSource: state.focusSource,
+            cameraConsent: state.cameraConsent,
             onResults: () => router.navigate('results')
         });
         runtime.switchLanguage(state.lang);

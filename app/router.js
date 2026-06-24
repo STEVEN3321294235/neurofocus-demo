@@ -1,17 +1,15 @@
 import { setState } from './state.js';
-import homePage from '../pages/home/index.js';
-import authPage from '../pages/auth/index.js';
-import setupPage from '../pages/setup/index.js';
-import gamePage from '../pages/game/index.js';
-import resultsPage from '../pages/results/index.js';
+import { importVersionedModule } from '../services/runtimeLoader.js?v=2026-06-24-23';
 
-const pages = {
-    home: homePage,
-    auth: authPage,
-    setup: setupPage,
-    game: gamePage,
-    results: resultsPage
+const pageModulePaths = {
+    home: '/pages/home/index.js',
+    auth: '/pages/auth/index.js',
+    setup: '/pages/setup/index.js',
+    game: '/pages/game/index.js',
+    results: '/pages/results/index.js'
 };
+
+const pageCache = new Map();
 
 // #region debug-point B:router-report
 const DEBUG_SERVER_URL = window.__TRAE_DEBUG_SERVER_URL__ || null;
@@ -32,7 +30,15 @@ let pendingRefresh = false;
 
 function normalizeRoute(hash) {
     const cleaned = String(hash || '#home').replace(/^#/, '') || 'home';
-    return pages[cleaned] ? cleaned : 'home';
+    return pageModulePaths[cleaned] ? cleaned : 'home';
+}
+
+async function loadPage(route) {
+    if (pageCache.has(route)) return pageCache.get(route);
+    const module = await importVersionedModule(pageModulePaths[route] || pageModulePaths.home);
+    const page = module.default || module;
+    pageCache.set(route, page);
+    return page;
 }
 
 async function renderRoute() {
@@ -58,13 +64,13 @@ async function renderRoute() {
             await currentPage.unmount();
         }
 
-        const page = pages[route] || pages.home;
+        const page = await loadPage(route);
         rootNode.innerHTML = page.render();
         currentPage = page;
         // #region debug-point B:route-html-applied
         reportRouterDebug('B', 'router applied page html', {
             route,
-            pageName: page === pages.home ? 'home' : route,
+            pageName: route,
             hasHomeShell: Boolean(rootNode.querySelector('.home-shell')),
             hasCanvasContainer: Boolean(rootNode.querySelector('#canvas-container'))
         });

@@ -1,7 +1,6 @@
-import { initRouter } from './router.js';
 import { setState } from './state.js';
-import { applyStoredTheme } from '../components/controlBar.js';
 import { getSessionUser } from '../services/authService.js';
+import { importVersionedModule } from '../services/runtimeLoader.js?v=2026-06-24-23';
 import { getLang, getTheme } from '../services/storageService.js';
 
 // #region debug-point A:main-report
@@ -17,6 +16,11 @@ const reportMainDebug = (hypothesisId, msg, data = {}) => {
 // #endregion
 
 async function bootstrap() {
+    const [{ initRouter }, { applyStoredTheme }] = await Promise.all([
+        importVersionedModule('/app/router.js'),
+        importVersionedModule('/components/controlBar.js')
+    ]);
+
     const lang = getLang();
     const theme = getTheme();
     const sessionUser = getSessionUser();

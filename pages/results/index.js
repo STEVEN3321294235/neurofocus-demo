@@ -1,10 +1,11 @@
-import { renderControlBar, bindControlBar } from '../../components/controlBar.js';
-import { t } from '../../app/i18n.js';
+import { renderControlBar, bindControlBar } from '../../components/controlBar.js?v=2026-06-24-21';
+import { t } from '../../app/i18n.js?v=2026-06-24-21';
 import { getState, resetFlowState, setState } from '../../app/state.js';
-import { disposeMode, syncRuntimeState } from '../../services/eegBridgeService.js';
+import { disposeMode, syncRuntimeState } from '../../services/eegBridgeService.js?v=2026-06-24-21';
+import { importGameRuntime } from '../../services/runtimeLoader.js?v=2026-06-24-21';
 
 async function getRuntime() {
-    return import('../game/runtime.js');
+    return importGameRuntime('/pages/game/runtime.js');
 }
 
 export default {
@@ -43,6 +44,27 @@ export default {
                             </div>
                         </div>
 
+                        <section class="results-training-panel" aria-labelledby="results-training-title">
+                            <div class="results-training-header">
+                                <h2 id="results-training-title">${t('results_training_title')}</h2>
+                                <p>${t('results_training_lead')}</p>
+                            </div>
+                            <div class="results-insights-grid">
+                                <div class="stat-card">
+                                    <span class="stat-icon">${t('results_focus_rate')}</span>
+                                    <div class="stat-value" id="res-focus-rate">0%</div>
+                                </div>
+                                <div class="stat-card">
+                                    <span class="stat-icon">${t('results_recovery_time')}</span>
+                                    <div class="stat-value" id="res-recovery-time">--</div>
+                                </div>
+                                <div class="stat-card">
+                                    <span class="stat-icon">${t('results_breathing_count')}</span>
+                                    <div class="stat-value" id="res-breathing-count">0</div>
+                                </div>
+                            </div>
+                        </section>
+
                         <div id="wrong-answers-list"></div>
 
                         <div class="results-actions">
@@ -59,7 +81,14 @@ export default {
         bindControlBar(root, { refresh: router.refresh });
         const state = getState();
         const runtime = await getRuntime();
-        await syncRuntimeState({ user: state.currentUser, lang: state.lang, difficulty: state.difficulty });
+        await syncRuntimeState({
+            user: state.currentUser,
+            lang: state.lang,
+            difficulty: state.difficulty,
+            inputMode: state.inputMode,
+            focusSource: state.focusSource,
+            cameraConsent: state.cameraConsent
+        });
         runtime.switchLanguage(state.lang);
         runtime.renderResults();
 

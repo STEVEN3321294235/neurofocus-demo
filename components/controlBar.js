@@ -1,5 +1,6 @@
 import { getState, setState } from '../app/state.js';
 import { setLang as persistLang, setTheme as persistTheme } from '../services/storageService.js';
+import { importGameRuntime } from '../services/runtimeLoader.js?v=2026-06-24-21';
 
 function applyTheme(theme) {
     document.body.classList.toggle('light-mode', theme === 'light');
@@ -46,7 +47,7 @@ export function bindControlBar(root, { refresh } = {}) {
             applyTheme(next);
 
             try {
-                const runtime = await import('../pages/game/runtime.js');
+                const runtime = await importGameRuntime('/pages/game/runtime.js');
                 runtime.switchEnvironment(next === 'light' ? 'day' : 'night');
             } catch (error) {
                 // Ignore until the game runtime is loaded.

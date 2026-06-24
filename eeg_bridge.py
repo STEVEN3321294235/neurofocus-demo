@@ -1,7 +1,9 @@
 import asyncio
 import json
+import os
 import threading
 import time
+import urllib.request
 
 import serial
 import websockets
@@ -11,6 +13,8 @@ from serial.tools import list_ports
 BAUD_RATE = 57600
 PORT_RETRY_SECONDS = 3
 NO_DATA_WARN_SECONDS = 5
+DEBUG_SERVER_URL = "http://127.0.0.1:7777/event"
+DEBUG_SESSION_ID = "eeg-mac-bridge"
 
 
 class EEGBridge:
@@ -33,6 +37,30 @@ class EEGBridge:
     def log(self, msg):
         ts = time.strftime("%H:%M:%S")
         print(f"{ts} {msg}", flush=True)
+
+    # #region debug-point shared:bridge-report
+    def report_debug(self, hypothesis_id, msg, data=None):
+        payload = {
+            "sessionId": DEBUG_SESSION_ID,
+            "runId": "pre-fix",
+            "hypothesisId": hypothesis_id,
+            "location": "eeg_bridge.py",
+            "msg": f"[DEBUG] {msg}",
+            "data": data or {},
+            "ts": int(time.time() * 1000),
+        }
+        try:
+            urllib.request.urlopen(
+                urllib.request.Request(
+                    DEBUG_SERVER_URL,
+                    data=json.dumps(payload).encode(),
+                    headers={"Content-Type": "application/json"},
+                ),
+                timeout=1,
+            ).read()
+        except Exception:
+            pass
+    # #endregion
 
     async def start(self):
         self.loop = asyncio.get_running_loop()
@@ -58,6 +86,9 @@ class EEGBridge:
 
     async def ws_handler(self, websocket):
         self.clients.add(websocket)
+        # #region debug-point B:ws-client-connected
+        self.report_debug("B", "bridge websocket client connected", {"client_count": len(self.clients)})
+        # #endregion
         await websocket.send(json.dumps({"type": "status", "message": "Bridge Connected. Choose EEG Equipment to start."}))
         if self.last_status_message:
             await websocket.send(json.dumps({"type": "status", "message": self.last_status_message}))
@@ -70,12 +101,18 @@ class EEGBridge:
 
                 action = message.get("action")
                 if action == "start_eeg":
+                    # #region debug-point B:start-eeg-received
+                    self.report_debug("B", "bridge received start_eeg action", {"raw_message": message})
+                    # #endregion
                     self.permission_blocked = False
                     self.reset_state()
                     self.close_serial()
                     self.capture_enabled = True
                     self.enqueue_status("Searching for paired MindWave serial port...", force=True)
                 elif action == "stop_eeg":
+                    # #region debug-point B:stop-eeg-received
+                    self.report_debug("B", "bridge received stop_eeg action", {"raw_message": message})
+                    # #endregion
                     self.permission_blocked = False
                     self.capture_enabled = False
                     self.reset_state()
@@ -146,9 +183,17 @@ class EEGBridge:
                 fallback.append(port.device)
 
         if preferred:
-            return preferred[0]
+            port = preferred[0]
+            tty_port = port.replace("/dev/cu.", "/dev/tty.", 1)
+            if port.startswith("/dev/cu.") and os.path.exists(tty_port):
+                return tty_port
+            return port
         if fallback:
-            return fallback[0]
+            port = fallback[0]
+            tty_port = port.replace("/dev/cu.", "/dev/tty.", 1)
+            if port.startswith("/dev/cu.") and os.path.exists(tty_port):
+                return tty_port
+            return port
         return None
 
     def serial_worker(self):
@@ -163,18 +208,30 @@ class EEGBridge:
 
             port = self.find_paired_mindwave_port()
             if not port:
+                # #region debug-point E:no-port-found
+                self.report_debug("E", "bridge could not find paired mindwave port", {})
+                # #endregion
                 self.enqueue_status("MindWave not found. Please pair the headset in macOS Bluetooth first.")
                 time.sleep(PORT_RETRY_SECONDS)
                 continue
 
             try:
                 self.current_port = port
+                # #region debug-point C:serial-open-attempt
+                self.report_debug("C", "bridge opening serial port", {"port": port, "capture_enabled": self.capture_enabled})
+                # #endregion
                 self.enqueue_status(f"Opening paired MindWave serial port: {port}", force=True)
                 self.serial_conn = serial.Serial(port, BAUD_RATE, timeout=1)
+                # #region debug-point C:serial-open-success
+                self.report_debug("C", "bridge serial port opened", {"port": port})
+                # #endregion
                 self.enqueue_status(f"MindWave serial connected: {port}", force=True)
                 self.read_serial_stream()
             except Exception as e:
                 err_text = str(e)
+                # #region debug-point E:serial-open-failed
+                self.report_debug("E", "bridge serial open failed", {"port": port, "message": err_text})
+                # #endregion
                 if "Operation not permitted" in err_text:
                     self.permission_blocked = True
                     self.capture_enabled = False
@@ -195,13 +252,36 @@ class EEGBridge:
             except Exception:
                 pass
         self.serial_conn = None
+        self.current_port = None
 
     def read_serial_stream(self):
         buffer = bytearray()
 
         while self.running and self.capture_enabled and self.serial_conn and self.serial_conn.is_open:
-            chunk = self.serial_conn.read(256)
+            try:
+                chunk = self.serial_conn.read(256)
+            except Exception as e:
+                err_text = str(e)
+                # #region debug-point D:serial-read-ended
+                self.report_debug("D", "bridge serial read loop ended", {
+                    "port": self.current_port,
+                    "capture_enabled": self.capture_enabled,
+                    "client_count": len(self.clients),
+                    "message": err_text,
+                })
+                # #endregion
+                if self.capture_enabled and "Bad file descriptor" not in err_text:
+                    self.enqueue_status(f"Serial connection error on {self.current_port}: {e}", force=True)
+                break
             if chunk:
+                if self.last_data_time == 0:
+                    # #region debug-point D:first-serial-bytes
+                    self.report_debug("D", "bridge received first serial bytes", {
+                        "port": self.current_port,
+                        "byte_count": len(chunk),
+                        "hex_preview": chunk[:16].hex(),
+                    })
+                    # #endregion
                 buffer.extend(chunk)
                 self.process_buffer(buffer)
             else:

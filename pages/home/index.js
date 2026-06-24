@@ -1,6 +1,7 @@
 import { getState, setState } from '../../app/state.js';
 import { setLang as persistLang, setTheme as persistTheme } from '../../services/storageService.js';
-import { applyStoredTheme } from '../../components/controlBar.js';
+import { applyStoredTheme } from '../../components/controlBar.js?v=2026-06-24-21';
+import { importGameRuntime } from '../../services/runtimeLoader.js?v=2026-06-24-21';
 
 // #region debug-point A:home-report
 const DEBUG_SERVER_URL = window.__TRAE_DEBUG_SERVER_URL__ || null;
@@ -53,8 +54,8 @@ export default {
     render() {
         const state = getState();
         const heroVisualSrc = state.theme === 'light'
-            ? 'assets/Homepage_Day.jpg'
-            : 'assets/Homepage_Moon.jpg';
+            ? 'assets/Homepage_Day_2.jpg'
+            : 'assets/Homepage_Moon_2.jpg';
         return `
             <main class="page page-home page-home-stitch">
                 <nav class="fixed top-0 left-0 right-0 z-50 glass-panel border-b border-slate-200 dark:border-white/10 transition-all duration-500">
@@ -392,7 +393,7 @@ export default {
                 setState({ theme: next });
                 applyStoredTheme(next);
                 try {
-                    const runtime = await import('../game/runtime.js');
+                    const runtime = await importGameRuntime('/pages/game/runtime.js');
                     runtime.switchEnvironment(next === 'light' ? 'day' : 'night');
                 } catch (error) {
                     // Ignore until the game runtime is loaded.

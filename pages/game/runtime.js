@@ -8,16 +8,20 @@ import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { SMAAPass } from 'three/addons/postprocessing/SMAAPass.js';
+import { setState } from '../../app/state.js';
+import { getCameraFocusScore, getCameraTrackingStatus } from '../../services/focusInputService.js?v=2026-06-24-23';
 
 // --- Configuration & State ---
 const CONFIG = {
-    // SECURITY NOTE: In a real production app, never hardcode API keys. 
-    // Use a backend proxy. For this prototype, we check localStorage first.
-    deepseekApiKey: localStorage.getItem('deepseek_api_key') || "sk-34b023fc593e4cc6b5b2c7c5d8fda6b7", 
+    // SECURITY NOTE: In a real production app, never hardcode API keys.
+    // Use a backend proxy. For this prototype, only read the latest user-provided key.
+    deepseekApiKey: String(localStorage.getItem('deepseek_api_key') || '').trim(),
     apiUrl: "https://api.deepseek.com/chat/completions",
     currentLang: "hk",
     currentUser: null,
     difficulty: "easy",
+    focusSource: 'simulation-fallback',
+    cameraConsent: 'unknown',
     score: 0,
     wrongAnswers: [],
     streak: 0,
@@ -33,49 +37,103 @@ const CONFIG = {
 let runtimeResultsHandler = null;
 
 function isCompactViewport() {
-    return Math.min(window.innerWidth, window.innerHeight) < 820 || (window.devicePixelRatio || 1) > 1.8;
+    // Only consider it compact if width is very small (mobile phones), not just narrow height on desktop
+    return window.innerWidth < 768;
 }
 
-function getFallbackQuestions() {
-    return langText([
-        {
-            question: '小明將一疊書平均放入 3 個書架，每個書架有 12 本，請問總共有幾多本書？',
-            options: ['24本', '36本', '48本', '12本'],
-            answer: 1,
-            explanation: '3 個書架，每個 12 本，所以是 3 x 12 = 36。'
-        },
-        {
-            question: '一架車 2 分鐘行 1 公里，8 分鐘行了多少公里？',
-            options: ['2公里', '4公里', '6公里', '8公里'],
-            answer: 1,
-            explanation: '8 分鐘是 2 分鐘的 4 倍，所以距離也是 4 倍。'
-        },
-        {
-            question: '如果今天比昨天多做 5 題，而昨天做了 18 題，今天做了多少題？',
-            options: ['13題', '18題', '23題', '28題'],
-            answer: 2,
-            explanation: '18 + 5 = 23。'
+function getAdaptiveRenderScale() {
+    const dpr = window.devicePixelRatio || 1;
+    // Don't degrade heavily just for height. Keep it crisp.
+    if (window.innerWidth <= 540) return Math.min(dpr, 1.5);
+    if (isCompactViewport()) return Math.min(dpr, 1.5);
+    return Math.min(dpr, 2);
+}
+
+const DIFFICULTY_PROFILES = {
+    easy: {
+        ageBand: { hk: '7-10 歲', en: 'Ages 7-10' },
+        promptAge: 'primary students aged 7-10',
+        skillPool: ['pattern', 'classification', 'everyday math']
+    },
+    medium: {
+        ageBand: { hk: '11-13 歲', en: 'Ages 11-13' },
+        promptAge: 'middle school students aged 11-13',
+        skillPool: ['sequence', 'logic deduction', 'multi-step math']
+    },
+    hard: {
+        ageBand: { hk: '14-16 歲', en: 'Ages 14-16' },
+        promptAge: 'secondary students aged 14-16',
+        skillPool: ['conditional logic', 'ratio reasoning', 'elimination']
+    }
+};
+
+const ASSET_URLS = {
+    boat: new URL('../../assets/EGGShip2.glb', import.meta.url).href,
+    waterNormal: new URL('../../assets/water_normal.jpg', import.meta.url).href,
+    splash: new URL('../../assets/splash.png', import.meta.url).href,
+    hdrDay: new URL('../../assets/sky_day_2.hdr', import.meta.url).href,
+    hdrNight: new URL('../../assets/sky_moon.hdr', import.meta.url).href,
+    bgmNature: new URL('../../bgm/nature.mp3', import.meta.url).href,
+    bgmRight: new URL('../../bgm/rightanswer.mp3', import.meta.url).href,
+    bgmWrong: new URL('../../bgm/error.mp3', import.meta.url).href
+};
+
+const HUD_GRADIENTS = {
+    focus: [
+        { max: 19, gradient: 'linear-gradient(90deg, #04070d 0%, #0b1220 100%)', glow: 'none', tone: '#7b8ba5' },
+        { max: 44, gradient: 'linear-gradient(90deg, #04070d 0%, #112743 52%, #1c4f88 100%)', glow: '0 0 14px rgba(61, 122, 201, 0.2)', tone: '#7dd3fc' },
+        { max: 74, gradient: 'linear-gradient(90deg, #04070d 0%, #0d3a48 50%, #18b8c9 100%)', glow: '0 0 16px rgba(24, 184, 201, 0.24)', tone: '#67e8f9' },
+        { max: 100, gradient: 'linear-gradient(90deg, #04070d 0%, #0f4f59 40%, #35f0df 100%)', glow: '0 0 18px rgba(53, 240, 223, 0.32)', tone: '#99f6e4' }
+    ],
+    speed: [
+        { max: 19, gradient: 'linear-gradient(90deg, #050608 0%, #12070a 100%)', glow: 'none', tone: '#94a3b8' },
+        { max: 44, gradient: 'linear-gradient(90deg, #050608 0%, #261014 52%, #6a171f 100%)', glow: '0 0 14px rgba(190, 24, 45, 0.18)', tone: '#fda4af' },
+        { max: 74, gradient: 'linear-gradient(90deg, #050608 0%, #321114 42%, #bc2d24 100%)', glow: '0 0 16px rgba(220, 38, 38, 0.24)', tone: '#fca5a5' },
+        { max: 100, gradient: 'linear-gradient(90deg, #050608 0%, #3c1114 36%, #ff5a36 100%)', glow: '0 0 18px rgba(255, 90, 54, 0.32)', tone: '#fdba74' }
+    ]
+};
+
+function getFallbackQuestions(count = 10) {
+    const fallback = [];
+    const seen = new Set(questionBank.map(questionSignature));
+    let attempts = 0;
+
+    while (fallback.length < count && attempts < 120) {
+        const candidate = generateMockPuzzle(fallbackQuestionCursor + attempts);
+        const signature = questionSignature(candidate);
+        if (signature && !seen.has(signature)) {
+            seen.add(signature);
+            fallback.push(candidate);
         }
-    ], [
-        {
-            question: 'A stack of books is divided equally across 3 shelves with 12 books on each shelf. How many books are there in total?',
-            options: ['24', '36', '48', '12'],
-            answer: 1,
-            explanation: '3 shelves x 12 books = 36.'
-        },
-        {
-            question: 'A car travels 1 km in 2 minutes. How far does it travel in 8 minutes?',
-            options: ['2 km', '4 km', '6 km', '8 km'],
-            answer: 1,
-            explanation: '8 minutes is 4 times 2 minutes, so distance is also 4 times.'
-        },
-        {
-            question: 'If you solve 5 more questions today than yesterday, and yesterday you solved 18, how many did you solve today?',
-            options: ['13', '18', '23', '28'],
-            answer: 2,
-            explanation: '18 + 5 = 23.'
+        attempts += 1;
+    }
+
+    fallbackQuestionCursor += attempts;
+    persistFallbackQuestionCursor(fallbackQuestionCursor);
+    return fallback;
+}
+
+const FALLBACK_CURSOR_STORAGE_KEY = 'fallback_question_cursor_v1';
+
+function loadFallbackQuestionCursor() {
+    try {
+        const rawValue = Number(localStorage.getItem(FALLBACK_CURSOR_STORAGE_KEY));
+        if (Number.isFinite(rawValue) && rawValue >= 0) {
+            return Math.floor(rawValue);
         }
-    ]);
+    } catch (error) {
+        console.warn('[Fallback] Failed to read fallback cursor from localStorage.', error);
+    }
+
+    return Math.floor(Math.random() * TOTAL_QUESTIONS);
+}
+
+function persistFallbackQuestionCursor(value = 0) {
+    try {
+        localStorage.setItem(FALLBACK_CURSOR_STORAGE_KEY, String(Math.max(0, Math.floor(value))));
+    } catch (error) {
+        console.warn('[Fallback] Failed to persist fallback cursor.', error);
+    }
 }
 
 // --- Router System ---
@@ -212,10 +270,14 @@ const SOUNDS = {
     // `oceanwavesmp3.mp3` is an invalid placeholder on this machine.
     // Leave it disabled so page startup and game flow do not get blocked by media load errors.
     bgmOcean: null,
-    bgmNature: new Audio('bgm/nature.mp3'),
-    correct: new Audio('bgm/rightanswer.mp3'),
-    wrong: new Audio('bgm/error.mp3')
+    bgmNature: new Audio(ASSET_URLS.bgmNature),
+    correct: new Audio(ASSET_URLS.bgmRight),
+    wrong: new Audio(ASSET_URLS.bgmWrong)
 };
+
+Object.values(SOUNDS).forEach((sound) => {
+    if (sound) sound.preload = 'none';
+});
 
 // Configure Audio
 if (SOUNDS.bgmOcean) SOUNDS.bgmOcean.loop = true;
@@ -226,7 +288,38 @@ SOUNDS.correct.volume = 0.8;
 SOUNDS.wrong.volume = 0.8;
 
 const TOTAL_QUESTIONS = 10;
+const INITIAL_AI_TIMEOUT_MS = 8000;
+const BACKGROUND_AI_TIMEOUT_MS = 15000;
+const INITIAL_PLAYABLE_QUESTIONS = 4;
+const FOCUS_TRAINING = {
+    stableThreshold: 50,
+    lowThreshold: 45,
+    recoveryThreshold: 55,
+    promptDelayMs: 400,
+    triggerDurationMs: 5000,
+    interventionDurationMs: 24000,
+    interventionCooldownMs: 10000,
+    boostDurationMs: 5000
+};
 let isWaitingForQuestions = false;
+
+function createTrainingAnalytics() {
+    return {
+        focusedTimeMs: 0,
+        recoveryDurationsMs: [],
+        recoveryPending: false,
+        currentRecoveryMs: 0,
+        lowFocusStreakMs: 0,
+        interventionCount: 0,
+        promptActive: false,
+        interventionActive: false,
+        interventionStartMs: 0,
+        interventionEndsAt: 0,
+        interventionCooldownUntil: 0,
+        boostActive: false,
+        boostEndsAt: 0
+    };
+}
 
 const I18N = {
     hk: {
@@ -409,6 +502,143 @@ const I18N = {
 
 function langText(hk, en) {
     return CONFIG.currentLang === 'hk' ? hk : en;
+}
+
+function formatAverageRecovery(ms) {
+    if (!Number.isFinite(ms) || ms <= 0) {
+        return '—';
+    }
+
+    const seconds = ms / 1000;
+    return `${seconds.toFixed(seconds >= 10 ? 1 : 2)}s`;
+}
+
+function showBreathingPrompt(message = langText('請留意呼吸，慢慢將注意力帶回畫面。', 'Notice your breathing and gently bring your attention back.')) {
+    const promptEl = document.getElementById('breathing-prompt');
+    const textEl = document.getElementById('breathing-prompt-text');
+    if (!promptEl) return;
+
+    if (textEl) textEl.textContent = message;
+    promptEl.style.display = 'flex';
+    promptEl.classList.add('active');
+}
+
+function hideBreathingPrompt() {
+    const promptEl = document.getElementById('breathing-prompt');
+    if (!promptEl) return;
+    promptEl.classList.remove('active');
+    promptEl.style.display = 'none';
+}
+
+function isFocusBoostActive(now = performance.now()) {
+    return trainingAnalytics.boostActive && now < trainingAnalytics.boostEndsAt;
+}
+
+function getEffectiveFocusLevel(now = performance.now()) {
+    if (isFocusBoostActive(now)) {
+        return 100;
+    }
+
+    return focusLevel;
+}
+
+function hideBreathingIntervention() {
+    const overlay = document.getElementById('breathing-intervention');
+    if (!overlay) return;
+    overlay.classList.remove('active', 'phase-inhale', 'phase-hold', 'phase-exhale');
+    overlay.style.display = 'none';
+}
+
+function renderBreathingIntervention(now = performance.now()) {
+    const overlay = document.getElementById('breathing-intervention');
+    if (!overlay || !trainingAnalytics.interventionActive) return;
+
+    const titleEl = document.getElementById('breathing-title');
+    const phaseEl = document.getElementById('breathing-phase');
+    const helperEl = document.getElementById('breathing-helper');
+    const elapsed = Math.max(0, now - trainingAnalytics.interventionStartMs);
+    const cycleElapsed = elapsed % 12000;
+    const cycleIndex = Math.min(2, Math.floor(elapsed / 12000) + 1);
+
+    let phaseClass = 'phase-inhale';
+    let phaseTitle = langText(`慢慢吸氣，第 ${cycleIndex} 輪`, `Slow inhale, round ${cycleIndex}`);
+    let phaseText = langText('吸氣', 'Inhale');
+    let helperText = langText('跟住呼吸環由細慢慢放大，持續 4 秒吸氣。', 'Follow the ring from small to large and inhale for 4 seconds.');
+
+    if (cycleElapsed >= 4000 && cycleElapsed < 8000) {
+        phaseClass = 'phase-hold';
+        phaseTitle = langText(`憋氣穩住，第 ${cycleIndex} 輪`, `Hold steady, round ${cycleIndex}`);
+        phaseText = langText('憋氣', 'Hold');
+        helperText = langText('保持呼吸環停留在最大狀態，穩住 4 秒。', 'Keep the ring at its largest size and hold for 4 seconds.');
+    } else if (cycleElapsed >= 8000) {
+        phaseClass = 'phase-exhale';
+        phaseTitle = langText(`慢慢呼氣，第 ${cycleIndex} 輪`, `Slow exhale, round ${cycleIndex}`);
+        phaseText = langText('呼氣', 'Exhale');
+        helperText = langText('跟住呼吸環由大慢慢收細，用 4 秒慢慢呼氣。', 'Follow the ring from large to small and exhale slowly over 4 seconds.');
+    }
+
+    overlay.style.display = 'flex';
+    overlay.classList.add('active');
+    overlay.classList.remove('phase-inhale', 'phase-hold', 'phase-exhale');
+    overlay.classList.add(phaseClass);
+
+    if (titleEl) titleEl.textContent = phaseTitle;
+    if (phaseEl) phaseEl.textContent = phaseText;
+    if (helperEl) helperEl.textContent = helperText;
+}
+
+function startBreathingIntervention(now = performance.now()) {
+    hideBreathingPrompt();
+    trainingAnalytics.interventionActive = true;
+    trainingAnalytics.interventionCount += 1;
+    trainingAnalytics.interventionStartMs = now;
+    trainingAnalytics.interventionEndsAt = now + FOCUS_TRAINING.interventionDurationMs;
+    trainingAnalytics.interventionCooldownUntil = trainingAnalytics.interventionEndsAt + FOCUS_TRAINING.interventionCooldownMs;
+    trainingAnalytics.lowFocusStreakMs = 0;
+    const overlay = document.getElementById('breathing-intervention');
+    if (overlay) {
+        overlay.style.display = 'flex';
+        overlay.classList.add('active');
+        overlay.classList.remove('phase-inhale', 'phase-hold', 'phase-exhale');
+        void overlay.offsetWidth;
+        requestAnimationFrame(() => renderBreathingIntervention(performance.now()));
+        return;
+    }
+
+    renderBreathingIntervention(now);
+}
+
+function stopBreathingIntervention() {
+    trainingAnalytics.interventionActive = false;
+    trainingAnalytics.promptActive = false;
+    trainingAnalytics.lowFocusStreakMs = 0;
+    trainingAnalytics.boostActive = true;
+    trainingAnalytics.boostEndsAt = performance.now() + FOCUS_TRAINING.boostDurationMs;
+    hideBreathingIntervention();
+}
+
+function updateTrainingAnalytics(deltaMs, effectiveFocus = focusLevel) {
+    if (effectiveFocus >= FOCUS_TRAINING.stableThreshold) {
+        trainingAnalytics.focusedTimeMs += deltaMs;
+    }
+
+    if (trainingAnalytics.recoveryPending) {
+        trainingAnalytics.currentRecoveryMs += deltaMs;
+        if (effectiveFocus >= FOCUS_TRAINING.recoveryThreshold) {
+            trainingAnalytics.recoveryDurationsMs.push(trainingAnalytics.currentRecoveryMs);
+            trainingAnalytics.recoveryPending = false;
+            trainingAnalytics.currentRecoveryMs = 0;
+        }
+    } else if (effectiveFocus < FOCUS_TRAINING.lowThreshold) {
+        trainingAnalytics.recoveryPending = true;
+        trainingAnalytics.currentRecoveryMs = deltaMs;
+    }
+
+    if (effectiveFocus <= FOCUS_TRAINING.lowThreshold) {
+        trainingAnalytics.lowFocusStreakMs += deltaMs;
+    } else {
+        trainingAnalytics.lowFocusStreakMs = 0;
+    }
 }
 
 // --- Precision Timing & Calibration ---
@@ -618,11 +848,11 @@ const MAX_RETRIES = 3;
 // #region debug-point C:runtime-report
 const DEBUG_SERVER_URL = window.__TRAE_DEBUG_SERVER_URL__ || null;
 const reportRuntimeDebug = (hypothesisId, msg, data = {}) => {
-    if (!DEBUG_SERVER_URL) return Promise.resolve();
+    if (!DEBUG_SERVER_URL || DEBUG_SERVER_URL.includes('127.0.0.1:7777')) return Promise.resolve();
     return fetch(DEBUG_SERVER_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sessionId: 'stitch-layout-game-render', runId: 'post-fix', hypothesisId, location: 'pages/game/runtime.js', msg: `[DEBUG] ${msg}`, data, ts: Date.now() })
+        body: JSON.stringify({ sessionId: 'eeg-mac-bridge', runId: 'pre-fix', hypothesisId, location: 'pages/game/runtime.js', msg: `[DEBUG] ${msg}`, data, ts: Date.now() })
     }).catch(() => {});
 };
 // #endregion
@@ -644,6 +874,10 @@ let isGameActive = false;
 let questionBank = []; // Store batch of questions
 let currentQuestionIndex = 0;
 let isFetchingQuestion = false;
+let fallbackQuestionCursor = loadFallbackQuestionCursor();
+let trainingAnalytics = createTrainingAnalytics();
+let activeGameSessionId = 0;
+let startupTimeoutId = null;
 let directionalLight, ambientLight; // Global lighting references
 let loadingManager; // Asset Loading Manager
 let envState = {
@@ -786,6 +1020,99 @@ function updateDigitDisplay(element, text) {
 }
 
 function updateGameLogic(delta) {
+    // Check Pause Conditions
+    let shouldPause = false;
+    
+    // Condition 1: Question missing but waiting
+    if (isWaitingForQuestions) shouldPause = true;
+    
+    // Condition 2: Screen issue (portrait warning)
+    const warningEl = document.getElementById('portrait-warning');
+    if (warningEl && window.getComputedStyle(warningEl).display !== 'none') {
+        shouldPause = true;
+    }
+    
+    // Condition 3: EEG data missing in EEG mode
+    if (selectedInputMode === 'eeg' && typeof eegModeActive !== 'undefined' && eegModeActive) {
+        if (Date.now() - lastEEGDataTime > 2000) {
+            shouldPause = true;
+        }
+    }
+
+    if (selectedInputMode === 'simulation' && CONFIG.focusSource === 'camera-ready') {
+        const cameraTracking = getCameraTrackingStatus();
+        if (!cameraTracking.streamActive || !cameraTracking.modelReady || !cameraTracking.isPredicting) {
+            focusLevel = 0;
+            shouldPause = true;
+            setEEGConnectionState('warning', langText('相機串流已中斷，計時已暫停。請重新回到鏡頭授權或鏡頭畫面。', 'Camera stream stopped, timer paused. Please restore camera access or return to the camera view.'));
+        } else if (!cameraTracking.hasFace) {
+            focusLevel = 0;
+            shouldPause = true;
+            setEEGConnectionState('warning', langText('未偵測到人臉，專注度已歸零並暫停計時。請回到鏡頭範圍內。', 'No face detected. Focus is now 0 and the timer is paused. Please return to the camera frame.'));
+        }
+    }
+
+    const now = performance.now();
+    const externalPause = shouldPause;
+    const effectiveFocusLevel = getEffectiveFocusLevel(now);
+
+    if (trainingAnalytics.boostActive && now >= trainingAnalytics.boostEndsAt) {
+        trainingAnalytics.boostActive = false;
+    }
+
+    if (trainingAnalytics.interventionActive) {
+        if (now >= trainingAnalytics.interventionEndsAt) {
+            stopBreathingIntervention();
+        } else {
+            renderBreathingIntervention(now);
+            shouldPause = true;
+        }
+    }
+
+    if (isGameActive && !externalPause && !trainingAnalytics.interventionActive) {
+        updateTrainingAnalytics(delta * 1000, effectiveFocusLevel);
+
+        if (
+            effectiveFocusLevel <= FOCUS_TRAINING.lowThreshold &&
+            trainingAnalytics.lowFocusStreakMs >= FOCUS_TRAINING.promptDelayMs &&
+            now < trainingAnalytics.interventionCooldownUntil
+        ) {
+            showBreathingPrompt(langText('先慢慢呼吸，將視線重新集中。', 'Breathe slowly and bring your gaze back to the center.'));
+            trainingAnalytics.promptActive = true;
+        } else if (
+            effectiveFocusLevel <= FOCUS_TRAINING.lowThreshold &&
+            trainingAnalytics.lowFocusStreakMs >= FOCUS_TRAINING.promptDelayMs
+        ) {
+            showBreathingPrompt(langText('請專注呼吸，若狀態未回升將啟動呼吸引導。', 'Focus on your breathing. Guided breathing will start if focus does not recover.'));
+            trainingAnalytics.promptActive = true;
+        } else if (trainingAnalytics.promptActive) {
+            hideBreathingPrompt();
+            trainingAnalytics.promptActive = false;
+        }
+
+        if (
+            trainingAnalytics.lowFocusStreakMs >= FOCUS_TRAINING.triggerDurationMs &&
+            now >= trainingAnalytics.interventionCooldownUntil
+        ) {
+            startBreathingIntervention(now);
+            shouldPause = true;
+        }
+    } else if (!trainingAnalytics.interventionActive) {
+        trainingAnalytics.lowFocusStreakMs = 0;
+        if (trainingAnalytics.promptActive) {
+            hideBreathingPrompt();
+            trainingAnalytics.promptActive = false;
+        }
+    }
+
+    CONFIG.isPaused = shouldPause;
+
+    if (CONFIG.isPaused) {
+        renderFocusTelemetry(0);
+    } else {
+        renderFocusTelemetry(effectiveFocusLevel);
+    }
+
     // 0. Flow State Logic
     const isFlowState = (focusLevel > 80 && CONFIG.streak >= 3);
     if (isFlowState) {
@@ -802,7 +1129,7 @@ function updateGameLogic(delta) {
     let speedMPS = boatSpeed / 3.6; 
     
     // FORCE IDLE IF GAME NOT ACTIVE (Cinematic Waiting)
-    if (!isGameActive) {
+    if (!isGameActive || CONFIG.isPaused) {
         speedMPS = 0;
     }
 
@@ -824,16 +1151,19 @@ function updateGameLogic(delta) {
     const moveDist = speedMPS * delta; 
     
     // Update Stats
-    if (isGameActive && !CONFIG.isPaused) {
-        CONFIG.totalDistance += moveDist;
-        
-        // TEST PANEL UPDATE
-        TEST_PANEL.update(delta * 1000, CONFIG.totalDistance);
+    if (isGameActive) {
+        if (!CONFIG.isPaused) {
+            CONFIG.totalDistance += moveDist;
+            CONFIG.accumulatedPlayTime = (CONFIG.accumulatedPlayTime || 0) + (delta * 1000);
+            
+            // TEST PANEL UPDATE
+            TEST_PANEL.update(delta * 1000, CONFIG.totalDistance);
+        }
 
         // Update DOM - Throttled for readability and performance (User request: ~20ms interval)
-        const now = performance.now();
-        if (!CONFIG.lastHUDUpdate || now - CONFIG.lastHUDUpdate > 20) {
-            CONFIG.lastHUDUpdate = now;
+        const hudNow = performance.now();
+        if (!CONFIG.lastHUDUpdate || hudNow - CONFIG.lastHUDUpdate > 20) {
+            CONFIG.lastHUDUpdate = hudNow;
             
             const distEl = document.getElementById('distance-value');
             if (distEl) {
@@ -847,11 +1177,14 @@ function updateGameLogic(delta) {
             }
             
             // Update Time
-            const elapsed = now - CONFIG.gameStartTime;
             const timeEl = document.getElementById('play-time-value');
             if (timeEl) {
-                const timeText = GAME_STATS.formatTime(elapsed).substring(0, 5); // mm:ss only for HUD
-                updateDigitDisplay(timeEl, timeText);
+                const timeText = GAME_STATS.formatTime(CONFIG.accumulatedPlayTime || 0).substring(0, 5); // mm:ss only for HUD
+                if (CONFIG.isPaused) {
+                    timeEl.innerHTML = `<span class="material-symbols-outlined pause-icon" style="font-size: 1.1em; vertical-align: text-bottom; margin-right: 4px; color: #FFD700; text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);">pause_circle</span>` + timeText;
+                } else {
+                    updateDigitDisplay(timeEl, timeText);
+                }
             }
         }
     }
@@ -937,13 +1270,17 @@ function updateGameLogic(delta) {
         boat.rotation.x = THREE.MathUtils.lerp(boat.rotation.x, pitchCurve + wavePitch, 0.05);
         
         // 5. Camera Follow (Starboard rear quarter view)
-        const targetOffset = new THREE.Vector3(20, 11, 36);
+        let screenOffsetX = 0;
+        if (window.innerWidth < 1024) screenOffsetX = -4;
+        if (window.innerWidth < 720) screenOffsetX = -8;
+
+        const targetOffset = new THREE.Vector3(20 + screenOffsetX, 11, 36);
         const targetPos = boat.position.clone().add(targetOffset);
         camera.position.lerp(targetPos, 0.06); 
         
         // Keep the full hull inside frame while showing its right-rear side.
         const lookAtTarget = new THREE.Vector3(
-            boat.position.x + 0.6,
+            boat.position.x + 0.6 + screenOffsetX,
             boat.position.y + 2.8,
             boat.position.z - 1.2
         );
@@ -1261,16 +1598,30 @@ function loginUser(username) {
     ROUTER.handleRoute();
 }
 
+function showTransitionLoader(message = '') {
+    const loader = document.getElementById('transition-loader');
+    if (!loader) return;
+    const textEl = loader.querySelector('.loading-text');
+    if (textEl && message) textEl.textContent = message;
+    loader.style.display = 'flex';
+    requestAnimationFrame(() => {
+        loader.style.opacity = '1';
+    });
+}
+
+function hideTransitionLoader() {
+    const loader = document.getElementById('transition-loader');
+    if (!loader) return;
+    loader.style.opacity = '0';
+    setTimeout(() => {
+        loader.style.display = 'none';
+    }, 260);
+}
+
 // Expose to global scope for HTML onclick
 window.startGameWithDifficulty = function(level) {
     CONFIG.difficulty = level;
-    
-    // Show transition loader immediately to prevent "crash" perception
-    const tLoader = document.getElementById('transition-loader');
-    if (tLoader) {
-        tLoader.style.display = 'flex';
-        tLoader.style.opacity = '1';
-    }
+    showTransitionLoader(langText('正在鎖定關卡與場景...', 'Locking session and scene...'));
     
     // Small delay to allow loader to render before heavy lifting
     requestAnimationFrame(() => {
@@ -1345,9 +1696,9 @@ function setGamePresentationState(state = 'hidden') {
     if (!canvasContainer || !uiContainer) return;
 
     if (state === 'hidden') {
-        canvasContainer.style.opacity = '0';
-        canvasContainer.style.filter = 'blur(10px) saturate(0.72)';
-        canvasContainer.style.transform = 'scale(1.02)';
+        canvasContainer.style.opacity = '0.14';
+        canvasContainer.style.filter = 'blur(8px) saturate(0.7)';
+        canvasContainer.style.transform = 'scale(1.012)';
         uiContainer.style.opacity = '0';
         uiContainer.style.transform = 'translateY(10px)';
         uiContainer.style.filter = 'blur(6px)';
@@ -1372,8 +1723,32 @@ function setGamePresentationState(state = 'hidden') {
     uiContainer.style.filter = 'none';
 }
 
+function attachRendererToCanvasHost() {
+    const canvasHost = document.getElementById('canvas-container');
+    if (!canvasHost || !renderer?.domElement) return false;
+
+    if (renderer.domElement.parentElement !== canvasHost) {
+        if (renderer.domElement.parentElement) {
+            renderer.domElement.parentElement.removeChild(renderer.domElement);
+        }
+        if (canvasHost.firstElementChild && canvasHost.firstElementChild !== renderer.domElement) {
+            canvasHost.innerHTML = '';
+        }
+        canvasHost.appendChild(renderer.domElement);
+    }
+
+    onWindowResize();
+
+    return Boolean(
+        canvasHost.contains(renderer.domElement) &&
+        renderer.domElement.width > 0 &&
+        renderer.domElement.height > 0
+    );
+}
+
 function initGameSession() {
     console.log("Starting Game Session...");
+    const sessionId = ++activeGameSessionId;
     // #region debug-point C:init-game-session
     reportRuntimeDebug('C', 'initGameSession called', {
         selectedInputMode,
@@ -1387,7 +1762,23 @@ function initGameSession() {
     CONFIG.streak = 0;
     CONFIG.wrongAnswers = [];
     CONFIG.totalDistance = 0;
+    CONFIG.accumulatedPlayTime = 0;
+    CONFIG.isPaused = false;
+    currentQuestionIndex = 0;
+    questionBank = [];
+    isWaitingForQuestions = false;
+    isFetchingQuestion = false;
+    lastFetchTime = 0;
+    fallbackQuestionCursor = loadFallbackQuestionCursor();
+    trainingAnalytics = createTrainingAnalytics();
+    hideBreathingPrompt();
+    hideBreathingIntervention();
     updateLoadingStatus(I18N[CONFIG.currentLang].preparing_game);
+
+    // Re-attach the existing WebGL canvas when the SPA remounts the game page.
+    if (scene && renderer?.domElement) {
+        attachRendererToCanvasHost();
+    }
     
     // Reset 3D Positions for new game
     if (boat) boat.position.set(0, 0, 0);
@@ -1420,8 +1811,10 @@ function initGameSession() {
     document.getElementById('distance-value').textContent = "0.0 m";
     document.getElementById('play-time-value').textContent = "00:00";
     
-    // Start BGM
-    startBGM();
+    if (startupTimeoutId) {
+        clearTimeout(startupTimeoutId);
+        startupTimeoutId = null;
+    }
     
     // Initial Hint Check
     updateSimulationHint();
@@ -1453,11 +1846,7 @@ function initGameSession() {
     
     setGamePresentationState('hidden');
 
-    const transitionLoader = document.getElementById('transition-loader');
-    if (transitionLoader) {
-        transitionLoader.style.display = 'flex';
-        transitionLoader.style.opacity = '1';
-    }
+    showTransitionLoader(langText('正在校準場景、題庫與渲染品質...', 'Calibrating scene, challenge set, and render quality...'));
 
     // Initial Load: keep question panel hidden until countdown finishes
     const qPanel = document.getElementById('question-panel');
@@ -1467,21 +1856,15 @@ function initGameSession() {
     document.getElementById('question-text').textContent = "";
     document.getElementById('question-options').innerHTML = "";
     
-    // Fetch AI questions in the background, but do not block the first playable frame on them.
-    fetchBatchQuestions(2, true).catch(err => {
-        console.warn("Initial AI fetch failed. Falling back to local starter questions:", err);
-        if (questionBank.length === 0) {
-            questionBank = getFallbackQuestions();
-            currentQuestionIndex = 0;
-        }
-        return [];
-    });
+    // Let the first playable frame wait for the initial question batch so AI can become the opener.
+    const initialQuestionPromise = fetchBatchQuestions(INITIAL_PLAYABLE_QUESTIONS, true);
 
     const coreAssetPromise = typeof assetsLoadedPromise !== 'undefined'
         ? assetsLoadedPromise
         : (typeof boatLoadedPromise !== 'undefined' ? boatLoadedPromise : Promise.resolve());
 
-    Promise.allSettled([coreAssetPromise]).then(() => {
+    Promise.allSettled([coreAssetPromise, initialQuestionPromise]).then(() => {
+        if (sessionId !== activeGameSessionId) return;
         // #region debug-point D:game-start-ready
         reportRuntimeDebug('D', 'game start promise settled', {
             hasBoat: Boolean(boat),
@@ -1498,23 +1881,45 @@ function initGameSession() {
             boat.position.y = -0.35;
             scene.add(boat);
         }
+
+        attachRendererToCanvasHost();
+        const canvasHost = document.getElementById('canvas-container');
+        const hasRenderableScene = Boolean(
+            scene &&
+            camera &&
+            renderer &&
+            renderer.domElement &&
+            canvasHost &&
+            canvasHost.contains(renderer.domElement) &&
+            renderer.domElement.width > 0 &&
+            renderer.domElement.height > 0
+        );
+
+        if (!hasRenderableScene) {
+            handleStartupFailure(langText('場景初始化失敗，請重新選擇輸入模式。', 'Scene initialization failed. Please choose the input mode again.'));
+            return;
+        }
         
-        // 2. Ensure questions exist for the first playable frame
+        // 2. Ensure questions exist for the first playable frame after AI had a chance to respond
         if (questionBank.length === 0) {
             console.warn("Questions not ready yet. Using local starter questions.");
-            questionBank = getFallbackQuestions();
+            questionBank = getFallbackQuestions(INITIAL_PLAYABLE_QUESTIONS);
             currentQuestionIndex = 0;
         }
 
         // 3. Force Camera & Controls to Game Position (Prevent Fly-in glitch)
         // MOVED BEFORE WARM-UP to ensure warm-up frame is correct
         if (boat && camera && controls) {
-             const targetOffset = new THREE.Vector3(20, 11, 36); 
+             let screenOffsetX = 0;
+             if (window.innerWidth < 1024) screenOffsetX = -4;
+             if (window.innerWidth < 720) screenOffsetX = -8;
+
+             const targetOffset = new THREE.Vector3(20 + screenOffsetX, 11, 36); 
              const targetPos = boat.position.clone().add(targetOffset);
              camera.position.copy(targetPos);
              
              const lookAtTarget = new THREE.Vector3(
-                boat.position.x + 0.6,
+                boat.position.x + 0.6 + screenOffsetX,
                 boat.position.y + 2.8,
                 boat.position.z - 1.2
             );
@@ -1540,34 +1945,41 @@ function initGameSession() {
         }
 
         // 5. Keep loader visible until countdown starts, then reveal scene
-        
         const iLoader = document.getElementById('initial-loader');
         if (iLoader) {
              iLoader.style.opacity = '0';
              setTimeout(() => { iLoader.style.display = 'none'; }, 500);
         }
 
-        // 6. Remove "ready" loader copy and hand off directly to countdown
-        if (transitionLoader) {
-            transitionLoader.style.opacity = '0';
-            setTimeout(() => { transitionLoader.style.display = 'none'; }, 180);
-        }
+        // 6. Give GPU one more frame to settle before removing the loader
+        requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+                hideTransitionLoader();
+                setGamePresentationState('countdown');
 
-        setGamePresentationState('countdown');
-
-        requestAnimationFrame(() => startCountdown(() => {
-            setGamePresentationState('active');
-            loadQuestionFromBank();
-            CONFIG.gameStartTime = performance.now();
-            isGameActive = true; 
-            
-            // After game starts, keep filling the bank in background if needed.
-            if (questionBank.length < 6) {
-                fetchBatchQuestions(8, false);
-            }
-        }));
+                startCountdown(() => {
+                    if (sessionId !== activeGameSessionId) return;
+                    setGamePresentationState('active');
+                    startBGM();
+                    loadQuestionFromBank();
+                    CONFIG.gameStartTime = performance.now();
+                    isGameActive = true; 
+                    if (startupTimeoutId) {
+                        clearTimeout(startupTimeoutId);
+                        startupTimeoutId = null;
+                    }
+                    
+                    // After game starts, keep filling the bank in background if needed.
+                    if (questionBank.length < TOTAL_QUESTIONS) {
+                        fetchBatchQuestions(TOTAL_QUESTIONS - questionBank.length, false);
+                    }
+                });
+            });
+        });
     }).catch(err => {
+        if (sessionId !== activeGameSessionId) return;
         console.error("Critical Error during game start:", err);
+        handleStartupFailure(err?.message || langText('遊戲載入失敗，請重新選擇模式。', 'Game failed to load. Please choose the mode again.'));
         
         // Ensure loaders are hidden on error too
         const tLoader = document.getElementById('transition-loader');
@@ -1647,28 +2059,135 @@ function setupGameListeners() {
 }
 
 let focusInterval;
+
+function renderFocusTelemetry(level = 0) {
+    const safeLevel = THREE.MathUtils.clamp(Math.round(level), 0, 100);
+    const focusValEl = document.getElementById('focus-value');
+    if (focusValEl) {
+        focusValEl.textContent = `${safeLevel}%`;
+        focusValEl.dataset.boost = String(safeLevel >= 100);
+    }
+    const focusIndicatorEl = document.getElementById('focus-indicator');
+    if (focusIndicatorEl) {
+        focusIndicatorEl.dataset.boost = String(safeLevel >= 100);
+    }
+
+    const focusBarEl = document.getElementById('focus-bar');
+    if (focusBarEl) applyTelemetryBarState('focus', safeLevel);
+}
+
+function renderSpeedTelemetry(speedKmh = 0) {
+    const safeSpeed = Math.max(0, Number(speedKmh) || 0);
+    const speedValEl = document.getElementById('speed-value');
+    const hasBoostTone = getEffectiveFocusLevel() >= 100;
+    if (speedValEl) {
+        updateDigitDisplay(speedValEl, `${Math.round(safeSpeed)} km/h`);
+        speedValEl.dataset.boost = String(hasBoostTone);
+    }
+
+    const speedBarEl = document.getElementById('speed-bar');
+    if (speedBarEl) {
+        const maxSpeed = CONFIG.MAX_SHIP_SPEED;
+        const speedPercent = THREE.MathUtils.clamp((safeSpeed / maxSpeed) * 100, 0, 100);
+        applyTelemetryBarState('speed', speedPercent);
+    }
+}
+
+function applyTelemetryBarState(kind, percent = 0) {
+    const barEl = document.getElementById(kind === 'focus' ? 'focus-bar' : 'speed-bar');
+    if (!barEl) return;
+
+    const clamped = THREE.MathUtils.clamp(percent, 0, 100);
+    const state = HUD_GRADIENTS[kind].find((item) => clamped <= item.max) || HUD_GRADIENTS[kind][HUD_GRADIENTS[kind].length - 1];
+    barEl.style.width = `${clamped}%`;
+    
+    // Create layers for smooth crossfade if they don't exist
+    let bgLayer = barEl.querySelector('.bg-layer');
+    let nextBgLayer = barEl.querySelector('.next-bg-layer');
+    
+    if (!bgLayer) {
+        barEl.style.position = 'relative';
+        barEl.style.background = state.gradient;
+        barEl.style.backgroundImage = state.gradient;
+        barEl.style.overflow = 'hidden';
+        barEl.style.isolation = 'isolate';
+        barEl.style.zIndex = '0';
+        
+        bgLayer = document.createElement('div');
+        bgLayer.className = 'bg-layer';
+        bgLayer.style.position = 'absolute';
+        bgLayer.style.inset = '0';
+        bgLayer.style.borderRadius = 'inherit';
+        bgLayer.style.zIndex = '0';
+        bgLayer.style.background = state.gradient;
+        bgLayer.style.pointerEvents = 'none';
+        barEl.appendChild(bgLayer);
+        
+        nextBgLayer = document.createElement('div');
+        nextBgLayer.className = 'next-bg-layer';
+        nextBgLayer.style.position = 'absolute';
+        nextBgLayer.style.inset = '0';
+        nextBgLayer.style.borderRadius = 'inherit';
+        nextBgLayer.style.zIndex = '1';
+        nextBgLayer.style.opacity = '0';
+        nextBgLayer.style.transition = 'opacity 0.6s ease';
+        nextBgLayer.style.pointerEvents = 'none';
+        barEl.appendChild(nextBgLayer);
+        
+        barEl.dataset.currentGradient = state.gradient;
+    }
+
+    barEl.style.background = state.gradient;
+    barEl.style.backgroundImage = state.gradient;
+    if (bgLayer) bgLayer.style.zIndex = '0';
+    if (nextBgLayer) nextBgLayer.style.zIndex = '1';
+
+    if (barEl.dataset.currentGradient !== state.gradient) {
+        // Crossfade to new gradient
+        nextBgLayer.style.background = state.gradient;
+        // Force reflow
+        void nextBgLayer.offsetWidth;
+        nextBgLayer.style.opacity = '1';
+        
+        // After transition, swap and reset
+        setTimeout(() => {
+            bgLayer.style.background = state.gradient;
+            nextBgLayer.style.opacity = '0';
+            barEl.dataset.currentGradient = state.gradient;
+        }, 600);
+    }
+    
+    barEl.style.boxShadow = state.glow;
+    barEl.dataset.tone = state.tone;
+}
+
 function resetFocusTelemetry(usePlaceholder = false) {
         focusLevel = 0;
         targetSpeed = 0;
         boatSpeed = 0;
         isHeadsetConnected = false;
         hasLiveEEGData = false;
+        trainingAnalytics.promptActive = false;
+        trainingAnalytics.interventionActive = false;
+        trainingAnalytics.boostActive = false;
+        trainingAnalytics.boostEndsAt = 0;
+        hideBreathingPrompt();
+        hideBreathingIntervention();
 
         const focusValEl = document.getElementById('focus-value');
-        if (focusValEl) focusValEl.textContent = usePlaceholder ? '--' : '0%';
+        if (focusValEl) {
+            focusValEl.textContent = usePlaceholder ? '--' : '0%';
+            focusValEl.dataset.boost = 'false';
+        }
+        const focusIndicatorEl = document.getElementById('focus-indicator');
+        if (focusIndicatorEl) focusIndicatorEl.dataset.boost = 'false';
+        const speedValEl = document.getElementById('speed-value');
+        if (speedValEl) speedValEl.dataset.boost = 'false';
 
         const focusBarEl = document.getElementById('focus-bar');
-        if (focusBarEl) focusBarEl.style.width = '0%';
+        if (focusBarEl) applyTelemetryBarState('focus', 0);
 
-        const speedValEl = document.getElementById('speed-value');
-        if (speedValEl) updateDigitDisplay(speedValEl, '0 km/h');
-
-        const speedBarEl = document.getElementById('speed-bar');
-        if (speedBarEl) {
-            speedBarEl.style.width = '0%';
-            speedBarEl.style.background = 'linear-gradient(90deg, #090b12 0%, #2a0000 42%, #ff3b30 100%)';
-            speedBarEl.style.boxShadow = 'none';
-        }
+        renderSpeedTelemetry(0);
     }
 
 function startFocusSimulation() {
@@ -1679,14 +2198,73 @@ function startFocusSimulation() {
         
         console.log("Starting Focus Simulation...");
         resetFocusTelemetry(false);
-        focusLevel = 50;
+        const useFallbackProfile = CONFIG.focusSource !== 'camera-ready';
+        focusLevel = useFallbackProfile ? 58 : 52;
         let phase = 0;
-        
+        let segmentTicks = 0;
+        let profile = {
+            baseline: 52,
+            amplitude: 7,
+            jitter: 4,
+            detail: langText('模擬校準中，訊號逐步穩定。', 'Simulation calibrating. Signal is stabilizing.')
+        };
+
+        const createFallbackProfile = () => {
+            const isHighFocus = Math.random() < 0.7;
+            if (isHighFocus) {
+                return {
+                    baseline: THREE.MathUtils.randFloat(58, 84),
+                    amplitude: THREE.MathUtils.randFloat(4.5, 8.5),
+                    jitter: THREE.MathUtils.randFloat(1.8, 3.8),
+                    duration: Math.round(THREE.MathUtils.randFloat(4, 10)),
+                    detail: langText('未授權相機，正以 30/70 fallback 模擬穩定專注片段。', 'Camera not allowed. Running the 30/70 fallback in a stable focus segment.')
+                };
+            }
+
+            return {
+                baseline: THREE.MathUtils.randFloat(16, 40),
+                amplitude: THREE.MathUtils.randFloat(6, 11),
+                jitter: THREE.MathUtils.randFloat(3.2, 5.8),
+                duration: Math.round(THREE.MathUtils.randFloat(2, 6)),
+                detail: langText('未授權相機，正以 30/70 fallback 模擬短暫失焦片段。', 'Camera not allowed. Running the 30/70 fallback in a short distraction segment.')
+            };
+        };
+
+        const nextProfile = () => {
+            if (useFallbackProfile) {
+                profile = createFallbackProfile();
+                segmentTicks = profile.duration;
+                setEEGConnectionState('simulation', profile.detail);
+            } else {
+                setEEGConnectionState('simulation', langText('相機預覽已準備，正在透過鏡頭觀察專注度。', 'Camera preview ready. Monitoring focus via camera.'));
+            }
+        };
+
+        nextProfile();
+
         focusInterval = setInterval(() => {
-            phase += 0.25;
-            const base = 50;
-            const amp = 10;
-            focusLevel = base + Math.sin(phase) * amp;
+            if (useFallbackProfile) {
+                if (segmentTicks <= 0) nextProfile();
+                segmentTicks -= 1;
+                phase += 0.38;
+                const wave = Math.sin(phase) * profile.amplitude;
+                const drift = Math.sin(phase * 0.42) * 3.5;
+                const jitter = (Math.random() - 0.5) * profile.jitter * 2;
+                focusLevel = THREE.MathUtils.clamp(profile.baseline + wave + drift + jitter, 0, 100);
+            } else {
+                const cameraTracking = getCameraTrackingStatus();
+                if (!cameraTracking.streamActive || !cameraTracking.modelReady || !cameraTracking.isPredicting) {
+                    focusLevel = 0;
+                    setEEGConnectionState('warning', langText('相機串流未持續運行，計時將保持暫停。', 'Camera stream is not running continuously. The timer stays paused.'));
+                } else if (!cameraTracking.hasFace) {
+                    focusLevel = 0;
+                    setEEGConnectionState('warning', langText('未偵測到人臉，計時已暫停，請回到鏡頭範圍。', 'No face detected. Timer paused. Please return to the camera frame.'));
+                } else {
+                    const cameraScore = getCameraFocusScore();
+                    focusLevel = cameraScore;
+                    setEEGConnectionState('simulation', langText('相機鏡頭正持續觀察專注狀態。', 'Camera is actively monitoring focus state.'));
+                }
+            }
             updateFocusFromEEG(Math.round(focusLevel));
         }, 1000); // Update every second like real EEG
     }
@@ -1700,13 +2278,20 @@ function updateSpeedVisuals() {
     // 1. If Connected or Manual Mode: Map Focus 0-100 to Speed 0-MAX
     // 2. If Not Connected: Speed = 0
     
+    if (CONFIG.isPaused) {
+        targetSpeed = 0;
+        boatSpeed = 0;
+        renderSpeedTelemetry(0);
+        return;
+    }
+
     const canDriveWithEEG = selectedInputMode === 'eeg' && isHeadsetConnected && hasLiveEEGData;
     if (canDriveWithEEG || isSimulationMode) {
         // Connected: Speed 0 - MAX based on focus
         // Focus 0-100 -> Speed 0-MAX
         // Req: 0% = 0.
         const maxSpeed = CONFIG.MAX_SHIP_SPEED;
-        const normalizedFocus = THREE.MathUtils.clamp(focusLevel / 100, 0, 1);
+        const normalizedFocus = THREE.MathUtils.clamp(getEffectiveFocusLevel() / 100, 0, 1);
         targetSpeed = Math.pow(normalizedFocus, 1.18) * maxSpeed;
         boatSpeed = THREE.MathUtils.lerp(boatSpeed, targetSpeed, isSimulationMode ? 0.085 : 0.07);
     } else {
@@ -1716,19 +2301,7 @@ function updateSpeedVisuals() {
     }
     
     // Update UI Text/Bar
-    const speedValEl = document.getElementById('speed-value');
-    if(speedValEl) {
-        updateDigitDisplay(speedValEl, Math.round(boatSpeed) + ' km/h');
-    }
-    
-    const speedBarEl = document.getElementById('speed-bar');
-    if(speedBarEl) {
-        const maxSpeed = CONFIG.MAX_SHIP_SPEED;
-        const speedPercent = THREE.MathUtils.clamp((boatSpeed / maxSpeed) * 100, 0, 100);
-        speedBarEl.style.width = speedPercent + '%';
-        speedBarEl.style.background = 'linear-gradient(90deg, #090b12 0%, #2a0000 42%, #ff3b30 100%)';
-        speedBarEl.style.boxShadow = `0 0 14px rgba(255, 59, 48, ${0.18 + (speedPercent / 100) * 0.32})`;
-    }
+    renderSpeedTelemetry(boatSpeed);
 }
 
 function loadQuestionFromBank() {
@@ -1747,6 +2320,11 @@ function loadQuestionFromBank() {
         qHeader.textContent = I18N[CONFIG.currentLang].game_question_title;
         qText.textContent = langText('正在補充更多題目...', 'Loading more questions...');
         qOptions.innerHTML = '<div style="text-align:center; padding: 20px;">⏳</div>'; 
+
+        const needed = TOTAL_QUESTIONS - questionBank.length;
+        if (needed > 0) {
+            fetchBatchQuestions(needed, false);
+        }
     } else {
         // Game Over - Show Results
         showResults();
@@ -1757,9 +2335,17 @@ function renderResults() {
     const finalScore = CONFIG.score;
     const totalQ = TOTAL_QUESTIONS;
     const accuracy = (finalScore / totalQ) * 100;
+    const focusedRatio = CONFIG.accumulatedPlayTime > 0
+        ? (trainingAnalytics.focusedTimeMs / CONFIG.accumulatedPlayTime) * 100
+        : 0;
+    const averageRecoveryMs = trainingAnalytics.recoveryDurationsMs.length > 0
+        ? trainingAnalytics.recoveryDurationsMs.reduce((sum, value) => sum + value, 0) / trainingAnalytics.recoveryDurationsMs.length
+        : 0;
     
     CONFIG.gameEndTime = performance.now();
     const totalTimeMs = CONFIG.gameEndTime - CONFIG.gameStartTime;
+    hideBreathingPrompt();
+    hideBreathingIntervention();
     
     // Save Best
     const { isNewDist, isNewAcc, isNewTime } = GAME_STATS.saveBest(CONFIG.totalDistance, accuracy, totalTimeMs);
@@ -1769,6 +2355,12 @@ function renderResults() {
     document.getElementById('res-distance').textContent = CONFIG.totalDistance.toFixed(1) + " m";
     document.getElementById('res-accuracy').textContent = accuracy.toFixed(0) + "%";
     document.getElementById('res-time').textContent = GAME_STATS.formatTime(totalTimeMs);
+    const focusRateEl = document.getElementById('res-focus-rate');
+    const recoveryEl = document.getElementById('res-recovery-time');
+    const breathingCountEl = document.getElementById('res-breathing-count');
+    if (focusRateEl) focusRateEl.textContent = `${Math.round(focusedRatio)}%`;
+    if (recoveryEl) recoveryEl.textContent = formatAverageRecovery(averageRecoveryMs);
+    if (breathingCountEl) breathingCountEl.textContent = String(trainingAnalytics.interventionCount);
     
     document.getElementById('best-distance').textContent = `${I18N[CONFIG.currentLang].best_label}: ${bests.distance} m ${isNewDist ? '🔥' : ''}`;
     document.getElementById('best-accuracy').textContent = `${I18N[CONFIG.currentLang].best_label}: ${bests.accuracy} % ${isNewAcc ? '🔥' : ''}`;
@@ -1815,55 +2407,198 @@ function updateLoadingStatus(msg) {
 
 let lastFetchTime = 0;
 
+function mergeUniqueQuestions(existing = [], incoming = [], maxCount = TOTAL_QUESTIONS) {
+    const seen = new Set();
+    const merged = [];
+
+    [...existing, ...incoming].forEach((item) => {
+        const normalized = normalizeQuestionItem(item);
+        const signature = questionSignature(normalized);
+        if (!signature || seen.has(signature)) return;
+        seen.add(signature);
+        merged.push(normalized);
+    });
+
+    return merged.slice(0, maxCount);
+}
+
+function handleStartupFailure(message) {
+    console.error('[Game Startup Failed]', message);
+    updateLoadingStatus(message);
+    if (startupTimeoutId) {
+        clearTimeout(startupTimeoutId);
+        startupTimeoutId = null;
+    }
+    isGameActive = false;
+    isWaitingForQuestions = false;
+    isFetchingQuestion = false;
+    lastFetchTime = 0;
+    stopBGM();
+    hideTransitionLoader();
+    const questionPanel = document.getElementById('question-panel');
+    if (questionPanel) questionPanel.style.display = 'none';
+    if (typeof gameLoop !== 'undefined' && gameLoop?.isRunning) {
+        gameLoop.stop();
+    }
+    leaveEEGMode(true);
+    window.setTimeout(() => window.alert(message), 0);
+    setState({ setupStep: 'mode', difficulty: null });
+    window.location.hash = '#setup';
+}
+
+function getDifficultyProfile() {
+    return DIFFICULTY_PROFILES[CONFIG.difficulty] || DIFFICULTY_PROFILES.easy;
+}
+
+function getAgeBandLabel(profile = getDifficultyProfile()) {
+    return profile.ageBand[CONFIG.currentLang] || profile.ageBand.hk;
+}
+
+function questionSignature(item = {}) {
+    const question = String(item.question || '').toLowerCase().replace(/\s+/g, ' ').trim();
+    const options = Array.isArray(item.options)
+        ? item.options.map((option) => String(option || '').toLowerCase().replace(/\s+/g, ' ').trim()).join('|')
+        : '';
+    return `${question}::${options}`;
+}
+
+function validateQuestionItem(item, seenSignatures = new Set()) {
+    const reasons = [];
+    const normalizedOptions = Array.isArray(item.options)
+        ? item.options.map((option) => String(option || '').trim()).filter(Boolean)
+        : [];
+
+    if (!item.question || item.question.length < 6) reasons.push('question-too-short');
+    if (normalizedOptions.length !== 4) reasons.push('option-count');
+    if (new Set(normalizedOptions.map((option) => option.toLowerCase())).size !== 4) reasons.push('duplicate-options');
+    if (!Number.isInteger(item.answer) || item.answer < 0 || item.answer > 3) reasons.push('answer-range');
+    if (!item.explanation || item.explanation.length < (CONFIG.currentLang === 'hk' ? 8 : 18)) reasons.push('explanation-too-short');
+
+    const bannedPatterns = /(all of the above|none of the above|以上皆是|以上皆非)/i;
+    if (normalizedOptions.some((option) => bannedPatterns.test(option))) reasons.push('ambiguous-option');
+
+    const signature = questionSignature(item);
+    if (!signature || seenSignatures.has(signature)) reasons.push('duplicate-question');
+
+    return {
+        ok: reasons.length === 0,
+        reasons,
+        signature
+    };
+}
+
+function finalizeQuestionBatch(items = [], count = 10) {
+    const seenSignatures = new Set(questionBank.map(questionSignature));
+    const accepted = [];
+
+    items.forEach((item) => {
+        const normalized = normalizeQuestionItem(item);
+        const verdict = validateQuestionItem(normalized, seenSignatures);
+        if (!verdict.ok) return;
+        seenSignatures.add(verdict.signature);
+        accepted.push(normalized);
+    });
+
+    const fallbackCandidates = getFallbackQuestions(Math.max(0, count - accepted.length));
+    fallbackCandidates.forEach((fallback) => {
+        if (accepted.length >= count) return;
+        const verdict = validateQuestionItem(fallback, seenSignatures);
+        if (!verdict.ok) return;
+        seenSignatures.add(verdict.signature);
+        accepted.push(fallback);
+    });
+
+    return accepted.slice(0, count);
+}
+
 async function fetchBatchQuestions(count = 10, isInitial = true) {
-    // Reset lock if it's been too long (e.g. > 5 seconds)
-    if (isFetchingQuestion && (Date.now() - lastFetchTime > 10000)) {
+    const requestSessionId = activeGameSessionId;
+    const apiKey = String(localStorage.getItem('deepseek_api_key') || CONFIG.deepseekApiKey || '').trim();
+    CONFIG.deepseekApiKey = apiKey;
+    // Reset lock if it's been too long (e.g. > 15 seconds)
+    if (isFetchingQuestion && (Date.now() - lastFetchTime > 15000)) {
         console.warn("Resetting fetch lock due to timeout");
         isFetchingQuestion = false;
     }
 
-    if (isFetchingQuestion) return;
+    if (isFetchingQuestion) return { ok: false, source: 'skipped', reason: 'fetch-in-progress' };
     isFetchingQuestion = true;
     lastFetchTime = Date.now();
 
     updateLoadingStatus(I18N[CONFIG.currentLang].loading_ai_connect);
 
-    if (!CONFIG.deepseekApiKey) {
-        throw new Error("Missing API Key");
-    }
-
     try {
+        if (!apiKey) {
+            throw new Error("Missing API Key");
+        }
+
+        console.info('[AI] Starting question fetch', {
+            requestedCount: count,
+            isInitial,
+            difficulty: CONFIG.difficulty,
+            language: CONFIG.currentLang,
+            hasApiKey: true
+        });
+
+        const difficultyProfile = getDifficultyProfile();
         const langStr = CONFIG.currentLang === 'hk' ? "Traditional Chinese (Cantonese context if applicable)" : "English";
-        const diffStr = CONFIG.difficulty;
         
-        // Revised Prompt - Optimized for speed (concise, fewer tokens)
-        const prompt = `Generate ${count} "Daily Life Logic" puzzles.
-        Level: ${diffStr}. Language: ${langStr}. Audience: Middle school.
-        Keep each question concise: <= 38 Chinese characters or <= 90 English characters.
-        Keep each option concise: <= 14 Chinese characters or <= 32 English characters.
-        Keep each explanation short: <= 22 Chinese characters or <= 50 English characters.
-        Avoid long stories and filler.
-        Format: STRICT JSON Array.
-        Fields: 'question', 'options' (4 strings), 'answer' (0-3), 'explanation' (short).
-        Example: [{"question":"...", "options":["A","B","C","D"], "answer":0, "explanation":"..."}]`;
+        let diffStr = CONFIG.difficulty;
+        if (diffStr === 'easy') diffStr = 'Medium-Easy';
+        if (diffStr === 'medium') diffStr = 'Hard';
+        if (diffStr === 'hard') diffStr = 'Expert/Olympiad';
+
+        const prompt = `Generate ${count} highly engaging real-world multiple-choice reasoning questions.
+        Difficulty Level: ${diffStr}. Language: ${langStr}. Target Audience: ${difficultyProfile.promptAge}.
+        Training goal: strictly challenge and extend focus span, emphasizing ${difficultyProfile.skillPool.join(', ')}.
+        REQUIREMENTS:
+        1. Puzzles MUST require multi-step thinking or careful deduction. Avoid trivial or immediate answers.
+        2. Every puzzle MUST have exactly ONE objectively correct answer.
+        3. Keep each question concise: <= 42 Chinese characters or <= 100 English characters.
+        4. Keep each option concise: <= 16 Chinese characters or <= 34 English characters.
+        5. Keep explanation useful: <= 60 Chinese characters or <= 140 English characters.
+        6. At least half of the questions should come from everyday biology, chemistry, health, food, school lab, environment, or daily-life science situations.
+        7. Avoid repetitive algebra-only, equation-only, or pure number-sequence-only questions unless embedded in a realistic scenario.
+        8. Ensure high variety in question patterns to avoid repeating similar structures.
+        9. Return a STRICT JSON object with a "questions" array only.
+        
+        Fields:
+        {
+          "questions": [
+            {
+              "question": string,
+              "options": string[4],
+              "answer": integer 0-3,
+              "explanation": "explain why the correct option is unique and why the others fail",
+              "skill": "one short label such as Biology Logic, Chemistry Reasoning, Deduction",
+              "ageBand": "${getAgeBandLabel(difficultyProfile)}",
+              "validation": "one short rule proving the answer"
+            }
+          ]
+        }
+        
+        Example:
+        {"questions":[{"question":"A lunchbox is left in the sun. Which change is the clearest sign bacteria may grow faster?","options":["It gets warmer","It gets darker","It gets heavier","It gets louder"],"answer":0,"explanation":"Warmer food usually helps bacteria multiply faster, while the other changes do not directly indicate growth rate.","skill":"Biology Logic","ageBand":"${getAgeBandLabel(difficultyProfile)}","validation":"temperature affects bacterial growth"}]}`;
 
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 20000); // 20s timeout for AI
+        const timeoutMs = isInitial ? INITIAL_AI_TIMEOUT_MS : BACKGROUND_AI_TIMEOUT_MS;
+        const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
         const response = await fetch(CONFIG.apiUrl, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${CONFIG.deepseekApiKey.trim()}`
+                'Authorization': `Bearer ${apiKey}`
             },
             body: JSON.stringify({
                 model: "deepseek-chat", 
                 messages: [
-                    {"role": "system", "content": "You are a creative game designer. Return strictly valid JSON array."},
+                    {"role": "system", "content": "You are a creative education game designer. Return strictly valid JSON object with a questions array only."},
                     {"role": "user", "content": prompt}
                 ],
-                temperature: 0.8, // Slightly lower for faster/stable output
-                max_tokens: 1024 // Limit output size
+                temperature: 0.9, 
+                max_tokens: 1500,
+                response_format: { type: "json_object" }
             }),
             signal: controller.signal
         });
@@ -1876,7 +2611,11 @@ async function fetchBatchQuestions(count = 10, isInitial = true) {
         
         updateLoadingStatus(I18N[CONFIG.currentLang].loading_ai_parse);
         const data = await response.json();
-        let content = data.choices[0].message.content;
+        let content = data?.choices?.[0]?.message?.content;
+        if (typeof content !== 'string' || !content.trim()) {
+            console.warn('[AI] Response missing message content', data);
+            throw new Error("AI response missing content");
+        }
         content = content.replace(/```json/g, '').replace(/```/g, '');
         
         // Ensure it's an array
@@ -1888,23 +2627,35 @@ async function fetchBatchQuestions(count = 10, isInitial = true) {
         }
         
         let newQuestions = [];
-        
-        if (Array.isArray(parsed)) {
-            newQuestions = parsed.map(normalizeQuestionItem).filter((item) => item.question && item.options.length === 4);
+
+        if (Array.isArray(parsed?.questions)) {
+            newQuestions = finalizeQuestionBatch(parsed.questions, count);
+        } else if (Array.isArray(parsed)) {
+            newQuestions = finalizeQuestionBatch(parsed, count);
         } else if (parsed.question) {
-            newQuestions = [normalizeQuestionItem(parsed)].filter((item) => item.question && item.options.length === 4);
+            newQuestions = finalizeQuestionBatch([parsed], count);
         }
+
+        if (requestSessionId !== activeGameSessionId) return;
         
         if (newQuestions.length === 0) {
             throw new Error("AI returned empty question list");
         }
         
         if (isInitial) {
-            questionBank = newQuestions;
-            currentQuestionIndex = 0;
-            loadQuestionFromBank();
+            if (questionBank.length === 0) {
+                questionBank = newQuestions;
+                currentQuestionIndex = 0;
+                if (isWaitingForQuestions || document.getElementById('question-panel').style.display !== 'none') {
+                    loadQuestionFromBank();
+                }
+            } else {
+                questionBank = mergeUniqueQuestions(questionBank, newQuestions, TOTAL_QUESTIONS);
+                console.log("Question bank already active. Merging AI questions without replacing the live question.");
+                if (isWaitingForQuestions) loadQuestionFromBank();
+            }
         } else {
-            questionBank = [...questionBank, ...newQuestions];
+            questionBank = mergeUniqueQuestions(questionBank, newQuestions, TOTAL_QUESTIONS);
             console.log(`Background fetch loaded ${newQuestions.length} more questions.`);
             
             // Resume if user was waiting
@@ -1914,56 +2665,181 @@ async function fetchBatchQuestions(count = 10, isInitial = true) {
         }
         
         updateLoadingStatus(I18N[CONFIG.currentLang].loading_ai_ready);
+        return { ok: true, source: 'ai', count: newQuestions.length };
 
     } catch (error) {
-        console.error("Fetch Questions Error:", error);
-        updateLoadingStatus(`${I18N[CONFIG.currentLang].loading_failed}: ${error.message}`);
-        throw error; // Propagate error to initGameSession catch block
+        console.warn("Fetch Questions Error:", error);
+        if (requestSessionId !== activeGameSessionId) return;
+
+        const lowerMessage = String(error?.message || error || '').toLowerCase();
+        console.warn('[AI] Question fetch failed', {
+            requestedCount: count,
+            isInitial,
+            difficulty: CONFIG.difficulty,
+            language: CONFIG.currentLang,
+            hasApiKey: Boolean(apiKey),
+            reason: error?.message || String(error)
+        });
+        if (lowerMessage.includes('401') || lowerMessage.includes('unauthorized') || lowerMessage.includes('missing api key')) {
+            updateLoadingStatus(langText('AI 金鑰無效或缺失，已切換本地題庫。', 'AI key missing or invalid. Switching to local question bank.'));
+        } else if (lowerMessage.includes('429')) {
+            updateLoadingStatus(langText('AI 題庫請求過多，稍後重試並先使用本地題庫。', 'AI rate limit reached. Retrying later and using local fallback now.'));
+        } else if (lowerMessage.includes('abort')) {
+            updateLoadingStatus(langText('AI 題庫回應逾時，先使用本地題庫。', 'AI request timed out. Using local fallback now.'));
+        } else if (lowerMessage.includes('empty question list') || lowerMessage.includes('missing content') || lowerMessage.includes('invalid json')) {
+            updateLoadingStatus(langText('AI 回傳格式異常，已切換本地題庫。', 'AI returned an invalid format. Switching to local fallback.'));
+        }
+        
+        // If it's a timeout or network error, silently fall back
+        if (isInitial) {
+            console.log("Initial fetch failed. Using local fallback questions instantly.");
+            if (questionBank.length === 0) {
+                questionBank = getFallbackQuestions(INITIAL_PLAYABLE_QUESTIONS);
+                currentQuestionIndex = 0;
+                loadQuestionFromBank();
+            }
+        } else if (isWaitingForQuestions) {
+            // If user is stuck waiting for background questions, give them fallback
+            const needed = TOTAL_QUESTIONS - questionBank.length;
+            if (needed > 0) {
+                console.log(`Background fetch failed. Providing ${needed} local fallback questions to continue.`);
+                questionBank = mergeUniqueQuestions(questionBank, getFallbackQuestions(needed), TOTAL_QUESTIONS);
+                loadQuestionFromBank();
+            }
+        }
+        return { ok: false, source: 'fallback', reason: error?.message || String(error) };
     } finally {
         isFetchingQuestion = false;
     }
 }
 
 function generateMockPuzzle(index = 0) {
-    const hkQ = [
-        { q: "數列：2, 4, 8, 16, ? 下一個數字是？", o: ["24", "32", "64", "20"], a: 1 },
-        { q: "如果 A > B，且 B > C，那麼？", o: ["A < C", "A = C", "A > C", "無法判斷"], a: 2 },
-        { q: "哪一個不是水果？", o: ["蘋果", "香蕉", "西蘭花", "橙"], a: 2 },
-        { q: "冰變成水是什麼過程？", o: ["凝固", "融化", "蒸發", "昇華"], a: 1 },
-        { q: "1, 1, 2, 3, 5, ? (斐波那契數列)", o: ["8", "7", "6", "9"], a: 0 }
-    ];
-    
-    // Cycle through mock questions
-    const qData = hkQ[index % hkQ.length];
-
-    return {
-        question: CONFIG.currentLang === 'hk' ? qData.q : "Mock Question " + (index+1),
-        options: CONFIG.currentLang === 'hk' ? qData.o : ["A", "B", "C", "D"],
-        answer: qData.a,
-        explanation: langText('留意題目中的規律。', 'Focus on the pattern.')
+    const localBank = {
+        easy: {
+            hk: [
+                { q: "牛奶離開雪櫃後很快變壞，最直接原因是？", o: ["溫度升高", "顏色變白", "樽身變輕", "標籤褪色"], a: 0, e: "溫度升高會令細菌更快繁殖，其餘選項不直接影響變壞速度。", s: "生物判斷" },
+                { q: "做水果冰時加鹽在冰旁邊，主要作用是？", o: ["令冰更冷", "令糖更甜", "令水變藍", "令水果更大"], a: 0, e: "鹽可令冰點下降，使冰混合物更冷。", s: "生活化學" },
+                { q: "跑步後會更口渴，最合理原因是？", o: ["身體失水", "眼睛變大", "頭髮變短", "鞋變重"], a: 0, e: "流汗會令身體失水，所以會更口渴。", s: "身體科學" },
+                { q: "哪種情況最可能令食物較快滋生細菌？", o: ["暖而潮濕", "凍而乾爽", "密封冷藏", "剛煮熟"], a: 0, e: "細菌通常在較暖和潮濕環境繁殖較快。", s: "生物常識" },
+                { q: "如果今天是星期二，再過 2 天是星期幾？", o: ["星期三", "星期四", "星期五", "星期六"], a: 1, e: "星期二後兩天是星期四。", s: "時間推理" },
+                { q: "一杯熱茶放著變涼，最可能是因為？", o: ["熱傳到周圍", "茶突然變少", "杯變透明", "空氣停止"], a: 0, e: "熱量會由較熱的茶傳到較冷的周圍環境。", s: "生活科學" },
+                { q: "飯盒放室溫太久較易變味，最合理原因是？", o: ["微生物增多", "盒蓋變圓", "飯粒變大", "匙羹變冷"], a: 0, e: "室溫放太久會讓微生物更易繁殖，令食物變壞。", s: "食物安全" },
+                { q: "切開蘋果後表面變啡，最接近哪種變化？", o: ["氧化反應", "結冰", "蒸發", "發光"], a: 0, e: "蘋果接觸空氣後會產生氧化，令表面變啡。", s: "生活化學" },
+                { q: "洗手用肥皂比只用清水更有效，主因是？", o: ["較易帶走油污", "令手變長", "令水變暖", "令細菌變大"], a: 0, e: "肥皂能幫助油污和附著物被水帶走，所以較有效。", s: "健康科學" },
+                { q: "雪櫃門常打開，食物較難保持低溫，因為？", o: ["暖空氣進入", "食物會變重", "燈光令冰溶化", "盒子會縮小"], a: 0, e: "開門時外面的暖空氣進入，會令內部溫度上升。", s: "熱傳遞" }
+            ],
+            en: [
+                { q: "Milk spoils faster outside the fridge mainly because?", o: ["Higher temperature", "Whiter color", "Lighter bottle", "Faded label"], a: 0, e: "Warmer temperature helps bacteria grow faster, unlike the other changes.", s: "Biology Logic" },
+                { q: "Why is salt added around ice when making ice cream?", o: ["It makes the ice colder", "It makes sugar sweeter", "It turns water blue", "It enlarges fruit"], a: 0, e: "Salt lowers the freezing point, so the ice mixture can get colder.", s: "Everyday Chemistry" },
+                { q: "Why are you thirstier after running?", o: ["Your body lost water", "Your eyes got bigger", "Your hair got shorter", "Your shoes got heavier"], a: 0, e: "Sweating removes water from the body, so thirst increases.", s: "Body Science" },
+                { q: "Which condition helps bacteria grow faster on food?", o: ["Warm and moist", "Cold and dry", "Sealed and chilled", "Freshly boiled"], a: 0, e: "Bacteria generally multiply faster in warm, moist places.", s: "Biology" },
+                { q: "If today is Tuesday, what day is it in 2 days?", o: ["Wednesday", "Thursday", "Friday", "Saturday"], a: 1, e: "Two days after Tuesday is Thursday.", s: "Time Logic" },
+                { q: "A hot cup of tea cools because?", o: ["Heat moves to the room", "The tea suddenly shrinks", "The cup turns clear", "Air stops moving"], a: 0, e: "Heat transfers from the hotter tea to the cooler surroundings.", s: "Daily Science" },
+                { q: "Why does lunch left out too long taste bad sooner?", o: ["Microbes increase", "The box gets rounder", "The rice gets bigger", "The spoon gets colder"], a: 0, e: "Food left at room temperature lets microbes multiply more easily.", s: "Food Safety" },
+                { q: "A cut apple turns brown mainly because of?", o: ["Oxidation", "Freezing", "Evaporation", "Glowing"], a: 0, e: "Exposure to air causes oxidation, which browns the cut surface.", s: "Everyday Chemistry" },
+                { q: "Why is soap better than only water for washing hands?", o: ["It lifts oily dirt", "It makes hands longer", "It warms the water", "It enlarges germs"], a: 0, e: "Soap helps loosen oils and dirt so they can be washed away.", s: "Health Science" },
+                { q: "Why does a fridge warm up when its door stays open?", o: ["Warm air enters", "Food gets heavier", "The light melts all ice", "Boxes shrink"], a: 0, e: "Opening the door lets warmer room air enter and raises the inside temperature.", s: "Heat Transfer" }
+            ]
+        },
+        medium: {
+            hk: [
+                { q: "同量熱水與凍水混合後，溫度最可能？", o: ["介乎兩者之間", "高過熱水", "低過凍水", "完全不變"], a: 0, e: "混合後通常會達到介乎兩者之間的溫度平衡。", s: "熱平衡" },
+                { q: "一株植物放入黑暗櫃兩日，最先受影響的是？", o: ["製造食物能力", "根即時消失", "葉即時透明", "泥土變金色"], a: 0, e: "缺少光線會先影響光合作用，即製造食物能力。", s: "植物科學" },
+                { q: "感冒時多數不建議共用水樽，主因是？", o: ["可減少病菌傳播", "可令水更甜", "可令樽更輕", "可提高身高"], a: 0, e: "共用水樽會增加病菌經口水傳播的機會。", s: "健康推理" },
+                { q: "實驗要比較肥料效果，哪項應保持相同？", o: ["植物品種與光照", "只改花盆顏色", "只改記錄字體", "只改澆水時間名"], a: 0, e: "要公平比較，應盡量固定植物種類與光照等條件。", s: "實驗設計" },
+                { q: "若所有貓都是動物，而小白是貓，那麼？", o: ["小白不是動物", "小白是動物", "所有動物都是貓", "無法判斷"], a: 1, e: "小白屬於貓，而貓屬於動物，所以小白是動物。", s: "集合推理" },
+                { q: "巴士 7:20 開出，45 分鐘後到站，時間是？", o: ["7:55", "8:05", "8:15", "8:25"], a: 1, e: "20 分加 45 分是 65 分，即 1 小時 5 分，所以是 8:05。", s: "時間推理" },
+                { q: "同一杯水量下，哪種方法最能公平比較溶糖速度？", o: ["只改水溫", "同時改杯形和水溫", "同時改糖量和水量", "每次用不同匙"], a: 0, e: "要公平比較，應只改一個變量，例如水溫，其餘保持不變。", s: "變量控制" },
+                { q: "兩片麵包中只有一片發霉，若條件幾乎相同，最應先檢查哪項差異？", o: ["保存濕度", "包裝顏色", "桌面花紋", "標籤字體"], a: 0, e: "霉菌生長和濕度關係大，應先檢查保存環境是否較潮濕。", s: "生物推理" },
+                { q: "一杯冰水外壁出現小水珠，水最可能來自？", o: ["空氣中的水氣", "杯內漏水穿牆", "玻璃本身融化", "桌面冒出水"], a: 0, e: "冷杯令空氣中的水氣凝結成小水珠，並非杯內穿出。", s: "相變判讀" },
+                { q: "要驗證植物是否需要陽光製造食物，較合理設計是？", o: ["同種植物分光暗組", "只看一株今天高不高", "只換花盆顏色", "只改記錄時間"], a: 0, e: "以同種植物分成有光和無光兩組，比較才較能驗證光照影響。", s: "實驗設計" }
+            ],
+            en: [
+                { q: "If equal hot and cold water are mixed, the final temperature is usually?", o: ["Between the two", "Hotter than the hot water", "Colder than the cold water", "Exactly unchanged"], a: 0, e: "Mixing usually leads to a temperature between the two starting values.", s: "Heat Balance" },
+                { q: "A plant is kept in darkness for two days. What is affected first?", o: ["Its food-making ability", "Its roots vanish", "Its leaves turn clear", "Its soil turns gold"], a: 0, e: "Without light, photosynthesis is affected first.", s: "Plant Science" },
+                { q: "Why should sick classmates avoid sharing one water bottle?", o: ["It reduces germ spread", "It makes water sweeter", "It makes the bottle lighter", "It increases height"], a: 0, e: "Sharing bottles can spread germs through saliva.", s: "Health Logic" },
+                { q: "To compare fertilizers fairly, what should stay the same?", o: ["Plant type and light", "Only pot color", "Only font in notes", "Only the name of watering time"], a: 0, e: "A fair test keeps important conditions such as plant type and light constant.", s: "Experiment Design" },
+                { q: "If all cats are animals and Snowy is a cat, then?", o: ["Snowy is not an animal", "Snowy is an animal", "All animals are cats", "Unknown"], a: 1, e: "Snowy belongs to cats, and cats belong to animals, so Snowy is an animal.", s: "Set Logic" },
+                { q: "A bus leaves at 7:20 and arrives 45 minutes later. What time is that?", o: ["7:55", "8:05", "8:15", "8:25"], a: 1, e: "20+45 gives 65 minutes, which is 1 hour and 5 minutes, so 8:05.", s: "Time Logic" },
+                { q: "What is the fairest way to test whether warm water dissolves sugar faster?", o: ["Change only water temperature", "Change cup shape and temperature", "Change sugar and water amounts", "Use a different spoon each time"], a: 0, e: "A fair test changes one variable only, so temperature should change while the rest stays the same.", s: "Variable Control" },
+                { q: "Only one of two bread slices grows mold. What difference is best to check first?", o: ["Storage humidity", "Package color", "Table pattern", "Label font"], a: 0, e: "Mold growth depends strongly on moisture, so humidity is the most useful difference to inspect.", s: "Biology Reasoning" },
+                { q: "Drops appear outside a cup of ice water. Where did the water most likely come from?", o: ["Water vapor in the air", "Water leaking through the cup", "The glass melting", "The table creating water"], a: 0, e: "The cold surface causes water vapor in the air to condense into droplets.", s: "State Change" },
+                { q: "How would you best test whether plants need sunlight to make food?", o: ["Split same plants into light and dark groups", "Look at one plant only once", "Change pot color only", "Change note-taking time only"], a: 0, e: "Using similar plants in light and dark groups is the clearest controlled comparison.", s: "Experiment Design" }
+            ]
+        },
+        hard: {
+            hk: [
+                { q: "三杯液體只有一杯是酸性。甲說 A 是酸，乙說 C 不是酸。若只有一人正確，哪杯是酸？", o: ["A", "B", "C", "無法判斷"], a: 1, e: "若 B 是酸，甲錯、乙對；其餘假設都會出現 0 或 2 人正確。", s: "化學推理" },
+                { q: "甲乙兩盆植物同品種同水量，只有甲放近窗。三日後甲較高，最合理原因？", o: ["甲獲更多光", "乙土較重", "甲盆較圓", "乙名字較短"], a: 0, e: "在其他條件相近下，最大差異是光照，較可能影響生長。", s: "實驗判讀" },
+                { q: "若 3 個冷藏盒可保存 18 支試管，5 個同款冷藏盒可保存多少？", o: ["24", "28", "30", "36"], a: 2, e: "每盒可放 6 支，5 盒共 30 支。", s: "比例推理" },
+                { q: "若『不是所有樣本都變藍』為真，哪句一定真？", o: ["全部變紅", "至少一個沒變藍", "沒有樣本存在", "全部都變藍"], a: 1, e: "否定『全部變藍』即表示至少一個樣本沒有變藍。", s: "語句邏輯" },
+                { q: "如果今天之後第 15 天是星期五，今天是星期幾？", o: ["星期三", "星期四", "星期五", "星期六"], a: 0, e: "15 天後等同 1 天後，所以今天後一天是星期五，今天就是星期三。", s: "模運算" },
+                { q: "密封盒內濕度上升但水量沒加，最合理是？", o: ["水蒸發了", "氧氣變重", "盒子縮細了", "空氣消失了"], a: 0, e: "水量不變但濕度上升，最合理是部分液態水蒸發成水蒸氣。", s: "狀態變化" },
+                { q: "甲燒杯加熱、乙不加熱，兩者皆蓋好。若甲內壁先現水珠，最合理推論是？", o: ["甲先有蒸發再凝結", "乙較熱", "甲沒有水", "蓋子吸走熱"], a: 0, e: "加熱會先增加蒸發，水蒸氣遇較冷內壁後再凝結成水珠。", s: "熱與相變" },
+                { q: "實驗記錄顯示四株植物只有缺光組葉色變淡，最穩妥結論是？", o: ["缺光影響葉綠狀態", "所有植物都快枯死", "水一定不足", "肥料一定太多"], a: 0, e: "已知明顯差異只在光照，因此最穩妥是推論缺光與葉色變淡有關。", s: "證據判讀" },
+                { q: "若兩支體溫計讀數相差 1°C，而只有其中一支放入口中 3 分鐘，何者較可信？", o: ["放入口中較久那支", "較短那支", "兩支都一定錯", "只看外觀較新那支"], a: 0, e: "量測條件較符合標準的讀數通常較可信，不能只看外觀判斷。", s: "量測推理" },
+                { q: "某藥丸說明指『飯後每 8 小時一次』，若早上 7 時服第一粒，第二粒最早應在？", o: ["中午 1 時", "下午 3 時", "下午 5 時", "晚上 7 時"], a: 1, e: "7 時後加 8 小時是下午 3 時，早於此時間不符合間隔。", s: "時間規則" }
+            ],
+            en: [
+                { q: "Three liquids contain exactly one acid. A says 'A is acid'. B says 'C is not acid'. If only one is correct, which is acid?", o: ["A", "B", "C", "Unknown"], a: 1, e: "If B is acid, A is wrong and B's statement is true; other guesses make 0 or 2 statements true.", s: "Chemistry Logic" },
+                { q: "Two same plants get equal water, but only plant A stays near a window. After 3 days A grows more. Best reason?", o: ["A got more light", "B had heavier soil", "A had a rounder pot", "B had a shorter name"], a: 0, e: "With other conditions held constant, extra light is the strongest explanation.", s: "Experiment Reading" },
+                { q: "If 3 cold boxes hold 18 test tubes, how many do 5 identical boxes hold?", o: ["24", "28", "30", "36"], a: 2, e: "Each box holds 6 tubes, so 5 boxes hold 30.", s: "Ratio" },
+                { q: "If 'not every sample turned blue' is true, what must be true?", o: ["All turned red", "At least one did not turn blue", "No samples exist", "All turned blue"], a: 1, e: "Negating 'all turned blue' means at least one sample did not turn blue.", s: "Statement Logic" },
+                { q: "If the day 15 days from now is Friday, what day is today?", o: ["Wednesday", "Thursday", "Friday", "Saturday"], a: 0, e: "Fifteen days ahead is the same as one day ahead, so tomorrow is Friday and today is Wednesday.", s: "Calendar Logic" },
+                { q: "Humidity rises in a sealed box without adding water. What is the best explanation?", o: ["Water evaporated", "Oxygen got heavier", "The box shrank", "Air disappeared"], a: 0, e: "If no water is added but humidity rises, some liquid water most likely evaporated.", s: "State Change" },
+                { q: "Beaker A is heated and beaker B is not. Both are covered. If droplets appear first inside A, what best explains it?", o: ["More evaporation then condensation in A", "B is hotter", "A has no water", "The lid removes heat"], a: 0, e: "Heating A boosts evaporation, and that vapor can later condense on the cooler inner cover.", s: "Heat and Phase" },
+                { q: "Records show only the low-light plant group developed pale leaves. What is the safest conclusion?", o: ["Low light affected leaf condition", "All plants are dying soon", "Water was definitely missing", "There was definitely too much fertilizer"], a: 0, e: "The clear measured difference is light level, so that is the most defensible conclusion.", s: "Evidence Reading" },
+                { q: "Two thermometers differ by 1 C, but only one stayed under the tongue for 3 minutes. Which reading is more trustworthy?", o: ["The one measured for the full time", "The shorter reading", "Both must be wrong", "The newer-looking thermometer"], a: 0, e: "The reading taken under the more standard method is the more reliable one.", s: "Measurement Logic" },
+                { q: "Medicine says 'take one tablet every 8 hours after meals'. If the first dose is at 7 a.m., when is the earliest second dose?", o: ["1 p.m.", "3 p.m.", "5 p.m.", "7 p.m."], a: 1, e: "Eight hours after 7 a.m. is 3 p.m., so any earlier time breaks the interval rule.", s: "Time Rule" }
+            ]
+        }
     };
+
+    const difficultyBank = localBank[CONFIG.difficulty] || localBank.easy;
+    const localeBank = CONFIG.currentLang === 'hk' ? difficultyBank.hk : difficultyBank.en;
+    const qData = localeBank[index % localeBank.length];
+
+    return normalizeQuestionItem({
+        question: qData.q,
+        options: qData.o,
+        answer: qData.a,
+        explanation: qData.e,
+        skill: qData.s,
+        ageBand: getAgeBandLabel(),
+        validation: qData.e,
+        source: 'fallback',
+        isMock: true
+    });
 }
 
 function compactText(value, maxLength) {
-    return String(value || '')
+    const normalized = String(value || '')
         .replace(/\s+/g, ' ')
-        .trim()
-        .slice(0, maxLength);
+        .trim();
+
+    if (!Number.isFinite(maxLength) || maxLength <= 0) {
+        return normalized;
+    }
+
+    return normalized.slice(0, maxLength);
 }
 
 function normalizeQuestionItem(item = {}) {
     const isHk = CONFIG.currentLang === 'hk';
-    const questionLimit = isHk ? 38 : 90;
-    const optionLimit = isHk ? 14 : 32;
-    const explanationLimit = isHk ? 22 : 50;
+    const explanationLimit = isHk ? 60 : 140;
+    const profile = getDifficultyProfile();
 
     return {
-        question: compactText(item.question, questionLimit),
+        question: compactText(item.question),
         options: Array.isArray(item.options)
-            ? item.options.slice(0, 4).map((option) => compactText(option, optionLimit))
+            ? item.options.slice(0, 4).map((option) => compactText(option))
             : [],
         answer: Number.isInteger(item.answer) ? item.answer : 0,
-        explanation: compactText(item.explanation || '', explanationLimit)
+        explanation: compactText(item.explanation || '', explanationLimit),
+        skill: compactText(item.skill || langText('邏輯推理', 'Logic'), isHk ? 10 : 24),
+        ageBand: compactText(item.ageBand || getAgeBandLabel(profile), isHk ? 10 : 24),
+        validation: compactText(item.validation || item.explanation || '', explanationLimit),
+        source: item.source || 'ai'
     };
 }
 
@@ -1972,10 +2848,14 @@ function renderPuzzle(data) {
     qPanel.style.display = 'block'; // Show panel if hidden
     const qHeader = document.getElementById('question-header');
     qHeader.textContent = I18N[CONFIG.currentLang].puzzle_title;
+    const qSkill = document.getElementById('question-skill-chip');
+    const qBand = document.getElementById('question-band-chip');
 
     const qText = document.getElementById('question-text');
     const qOptions = document.getElementById('question-options');
 
+    if (qSkill) qSkill.textContent = data.skill || langText('邏輯推理', 'Logic');
+    if (qBand) qBand.textContent = data.ageBand || getAgeBandLabel();
     qText.textContent = data.question;
     qOptions.innerHTML = '';
 
@@ -2047,10 +2927,17 @@ function checkAnswer(selectedIndex, correctIndex, btn) {
 function updateStreakDisplay() {
     const streakDisplay = document.getElementById('streak-display');
     const streakCount = document.getElementById('streak-count');
+    if (!streakDisplay || !streakCount) return;
     
     if (CONFIG.streak > 1) {
-        streakDisplay.style.display = 'block';
+        streakDisplay.classList.remove('hidden');
         streakCount.textContent = 'x' + CONFIG.streak;
+        
+        // Add pop effect
+        streakDisplay.style.transform = 'scale(1.2)';
+        setTimeout(() => {
+            streakDisplay.style.transform = 'scale(1)';
+        }, 200);
         
         // Reset animation
         streakCount.style.animation = 'none';
@@ -2062,7 +2949,8 @@ function updateStreakDisplay() {
              playTone(1000 + (CONFIG.streak * 50), 'triangle', 0.3);
         }
     } else {
-        streakDisplay.style.display = 'none';
+        streakDisplay.classList.add('hidden');
+        streakDisplay.style.transform = 'scale(0.8)';
     }
 }
 
@@ -2074,6 +2962,7 @@ let assetsLoadedResolve;
 const assetsLoadedPromise = new Promise(resolve => assetsLoadedResolve = resolve);
 
 function init3DScene() {
+    const sceneSessionId = activeGameSessionId;
     // #region debug-point C:init-scene-entry
     reportRuntimeDebug('C', 'init3DScene entry', {
         hasCanvasContainer: Boolean(document.getElementById('canvas-container')),
@@ -2108,12 +2997,13 @@ function init3DScene() {
     // 3. Renderer
     const compactViewport = isCompactViewport();
     renderer = new THREE.WebGLRenderer({
-        antialias: !compactViewport,
+        antialias: true,
         alpha: true,
         powerPreference: 'high-performance'
     }); 
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, compactViewport ? 1.2 : 1.5));
+    renderer.setPixelRatio(getAdaptiveRenderScale());
     renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setClearColor(0x06101d, 1);
     
     // Physically Correct Lights & Tone Mapping
     renderer.physicallyCorrectLights = true; 
@@ -2173,19 +3063,16 @@ function init3DScene() {
     // 6. Environment & Water
     setupRimLight(); // Initialize Rim Light & Moon
     const texturesPromise = loadTextures(); // Start loading textures
-    const envPromise = setupEnvironment(); // HDRI & Water Logic moved here
+    const envPromise = setupEnvironment(); // HDRI & Water Logic
 
-    // Do not block the first playable frame on the HDRI. Water and fallback lighting
-    // are ready immediately, while the heavy environment map can settle in afterward.
-    Promise.all([texturesPromise, boatLoadedPromise])
+    // Wait for ALL core assets including HDRI to prevent "coating pop-in" (塗層) during gameplay
+    Promise.all([texturesPromise, boatLoadedPromise, envPromise])
         .then(() => {
-             console.log("Promise.all complete: Textures and Boat loaded. HDR continues in background if needed.");
+             console.log("Promise.all complete: Textures, Boat, and HDRI loaded.");
              // #region debug-point D:asset-promise-all-success
              reportRuntimeDebug('D', 'all core assets resolved', {
                  hasBoat: Boolean(boat),
                  hasWaterNormalTexture: Boolean(waterNormalTexture),
-                 hasFoamTexture: Boolean(foamTexture),
-                 hasSplashTexture: Boolean(splashTexture),
                  hasSceneEnvironment: Boolean(scene?.environment)
              });
              // #endregion
@@ -2193,18 +3080,9 @@ function init3DScene() {
         })
         .catch(err => {
              console.error("Asset Load Failed", err);
-             // #region debug-point E:asset-promise-all-error
-             reportRuntimeDebug('E', 'core asset promise rejected', {
-                 message: err?.message || String(err)
-             });
-             // #endregion
              // Resolve anyway to prevent hang
              if (assetsLoadedResolve) assetsLoadedResolve();
         });
-
-    envPromise.catch(err => {
-        console.warn("Environment map load failed after gameplay unlocked.", err);
-    });
 
 
     // 7. Load Boat (GLB)
@@ -2214,8 +3092,9 @@ function init3DScene() {
     console.log("Starting model load: assets/EGGShip2.glb");
     
     loader.load(
-        './assets/EGGShip2.glb',
+        ASSET_URLS.boat,
         function (gltf) {
+            if (sceneSessionId !== activeGameSessionId) return;
             // #region debug-point E:boat-load-success
             reportRuntimeDebug('E', 'boat model load success callback', {
                 hasScene: Boolean(gltf?.scene),
@@ -2321,6 +3200,7 @@ function init3DScene() {
         },
         undefined,
         function (error) {
+            if (sceneSessionId !== activeGameSessionId) return;
             // #region debug-point E:boat-load-error
             reportRuntimeDebug('E', 'boat model load error callback', {
                 message: String(error?.message || error)
@@ -2443,12 +3323,20 @@ function loadTextures() {
     updateLoadingStatus(I18N[CONFIG.currentLang].loading_water);
     console.log("Loading Advanced Ocean Textures...");
     const loader = new THREE.TextureLoader(loadingManager);
+    const applyRepeat = (tex) => {
+        if (!tex) return tex;
+        tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+        return tex;
+    };
     
     // Create Promises for each texture load
     const p1 = new Promise(resolve => {
-        waterNormalTexture = loader.load('assets/water_normal.jpg', (tex) => {
-            tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+        waterNormalTexture = loader.load(ASSET_URLS.waterNormal, (tex) => {
+            applyRepeat(tex);
             tex.repeat.set(4, 4);
+            tex.minFilter = THREE.LinearMipmapLinearFilter;
+            tex.magFilter = THREE.LinearFilter;
+            tex.anisotropy = Math.min(renderer?.capabilities?.getMaxAnisotropy?.() || 1, isCompactViewport() ? 4 : 12);
             // #region debug-point D:texture-water-normal
             reportRuntimeDebug('D', 'water normal texture loaded', {
                 imageWidth: tex.image?.width || null,
@@ -2456,24 +3344,40 @@ function loadTextures() {
             });
             // #endregion
             resolve(tex);
+        }, undefined, () => {
+            reportRuntimeDebug('E', 'water normal texture failed, using generated placeholder', {});
+            const fallback = new THREE.Texture();
+            waterNormalTexture = fallback;
+            resolve(fallback);
         });
     });
 
     const p2 = new Promise(resolve => {
-        foamTexture = loader.load('assets/foam.jpg', (tex) => {
-            tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+        foamTexture = loader.load(ASSET_URLS.splash, (tex) => {
+            applyRepeat(tex);
+            tex.minFilter = THREE.LinearMipmapLinearFilter;
+            tex.magFilter = THREE.LinearFilter;
+            tex.anisotropy = Math.min(renderer?.capabilities?.getMaxAnisotropy?.() || 1, isCompactViewport() ? 4 : 8);
             // #region debug-point D:texture-foam
-            reportRuntimeDebug('D', 'foam texture loaded', {
+            reportRuntimeDebug('D', 'foam fallback texture loaded', {
                 imageWidth: tex.image?.width || null,
-                imageHeight: tex.image?.height || null
+                imageHeight: tex.image?.height || null,
+                source: ASSET_URLS.splash
             });
             // #endregion
             resolve(tex);
+        }, undefined, () => {
+            reportRuntimeDebug('E', 'foam fallback texture failed, reusing water normal texture', {});
+            foamTexture = waterNormalTexture || new THREE.Texture();
+            resolve(foamTexture);
         });
     });
 
     const p3 = new Promise(resolve => {
-        splashTexture = loader.load('assets/splash.png', (tex) => {
+        splashTexture = loader.load(ASSET_URLS.splash, (tex) => {
+            tex.minFilter = THREE.LinearMipmapLinearFilter;
+            tex.magFilter = THREE.LinearFilter;
+            tex.anisotropy = Math.min(renderer?.capabilities?.getMaxAnisotropy?.() || 1, isCompactViewport() ? 4 : 8);
             // #region debug-point D:texture-splash
             reportRuntimeDebug('D', 'splash texture loaded', {
                 imageWidth: tex.image?.width || null,
@@ -2481,6 +3385,10 @@ function loadTextures() {
             });
             // #endregion
             resolve(tex);
+        }, undefined, () => {
+            reportRuntimeDebug('E', 'splash texture failed, using foam fallback texture', {});
+            splashTexture = foamTexture || waterNormalTexture || new THREE.Texture();
+            resolve(splashTexture);
         });
     });
     
@@ -2684,7 +3592,7 @@ function setupEnvironment() {
     const waterGeometry = new THREE.PlaneGeometry(50000, 50000);
     
     // Use loaded texture or fallback
-    const normalTex = waterNormalTexture || new THREE.TextureLoader(loadingManager).load('assets/water_normal.jpg');
+    const normalTex = waterNormalTexture || new THREE.TextureLoader(loadingManager).load(ASSET_URLS.waterNormal);
     // Ensure wrapping for detail
     normalTex.wrapS = normalTex.wrapT = THREE.RepeatWrapping;
     // High Quality Filtering (Anti-Aliasing for Texture)
@@ -2946,7 +3854,7 @@ function switchEnvironment(mode = 'day', instant = false) {
         }
     
         // 4. Switch HDRI Background
-        const hdrPath = isDay ? './assets/sky_day%202.hdr' : './assets/sky_moon.hdr';
+        const hdrPath = isDay ? ASSET_URLS.hdrDay : ASSET_URLS.hdrNight;
     console.log(`[Environment] Switching to ${mode}, loading: ${hdrPath}`);
     updateLoadingStatus(I18N[CONFIG.currentLang].loading_sky);
     
@@ -3108,7 +4016,7 @@ function createBalloons() {
 function onWindowResize() {
     camera.aspect = window.innerWidth / window.innerHeight;
     camera.updateProjectionMatrix();
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, isCompactViewport() ? 1.2 : 1.5));
+    renderer.setPixelRatio(getAdaptiveRenderScale());
     renderer.setSize(window.innerWidth, window.innerHeight);
     if (isCompactViewport()) {
         composer = null;
@@ -3166,7 +4074,9 @@ function updateModeStatusUI() {
         setChipState(modeBadge, I18N[CONFIG.currentLang].mode_simulation, 'warning');
         setChipState(deviceBadge, I18N[CONFIG.currentLang].device_virtual, 'warning');
         titleEl.textContent = I18N[CONFIG.currentLang].mode_simulation_title;
-        detailEl.textContent = I18N[CONFIG.currentLang].mode_simulation_detail;
+        detailEl.textContent = CONFIG.focusSource === 'camera-ready'
+            ? langText('相機鏡頭已準備，正在實時觀察你的專注狀態。', 'Camera is ready and actively monitoring your focus state.')
+            : langText('未授權相機，正使用 30/70 fallback 模擬專注片段。', 'Camera not allowed. Using 30/70 fallback focus segments.');
         return;
     }
 
@@ -3276,6 +4186,14 @@ function animate() {
         updateConnectBtn("Connecting EEG Bridge...", true, false);
         const url = bridgeUrls[bridgeUrlIndex % bridgeUrls.length];
         bridgeUrlIndex++;
+        // #region debug-point B:bridge-connect-attempt
+        reportRuntimeDebug('B', 'browser starting bridge connection attempt', {
+            url,
+            selectedInputMode,
+            eegModeActive,
+            bridgeConnected
+        });
+        // #endregion
 
         return new Promise((resolve) => {
             let settled = false;
@@ -3298,10 +4216,29 @@ function animate() {
                 bridgeConnected = true;
                 isConnected = true;
                 setEEGConnectionState('searching', 'Bridge connected. Opening your paired MindWave serial device...');
+                // #region debug-point B:bridge-open
+                reportRuntimeDebug('B', 'browser websocket opened', {
+                    url,
+                    selectedInputMode,
+                    eegModeActive
+                });
+                // #endregion
                 try {
                     bridgeSocket.send(JSON.stringify({ action: "start_eeg" }));
+                    // #region debug-point B:start-eeg-sent
+                    reportRuntimeDebug('B', 'browser sent start_eeg command', {
+                        url,
+                        selectedInputMode,
+                        eegModeActive
+                    });
+                    // #endregion
                 } catch (e) {
                     console.error("Failed to request EEG start", e);
+                    // #region debug-point E:start-eeg-send-failed
+                    reportRuntimeDebug('E', 'browser failed to send start_eeg command', {
+                        message: e?.message || String(e)
+                    });
+                    // #endregion
                 }
                 updateConnectBtn("Bridge Connected", false, true);
                 startConnectionWatchdog();
@@ -3343,6 +4280,13 @@ function animate() {
                         console.log("[Bridge Status]", msg.message);
                         const statusText = String(msg.message || "");
                         const statusLower = statusText.toLowerCase();
+                        // #region debug-point B:bridge-status-message
+                        reportRuntimeDebug('B', 'browser received bridge status', {
+                            statusText,
+                            selectedInputMode,
+                            eegModeActive
+                        });
+                        // #endregion
                         if (
                             statusLower.includes("failed") ||
                             statusLower.includes("error") ||
@@ -3516,11 +4460,7 @@ function animate() {
     function updateFocusFromEEG(val) {
         if (val >= 0 && val <= 100) {
             focusLevel = val;
-            const focusValEl = document.getElementById('focus-value');
-            if(focusValEl) focusValEl.textContent = focusLevel + '%';
-            
-            const focusBarEl = document.getElementById('focus-bar');
-            if(focusBarEl) focusBarEl.style.width = focusLevel + '%';
+            renderFocusTelemetry(CONFIG.isPaused ? 0 : getEffectiveFocusLevel());
             
             updateSpeedVisuals();
         }
@@ -3592,7 +4532,12 @@ function animate() {
         isConnected = false;
         if (focusInterval) clearInterval(focusInterval);
         resetFocusTelemetry(false);
-        setEEGConnectionState('simulation', 'Simulation mode is active. Focus values are generated locally.');
+        setEEGConnectionState(
+            'simulation',
+            CONFIG.focusSource === 'camera-ready'
+                ? langText('相機鏡頭已準備。遊戲正透過相機觀察你的專注度。', 'Camera is ready. The game is monitoring your focus via camera.')
+                : langText('未授權相機。Simulation mode 正使用 30/70 fallback 專注片段。', 'Camera not allowed. Simulation mode is using the 30/70 fallback focus segments.')
+        );
         updateConnectBtn("Simulation Mode", false, true);
         startFocusSimulation();
         updateSimulationHint();
@@ -3601,18 +4546,24 @@ function animate() {
     function updateSimulationHint() {
         const hintEl = document.getElementById('simulation-hint-eeg');
         if(hintEl) {
+            hintEl.classList.remove('pairing', 'simulation', 'live');
             if (selectedInputMode === 'simulation') {
-                hintEl.textContent = "Simulation signal";
+                hintEl.textContent = CONFIG.focusSource === 'camera-ready'
+                    ? langText('Camera active · tracking focus', 'Camera active · tracking focus')
+                    : langText('30/70 fallback simulation', '30/70 fallback simulation');
                 hintEl.style.display = 'block';
                 hintEl.style.color = '#fde047';
+                hintEl.classList.add('simulation');
             } else if (selectedInputMode === 'eeg' && hasLiveEEGData) {
-                hintEl.textContent = "Live MindWave signal";
+                hintEl.textContent = langText('Live MindWave signal', 'Live MindWave signal');
                 hintEl.style.display = 'block';
                 hintEl.style.color = '#86efac';
+                hintEl.classList.add('live');
             } else if (selectedInputMode === 'eeg') {
-                hintEl.textContent = "Waiting for MindWave";
+                hintEl.textContent = langText('配對中，持續搜尋 MindWave...', 'Pairing in progress. Searching MindWave...');
                 hintEl.style.display = 'block';
                 hintEl.style.color = '#93c5fd';
+                hintEl.classList.add('pairing');
             } else {
                 hintEl.style.display = 'none';
             }
@@ -3689,12 +4640,20 @@ function configureRuntime(options = {}) {
         user = CONFIG.currentUser,
         lang = CONFIG.currentLang,
         difficulty = CONFIG.difficulty,
+        inputMode = selectedInputMode,
+        focusSource = CONFIG.focusSource,
+        cameraConsent = CONFIG.cameraConsent,
         onResults = runtimeResultsHandler
     } = options;
 
     CONFIG.currentUser = user || null;
     CONFIG.currentLang = lang || CONFIG.currentLang;
     CONFIG.difficulty = difficulty || CONFIG.difficulty;
+    CONFIG.focusSource = focusSource || CONFIG.focusSource;
+    CONFIG.cameraConsent = cameraConsent || CONFIG.cameraConsent;
+    if (['idle', 'simulation', 'eeg'].includes(inputMode)) {
+        selectedInputMode = inputMode;
+    }
     runtimeResultsHandler = onResults || null;
 
     const displayUsernameEl = document.getElementById('display-username');
@@ -3704,6 +4663,7 @@ function configureRuntime(options = {}) {
 
     document.body.dataset.lang = CONFIG.currentLang;
     document.documentElement.lang = CONFIG.currentLang === 'hk' ? 'zh-HK' : 'en';
+    updateModeStatusUI();
 }
 
 function startGameSession() {
@@ -3711,8 +4671,14 @@ function startGameSession() {
 }
 
 function disposeGameSession() {
+    activeGameSessionId += 1;
     isGameActive = false;
     stopBGM();
+
+    if (startupTimeoutId) {
+        clearTimeout(startupTimeoutId);
+        startupTimeoutId = null;
+    }
 
     if (typeof gameLoop !== 'undefined' && gameLoop?.isRunning) {
         gameLoop.stop();
@@ -3755,6 +4721,15 @@ async function activateEEGMode() {
     selectedInputMode = 'eeg';
     eegModeActive = true;
     isSimulationMode = false;
+    // #region debug-point A:activate-eeg-mode
+    reportRuntimeDebug('A', 'activateEEGMode invoked from setup', {
+        selectedInputMode,
+        eegModeActive,
+        isSimulationMode,
+        bridgeHosts,
+        bridgeUrls
+    });
+    // #endregion
 
     if (focusInterval) {
         clearInterval(focusInterval);

@@ -32,10 +32,16 @@ function sendFile(filePath, res) {
         }
 
         const ext = path.extname(filePath).toLowerCase();
-        res.writeHead(200, {
+        const noCacheExts = new Set(['.html', '.js', '.css', '.json']);
+        const headers = {
             'Content-Type': mimeTypes[ext] || 'application/octet-stream',
-            'Cache-Control': ext === '.html' ? 'no-cache' : 'public, max-age=3600'
-        });
+            'Cache-Control': noCacheExts.has(ext) ? 'no-cache, no-store, must-revalidate' : 'public, max-age=3600'
+        };
+        if (noCacheExts.has(ext)) {
+            headers.Pragma = 'no-cache';
+            headers.Expires = '0';
+        }
+        res.writeHead(200, headers);
         res.end(data);
     });
 }

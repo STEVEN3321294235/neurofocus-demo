@@ -1,8 +1,8 @@
-import { renderControlBar, bindControlBar } from '../../components/controlBar.js';
-import { t } from '../../app/i18n.js';
+import { renderControlBar, bindControlBar } from '../../components/controlBar.js?v=2026-06-24-21';
+import { t } from '../../app/i18n.js?v=2026-06-24-21';
 import { getState, setState } from '../../app/state.js';
 import { login, register, logout } from '../../services/authService.js';
-import { syncRuntimeState } from '../../services/eegBridgeService.js';
+import { syncRuntimeState } from '../../services/eegBridgeService.js?v=2026-06-24-21';
 
 function renderAuthForm(state) {
     const isLogin = state.authView !== 'register';
@@ -106,8 +106,21 @@ export default {
 
                 try {
                     const session = state.authView === 'register' ? register({ username }) : login({ username });
-                    setState({ currentUser: session.username, setupStep: 'mode' });
-                    await syncRuntimeState({ user: session.username, lang: state.lang, difficulty: state.difficulty });
+                    setState({
+                        currentUser: session.username,
+                        setupStep: 'mode',
+                        inputMode: 'idle',
+                        cameraConsent: 'unknown',
+                        focusSource: 'simulation-fallback'
+                    });
+                    await syncRuntimeState({
+                        user: session.username,
+                        lang: state.lang,
+                        difficulty: state.difficulty,
+                        inputMode: 'idle',
+                        cameraConsent: 'unknown',
+                        focusSource: 'simulation-fallback'
+                    });
                     router.navigate('setup');
                 } catch (error) {
                     if (message) {
