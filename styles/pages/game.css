@@ -905,6 +905,35 @@
     }
 }
 
+html[data-platform='windows'] .top-buttons button,
+html[data-platform='windows'] #focus-indicator,
+html[data-platform='windows'] #question-panel,
+html[data-platform='windows'] .breathing-panel,
+html[data-platform='windows'] .breathing-prompt-pill {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+}
+
+html[data-platform='windows'] #question-panel {
+    transform: none;
+    box-shadow: 0 12px 24px rgba(2, 8, 23, 0.18);
+}
+
+html[data-platform='windows'] #focus-indicator,
+html[data-platform='windows'] .top-buttons button,
+html[data-platform='windows'] .breathing-panel {
+    box-shadow: 0 10px 20px rgba(2, 8, 23, 0.18);
+}
+
+html[data-platform='windows'] #portrait-warning .device-phone,
+html[data-platform='windows'] #portrait-warning .device-arc-left,
+html[data-platform='windows'] #portrait-warning .device-arc-right,
+html[data-platform='windows'] .focus-boost-copy,
+html[data-platform='windows'] .focus-boost-copy::after,
+html[data-platform='windows'] .breathing-prompt-pill {
+    animation: none !important;
+}
+
 @media (max-width: 1024px) {
     #question-panel {
         top: max(5.35rem, 10vh);

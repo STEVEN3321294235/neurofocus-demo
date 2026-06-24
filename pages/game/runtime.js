@@ -40,20 +40,41 @@ function isCompactViewport() {
     return window.innerWidth < 800 || window.innerHeight < 500;
 }
 
+function getPerformanceProfile() {
+    const ua = navigator.userAgent;
+    const dpr = window.devicePixelRatio || 1;
+    const isMobile = /iPhone|iPad|iPod|Android/i.test(ua);
+    const isWindows = /Windows/i.test(ua);
+    const memoryGb = navigator.deviceMemory || 8;
+    const cores = navigator.hardwareConcurrency || 8;
+    const compactViewport = isCompactViewport();
+    const lowPowerDevice = isMobile || isWindows || memoryGb <= 8 || cores <= 8 || compactViewport;
+    const ultraLowProfile = isMobile || (isWindows && (memoryGb <= 8 || compactViewport));
+
+    return {
+        isMobile,
+        isWindows,
+        memoryGb,
+        cores,
+        compactViewport,
+        lowPowerDevice,
+        ultraLowProfile,
+        pixelRatioCap: ultraLowProfile ? 1.0 : isWindows ? 1.1 : compactViewport ? 1.25 : Math.min(dpr, 1.5),
+        antialias: !(isMobile || lowPowerDevice),
+        usePostProcessing: !(isWindows || lowPowerDevice),
+        enableShadows: !lowPowerDevice,
+        shadowMapSize: ultraLowProfile ? 512 : compactViewport ? 768 : 1536,
+        waterResolution: ultraLowProfile ? 256 : 384,
+        textureAnisotropy: ultraLowProfile ? 2 : lowPowerDevice ? 4 : 8,
+        particleMultiplier: ultraLowProfile ? 0.45 : lowPowerDevice ? 0.65 : 1.0
+    };
+}
+
+const PERFORMANCE_PROFILE = getPerformanceProfile();
+
 function getAdaptiveRenderScale() {
     const dpr = window.devicePixelRatio || 1;
-    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-    const isWindows = /Windows/i.test(navigator.userAgent);
-    
-    // Limit DPR on mobile to 1.0 to prevent severe lag
-    if (isMobile) return Math.min(dpr, 1.0); 
-    
-    // Windows laptops often struggle with high DPR + PostProcessing (Bloom/SMAA) on integrated graphics
-    // Cap to 1.0 or 1.25 to save battery and boost FPS to 60.
-    if (isWindows) return Math.min(dpr, 1.25); 
-    
-    if (isCompactViewport()) return Math.min(dpr, 1.5);
-    return Math.min(dpr, 2);
+    return Math.min(dpr, PERFORMANCE_PROFILE.pixelRatioCap);
 }
 
 const DIFFICULTY_PROFILES = {
@@ -3010,10 +3031,9 @@ function init3DScene() {
     
     // 3. Renderer
     const compactViewport = isCompactViewport();
-    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
     
     renderer = new THREE.WebGLRenderer({
-        antialias: !isMobile, // Disable antialiasing on mobile for performance
+        antialias: PERFORMANCE_PROFILE.antialias,
         alpha: true,
         powerPreference: 'high-performance'
     }); 
@@ -3027,8 +3047,8 @@ function init3DScene() {
     renderer.toneMappingExposure = 1.0; // Adjusted for HDR as requested
     renderer.outputColorSpace = THREE.SRGBColorSpace; // Force sRGB
     
-    renderer.shadowMap.enabled = true;
-    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    renderer.shadowMap.enabled = PERFORMANCE_PROFILE.enableShadows;
+    renderer.shadowMap.type = PERFORMANCE_PROFILE.enableShadows ? THREE.PCFSoftShadowMap : THREE.BasicShadowMap;
     document.getElementById('canvas-container').appendChild(renderer.domElement);
     // #region debug-point C:renderer-appended
     reportRuntimeDebug('C', 'renderer appended', {
@@ -3062,11 +3082,11 @@ function init3DScene() {
     // Directional Light (Sun/Moon)
     directionalLight = new THREE.DirectionalLight(0xfff0dd, 2.0); // Warm sun
     directionalLight.position.set(50, 50, -50); // Angle for shadows
-    directionalLight.castShadow = true;
+    directionalLight.castShadow = PERFORMANCE_PROFILE.enableShadows;
     
     // Optimized Shadow Settings
-    directionalLight.shadow.mapSize.width = compactViewport ? 1024 : 2048; // Keep quality high on desktop, lighten mobile/tablet GPU cost
-    directionalLight.shadow.mapSize.height = compactViewport ? 1024 : 2048;
+    directionalLight.shadow.mapSize.width = PERFORMANCE_PROFILE.shadowMapSize;
+    directionalLight.shadow.mapSize.height = PERFORMANCE_PROFILE.shadowMapSize;
     directionalLight.shadow.bias = -0.00005; 
     directionalLight.shadow.camera.near = 0.5;
     directionalLight.shadow.camera.far = 500;
@@ -3177,8 +3197,8 @@ function init3DScene() {
             // Ensure consistent materials and shadow properties
             boat.traverse(function (child) {
                 if (child.isMesh) {
-                    child.castShadow = true;
-                    child.receiveShadow = true;
+                    child.castShadow = PERFORMANCE_PROFILE.enableShadows;
+                    child.receiveShadow = PERFORMANCE_PROFILE.enableShadows;
                     // Preserve original materials but ensure they handle lights correctly
                     if (child.material) {
                         child.material.needsUpdate = true;
@@ -3314,7 +3334,7 @@ let composer;
 let pmremGenerator;
 
 function setupPostProcessing() {
-    if (isCompactViewport()) {
+    if (isCompactViewport() || !PERFORMANCE_PROFILE.usePostProcessing) {
         composer = null;
         return;
     }
@@ -3468,7 +3488,7 @@ function updateParticles(delta, speed) {
         
         // --- System A: Bow Impact (Splash) ---
         // Spawn rate based on speed
-        const splashRate = Math.min(speed * 0.45, 7.5);
+        const splashRate = Math.min(speed * 0.45, 7.5) * PERFORMANCE_PROFILE.particleMultiplier;
         if (Math.random() < splashRate * delta) {
             const material = new THREE.MeshBasicMaterial({
                 map: splashTexture,
@@ -3506,7 +3526,7 @@ function updateParticles(delta, speed) {
 
         // --- System B: Kelvin Wake (V-Shape Stern) ---
         // User Request: Two V-shaped expanding trails
-        const wakeRate = Math.min(speed * 0.7, 12.0);
+        const wakeRate = Math.min(speed * 0.7, 12.0) * PERFORMANCE_PROFILE.particleMultiplier;
         if (Math.random() < wakeRate * delta) {
              // Left and Right Emitters
              [-1, 1].forEach(side => {
@@ -3614,7 +3634,7 @@ function setupEnvironment() {
     // High Quality Filtering (Anti-Aliasing for Texture)
     normalTex.minFilter = THREE.LinearMipmapLinearFilter;
     normalTex.magFilter = THREE.LinearFilter;
-    normalTex.anisotropy = Math.min(renderer.capabilities.getMaxAnisotropy(), isCompactViewport() ? 4 : 8);
+    normalTex.anisotropy = Math.min(renderer.capabilities.getMaxAnisotropy(), PERFORMANCE_PROFILE.textureAnisotropy);
     
     // If not already set by loadTextures (e.g. fallback path)
     if (!waterNormalTexture) normalTex.repeat.set(4, 4);
@@ -3622,8 +3642,8 @@ function setupEnvironment() {
     water = new Water(
         waterGeometry,
         {
-            textureWidth: 512,
-            textureHeight: 512,
+            textureWidth: PERFORMANCE_PROFILE.waterResolution,
+            textureHeight: PERFORMANCE_PROFILE.waterResolution,
             waterNormals: normalTex,
             sunDirection: new THREE.Vector3(),
             sunColor: 0xffffff, 
@@ -4151,8 +4171,8 @@ function createFallbackBoat() {
 
     group.traverse((child) => {
         if (child.isMesh) {
-            child.castShadow = true;
-            child.receiveShadow = true;
+            child.castShadow = PERFORMANCE_PROFILE.enableShadows;
+            child.receiveShadow = PERFORMANCE_PROFILE.enableShadows;
         }
     });
 
