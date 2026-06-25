@@ -4,8 +4,9 @@ const state = {
     theme: 'dark',
     currentUser: null,
     authView: 'login',
+    testMode: 'training',
     inputMode: 'idle',
-    setupStep: 'mode',
+    setupStep: 'test',
     difficulty: null,
     cameraConsent: 'unknown',
     focusSource: 'simulation-fallback'
@@ -31,8 +32,9 @@ export function subscribe(listener) {
 
 export function resetFlowState() {
     setState({
+        testMode: 'training',
         inputMode: 'idle',
-        setupStep: 'mode',
+        setupStep: 'test',
         difficulty: null,
         authView: 'login',
         cameraConsent: 'unknown',

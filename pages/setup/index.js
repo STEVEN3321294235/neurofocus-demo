@@ -4,7 +4,38 @@ import { getState, setState } from '../../app/state.js';
 import { activateEEGMode, activateSimulationMode, disposeMode, syncRuntimeState } from '../../services/eegBridgeService.js?v=2026-06-24-21';
 import { attachCameraPreview, detachCameraPreview, requestCameraPreview, stopCameraPreview } from '../../services/focusInputService.js?v=2026-06-24-23';
 
+function renderTestStep() {
+    return `
+        <div class="setup-card">
+            <h2>${t('setup_test_title')}</h2>
+            <p>${t('setup_test_desc')}</p>
+            <div class="setup-option-grid">
+                <button type="button" class="option-card option-safe" data-test-mode="training">
+                    <strong>${t('setup_test_training')}</strong>
+                    <span>${t('setup_test_training_desc')}</span>
+                </button>
+                <button type="button" class="option-card option-danger" data-test-mode="challenge">
+                    <strong>${t('setup_test_challenge')}</strong>
+                    <span>${t('setup_test_challenge_desc')}</span>
+                </button>
+            </div>
+            <div class="mode-helper-card">
+                <div class="mode-helper-title">${t('setup_test_helper_title')}</div>
+                <div class="mode-helper-detail">${t('setup_test_helper_desc')}</div>
+            </div>
+            <div class="setup-footer-actions">
+                <button type="button" class="secondary-btn" data-back-auth>${t('setup_back')}</button>
+            </div>
+        </div>
+    `;
+}
+
 function renderModeStep() {
+    const state = getState();
+    const testModeLabel = state.testMode === 'challenge'
+        ? t('setup_test_label_challenge')
+        : t('setup_test_label_training');
+
     return `
         <div class="setup-card">
             <h2>${t('setup_mode_title')}</h2>
@@ -22,9 +53,11 @@ function renderModeStep() {
             <div class="mode-helper-card">
                 <div id="mode-selection-helper-title" class="mode-helper-title">${t('setup_helper_title')}</div>
                 <div id="mode-selection-helper-detail" class="mode-helper-detail">${t('setup_helper_desc')}</div>
+                <div class="mode-helper-detail"><strong>${t('setup_test_current')}：</strong>${testModeLabel}</div>
+                ${state.testMode === 'training' ? `<div class="mode-helper-detail"><strong>${t('setup_training_length')}：</strong>${t('setup_training_length_desc')}</div>` : ''}
             </div>
             <div class="setup-footer-actions">
-                <button type="button" class="secondary-btn" data-back-auth>${t('setup_back')}</button>
+                <button type="button" class="secondary-btn" data-back-test>${t('setup_back')}</button>
             </div>
         </div>
     `;
@@ -110,6 +143,10 @@ function renderCameraStep(state) {
 export default {
     render() {
         const state = getState();
+        const flowDifficultyLabel = state.testMode === 'challenge' ? t('setup_flow_diff') : t('setup_flow_enter');
+        const flowEnterLabel = state.testMode === 'challenge'
+            ? t('setup_flow_enter')
+            : t('setup_training_length');
         return `
             <main class="page page-setup">
                 <section class="page-shell narrow-shell setup-layout setup-layout-compact">
@@ -123,12 +160,15 @@ export default {
                             ${renderControlBar()}
                         </header>
                         <div class="setup-flow-inline">
-                            <span>01 ${t('setup_flow_mode')}</span>
-                            <span>02 ${t('setup_flow_camera')}</span>
-                            <span>03 ${t('setup_flow_diff')}</span>
-                            <span>04 ${t('setup_flow_enter')}</span>
+                            <span>01 ${t('setup_flow_goal')}</span>
+                            <span>02 ${t('setup_flow_mode')}</span>
+                            <span>03 ${t('setup_flow_camera')}</span>
+                            <span>04 ${flowDifficultyLabel}</span>
+                            <span>05 ${flowEnterLabel}</span>
                         </div>
-                        ${state.setupStep === 'difficulty'
+                        ${state.setupStep === 'test'
+                            ? renderTestStep()
+                            : state.setupStep === 'difficulty'
                             ? renderDifficultyStep(state)
                             : state.setupStep === 'camera'
                                 ? renderCameraStep(state)
@@ -153,7 +193,8 @@ export default {
             difficulty: state.difficulty,
             inputMode: state.inputMode,
             focusSource: state.focusSource,
-            cameraConsent: state.cameraConsent
+            cameraConsent: state.cameraConsent,
+            testMode: state.testMode
         });
 
         const backAuth = root.querySelector('[data-back-auth]');
@@ -162,12 +203,37 @@ export default {
                 stopCameraPreview();
                 await disposeMode();
                 setState({
-                    setupStep: 'mode',
+                    setupStep: 'test',
+                    testMode: 'training',
                     inputMode: 'idle',
                     cameraConsent: 'unknown',
                     focusSource: 'simulation-fallback'
                 });
                 router.navigate('auth');
+            });
+        }
+
+        const backTest = root.querySelector('[data-back-test]');
+        if (backTest) {
+            backTest.addEventListener('click', async () => {
+                stopCameraPreview();
+                await syncRuntimeState({
+                    user: getState().currentUser,
+                    lang: getState().lang,
+                    difficulty: null,
+                    inputMode: 'idle',
+                    focusSource: 'simulation-fallback',
+                    cameraConsent: 'unknown',
+                    testMode: getState().testMode
+                });
+                setState({
+                    setupStep: 'test',
+                    inputMode: 'idle',
+                    difficulty: null,
+                    cameraConsent: 'unknown',
+                    focusSource: 'simulation-fallback'
+                });
+                router.refresh();
             });
         }
 
@@ -181,7 +247,8 @@ export default {
                     difficulty: null,
                     inputMode: 'idle',
                     focusSource: 'simulation-fallback',
-                    cameraConsent: 'unknown'
+                    cameraConsent: 'unknown',
+                    testMode: getState().testMode
                 });
                 setState({
                     setupStep: 'mode',
@@ -193,6 +260,30 @@ export default {
                 router.refresh();
             });
         }
+
+        root.querySelectorAll('[data-test-mode]').forEach((button) => {
+            button.addEventListener('click', async () => {
+                const testMode = button.dataset.testMode;
+                setState({
+                    testMode,
+                    setupStep: 'mode',
+                    difficulty: testMode === 'training' ? 'training' : null,
+                    inputMode: 'idle',
+                    cameraConsent: 'unknown',
+                    focusSource: 'simulation-fallback'
+                });
+                await syncRuntimeState({
+                    user: getState().currentUser,
+                    lang: getState().lang,
+                    difficulty: testMode === 'training' ? 'training' : null,
+                    inputMode: 'idle',
+                    focusSource: 'simulation-fallback',
+                    cameraConsent: 'unknown',
+                    testMode
+                });
+                router.refresh();
+            });
+        });
 
         root.querySelectorAll('[data-mode]').forEach((button) => {
             button.addEventListener('click', async () => {
@@ -213,6 +304,32 @@ export default {
                         if (message) message.textContent = t('setup_eeg_searching');
                         const eegResult = await activateEEGMode();
                         if (!eegResult?.ok) {
+                            if (eegResult?.reason === 'no-live-data' || eegResult?.reason === 'bridge-unavailable') {
+                                const skipNow = window.confirm(`${t('setup_eeg_skip_desc')}\n\n${t('setup_eeg_skip')}？`);
+                                if (skipNow) {
+                                    setState({
+                                        inputMode: 'eeg',
+                                        setupStep: getState().testMode === 'challenge' ? 'difficulty' : 'mode',
+                                        focusSource: 'eeg',
+                                        cameraConsent: 'unknown'
+                                    });
+                                    if (getState().testMode === 'challenge') {
+                                        router.refresh();
+                                    } else {
+                                        await syncRuntimeState({
+                                            user: getState().currentUser,
+                                            lang: getState().lang,
+                                            difficulty: 'training',
+                                            inputMode: 'eeg',
+                                            focusSource: 'eeg',
+                                            cameraConsent: 'unknown',
+                                            testMode: getState().testMode
+                                        });
+                                        router.navigate('game');
+                                    }
+                                    return;
+                                }
+                            }
                             if (message) {
                                 if (eegResult?.reason === 'no-live-data') {
                                     message.textContent = '已連接到本機 bridge，但仍未收到真實腦波。請確認頭帶已開機、重新配對並保持感測器貼合。';
@@ -225,10 +342,23 @@ export default {
                         }
                         setState({
                             inputMode: 'eeg',
-                            setupStep: 'difficulty',
+                            setupStep: getState().testMode === 'challenge' ? 'difficulty' : 'mode',
                             focusSource: 'eeg',
                             cameraConsent: 'unknown'
                         });
+                        if (getState().testMode === 'training') {
+                            await syncRuntimeState({
+                                user: getState().currentUser,
+                                lang: getState().lang,
+                                difficulty: 'training',
+                                inputMode: 'eeg',
+                                focusSource: 'eeg',
+                                cameraConsent: 'unknown',
+                                testMode: getState().testMode
+                            });
+                            router.navigate('game');
+                            return;
+                        }
                     } else {
                         stopCameraPreview();
                         await syncRuntimeState({
@@ -237,7 +367,8 @@ export default {
                             difficulty: null,
                             inputMode: 'simulation',
                             focusSource: 'simulation-fallback',
-                            cameraConsent: 'prompt'
+                            cameraConsent: 'prompt',
+                            testMode: getState().testMode
                         });
                         setState({
                             inputMode: 'simulation',
@@ -281,7 +412,8 @@ export default {
                         difficulty: getState().difficulty,
                         inputMode: 'simulation',
                         focusSource: 'camera-ready',
-                        cameraConsent: 'granted'
+                        cameraConsent: 'granted',
+                        testMode: getState().testMode
                     });
                     setState({
                         cameraConsent: 'granted',
@@ -295,7 +427,8 @@ export default {
                         difficulty: getState().difficulty,
                         inputMode: 'simulation',
                         focusSource: 'simulation-fallback',
-                        cameraConsent: 'error'
+                        cameraConsent: 'error',
+                        testMode: getState().testMode
                     });
                     setState({
                         cameraConsent: 'error',
@@ -316,14 +449,28 @@ export default {
                     difficulty: getState().difficulty,
                     inputMode: 'simulation',
                     focusSource: 'simulation-fallback',
-                    cameraConsent: 'denied'
+                    cameraConsent: 'denied',
+                    testMode: getState().testMode
                 });
                 setState({
                     cameraConsent: 'denied',
                     focusSource: 'simulation-fallback',
-                    setupStep: 'difficulty'
+                    setupStep: getState().testMode === 'challenge' ? 'difficulty' : 'camera'
                 });
-                router.refresh();
+                if (getState().testMode === 'challenge') {
+                    router.refresh();
+                } else {
+                    await syncRuntimeState({
+                        user: getState().currentUser,
+                        lang: getState().lang,
+                        difficulty: 'training',
+                        inputMode: 'simulation',
+                        focusSource: 'simulation-fallback',
+                        cameraConsent: 'denied',
+                        testMode: getState().testMode
+                    });
+                    router.navigate('game');
+                }
             });
         }
 
@@ -337,9 +484,23 @@ export default {
                     difficulty: null,
                     inputMode: 'simulation',
                     focusSource: getState().focusSource,
-                    cameraConsent: getState().cameraConsent
+                    cameraConsent: getState().cameraConsent,
+                    testMode: getState().testMode
                 });
-                router.refresh();
+                if (getState().testMode === 'challenge') {
+                    router.refresh();
+                } else {
+                    await syncRuntimeState({
+                        user: getState().currentUser,
+                        lang: getState().lang,
+                        difficulty: 'training',
+                        inputMode: 'simulation',
+                        focusSource: getState().focusSource,
+                        cameraConsent: getState().cameraConsent,
+                        testMode: getState().testMode
+                    });
+                    router.navigate('game');
+                }
             });
         }
 
@@ -353,7 +514,8 @@ export default {
                     difficulty: getState().difficulty,
                     inputMode: 'simulation',
                     focusSource: 'simulation-fallback',
-                    cameraConsent: 'denied'
+                    cameraConsent: 'denied',
+                    testMode: getState().testMode
                 });
                 setState({
                     cameraConsent: 'denied',
@@ -376,7 +538,8 @@ export default {
                     difficulty,
                     inputMode: getState().inputMode,
                     focusSource: getState().focusSource,
-                    cameraConsent: getState().cameraConsent
+                    cameraConsent: getState().cameraConsent,
+                    testMode: getState().testMode
                 });
                 router.navigate('game');
             });

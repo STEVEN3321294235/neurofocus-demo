@@ -141,6 +141,7 @@ export default {
             inputMode: state.inputMode,
             focusSource: state.focusSource,
             cameraConsent: state.cameraConsent,
+            testMode: state.testMode,
             onResults: () => router.navigate('results')
         });
         runtime.switchLanguage(state.lang);

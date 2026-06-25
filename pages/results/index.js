@@ -10,6 +10,14 @@ async function getRuntime() {
 
 export default {
     render() {
+        const state = getState();
+        const isTraining = state.testMode === 'training';
+        const summaryTitle = isTraining ? t('results_mode_training') : t('results_mode_challenge');
+        const summaryLead = isTraining ? t('results_mode_training_lead') : t('results_mode_challenge_lead');
+        const secondaryLabel = isTraining ? t('results_goal') : t('results_accuracy');
+        const secondaryValue = isTraining ? t('results_goal_training') : '0%';
+        const secondaryBest = isTraining ? '' : `${t('results_best')}: --`;
+        const timeLabel = isTraining ? t('results_duration') : t('results_time');
         return `
             <main class="page page-results">
                 <section id="results-screen">
@@ -17,8 +25,8 @@ export default {
                         <header class="page-header results-header">
                             <div>
                                 <span class="eyebrow">Results</span>
-                                <h1>${t('results_title')}</h1>
-                                <p class="results-lead">${t('results_lead')}</p>
+                                <h1>${summaryTitle}</h1>
+                                <p class="results-lead">${summaryLead}</p>
                             </div>
                             ${renderControlBar()}
                         </header>
@@ -31,14 +39,14 @@ export default {
                                 <div class="stat-best" id="best-distance">${t('results_best')}: --</div>
                             </div>
                             <div class="stat-card">
-                                <span class="stat-icon">${t('results_accuracy')}</span>
-                                <h3 data-i18n="stat_accuracy">Correct Rate</h3>
-                                <div class="stat-value" id="res-accuracy">0%</div>
-                                <div class="stat-best" id="best-accuracy">${t('results_best')}: --</div>
+                                <span class="stat-icon">${secondaryLabel}</span>
+                                <h3>${secondaryLabel}</h3>
+                                <div class="stat-value" id="res-accuracy">${secondaryValue}</div>
+                                <div class="stat-best ${isTraining ? 'is-hidden' : ''}" id="best-accuracy">${secondaryBest}</div>
                             </div>
                             <div class="stat-card">
-                                <span class="stat-icon">${t('results_time')}</span>
-                                <h3 data-i18n="stat_time">Total Time</h3>
+                                <span class="stat-icon">${timeLabel}</span>
+                                <h3>${timeLabel}</h3>
                                 <div class="stat-value" id="res-time">00:00</div>
                                 <div class="stat-best" id="best-time">${t('results_best')}: --</div>
                             </div>
@@ -65,7 +73,7 @@ export default {
                             </div>
                         </section>
 
-                        <div id="wrong-answers-list"></div>
+                        <div id="wrong-answers-list" data-mode="${state.testMode}"></div>
 
                         <div class="results-actions">
                             <button type="button" class="primary-btn" id="btn-restart">${t('play_again')}</button>
@@ -87,13 +95,14 @@ export default {
             difficulty: state.difficulty,
             inputMode: state.inputMode,
             focusSource: state.focusSource,
-            cameraConsent: state.cameraConsent
+            cameraConsent: state.cameraConsent,
+            testMode: state.testMode
         });
         runtime.switchLanguage(state.lang);
         runtime.renderResults();
 
         root.querySelector('#btn-restart')?.addEventListener('click', () => {
-            setState({ setupStep: 'mode', difficulty: null });
+            setState({ setupStep: 'test', difficulty: null });
             router.navigate('setup');
         });
 

@@ -66,6 +66,10 @@
     color: var(--text-muted);
 }
 
+.stat-best.is-hidden {
+    visibility: hidden;
+}
+
 .stat-value {
     margin-top: 0.4rem;
     font-family: var(--font-tech);

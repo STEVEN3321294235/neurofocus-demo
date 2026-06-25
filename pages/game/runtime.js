@@ -20,6 +20,7 @@ const CONFIG = {
     currentLang: "hk",
     currentUser: null,
     difficulty: "easy",
+    testMode: "challenge",
     focusSource: 'simulation-fallback',
     cameraConsent: 'unknown',
     score: 0,
@@ -34,7 +35,21 @@ const CONFIG = {
     MAX_SHIP_SPEED: 130 // km/h
 };
 
+const TRAINING_SESSION_DURATION_MS = 3 * 60 * 1000;
+
 let runtimeResultsHandler = null;
+
+function isTrainingMode() {
+    return CONFIG.testMode === 'training';
+}
+
+function isChallengeMode() {
+    return !isTrainingMode();
+}
+
+function shouldUseQuestionFlow() {
+    return isChallengeMode();
+}
 
 function isCompactViewport() {
     return window.innerWidth < 800 || window.innerHeight < 500;
@@ -1198,6 +1213,12 @@ function updateGameLogic(delta) {
             
             // TEST PANEL UPDATE
             TEST_PANEL.update(delta * 1000, CONFIG.totalDistance);
+
+            if (isTrainingMode() && CONFIG.accumulatedPlayTime >= TRAINING_SESSION_DURATION_MS) {
+                CONFIG.gameEndTime = performance.now();
+                isGameActive = false;
+                showResults();
+            }
         }
 
         // Update DOM - Throttled for readability and performance (User request: ~20ms interval)
@@ -1813,7 +1834,11 @@ function initGameSession() {
     trainingAnalytics = createTrainingAnalytics();
     hideBreathingPrompt();
     hideBreathingIntervention();
-    updateLoadingStatus(I18N[CONFIG.currentLang].preparing_game);
+    updateLoadingStatus(
+        isTrainingMode()
+            ? langText('正在校準專注訓練場景與感測流程...', 'Calibrating the focus training scene and sensors...')
+            : I18N[CONFIG.currentLang].preparing_game
+    );
 
     // Re-attach the existing WebGL canvas when the SPA remounts the game page.
     if (scene && renderer?.domElement) {
@@ -1847,7 +1872,7 @@ function initGameSession() {
     }
     
     // Reset Score UI
-    document.getElementById('score-text').textContent = "0/10";
+    applySessionModeUI();
     document.getElementById('distance-value').textContent = "0.0 m";
     document.getElementById('play-time-value').textContent = "00:00";
     
@@ -1896,8 +1921,10 @@ function initGameSession() {
     document.getElementById('question-text').textContent = "";
     document.getElementById('question-options').innerHTML = "";
     
-    // Let the first playable frame wait for the initial question batch so AI can become the opener.
-    const initialQuestionPromise = fetchBatchQuestions(INITIAL_PLAYABLE_QUESTIONS, true);
+    // Challenge mode waits for its first playable question batch; training mode starts immediately.
+    const initialQuestionPromise = shouldUseQuestionFlow()
+        ? fetchBatchQuestions(INITIAL_PLAYABLE_QUESTIONS, true)
+        : Promise.resolve();
 
     const coreAssetPromise = typeof assetsLoadedPromise !== 'undefined'
         ? assetsLoadedPromise
@@ -1941,7 +1968,7 @@ function initGameSession() {
         }
         
         // 2. Ensure questions exist for the first playable frame after AI had a chance to respond
-        if (questionBank.length === 0) {
+        if (shouldUseQuestionFlow() && questionBank.length === 0) {
             console.warn("Questions not ready yet. Using local starter questions.");
             questionBank = getFallbackQuestions(INITIAL_PLAYABLE_QUESTIONS);
             currentQuestionIndex = 0;
@@ -2001,16 +2028,18 @@ function initGameSession() {
                     if (sessionId !== activeGameSessionId) return;
                     setGamePresentationState('active');
                     startBGM();
-                    loadQuestionFromBank();
                     CONFIG.gameStartTime = performance.now();
                     isGameActive = true; 
+                    if (shouldUseQuestionFlow()) {
+                        loadQuestionFromBank();
+                    }
                     if (startupTimeoutId) {
                         clearTimeout(startupTimeoutId);
                         startupTimeoutId = null;
                     }
                     
                     // After game starts, keep filling the bank in background if needed.
-                    if (questionBank.length < TOTAL_QUESTIONS) {
+                    if (shouldUseQuestionFlow() && questionBank.length < TOTAL_QUESTIONS) {
                         fetchBatchQuestions(TOTAL_QUESTIONS - questionBank.length, false);
                     }
                 });
@@ -2350,6 +2379,10 @@ function updateSpeedVisuals() {
 }
 
 function loadQuestionFromBank() {
+    if (!shouldUseQuestionFlow()) {
+        showResults();
+        return;
+    }
     if (currentQuestionIndex < questionBank.length) {
         isWaitingForQuestions = false;
         renderPuzzle(questionBank[currentQuestionIndex]);
@@ -2393,29 +2426,43 @@ function renderResults() {
     hideBreathingIntervention();
     
     // Save Best
-    const { isNewDist, isNewAcc, isNewTime } = GAME_STATS.saveBest(CONFIG.totalDistance, accuracy, totalTimeMs);
+    const scoreMetric = isTrainingMode() ? focusedRatio : accuracy;
+    const { isNewDist, isNewAcc, isNewTime } = GAME_STATS.saveBest(CONFIG.totalDistance, scoreMetric, totalTimeMs);
     const bests = GAME_STATS.getBest();
     
     // Update UI
     document.getElementById('res-distance').textContent = CONFIG.totalDistance.toFixed(1) + " m";
-    document.getElementById('res-accuracy').textContent = accuracy.toFixed(0) + "%";
+    document.getElementById('res-accuracy').textContent = isTrainingMode()
+        ? langText('專注訓練', 'Attention Training')
+        : `${accuracy.toFixed(0)}%`;
     document.getElementById('res-time').textContent = GAME_STATS.formatTime(totalTimeMs);
     const focusRateEl = document.getElementById('res-focus-rate');
     const recoveryEl = document.getElementById('res-recovery-time');
     const breathingCountEl = document.getElementById('res-breathing-count');
+    const bestAccuracyEl = document.getElementById('best-accuracy');
     if (focusRateEl) focusRateEl.textContent = `${Math.round(focusedRatio)}%`;
     if (recoveryEl) recoveryEl.textContent = formatAverageRecovery(averageRecoveryMs);
     if (breathingCountEl) breathingCountEl.textContent = String(trainingAnalytics.interventionCount);
     
     document.getElementById('best-distance').textContent = `${I18N[CONFIG.currentLang].best_label}: ${bests.distance} m ${isNewDist ? '🔥' : ''}`;
-    document.getElementById('best-accuracy').textContent = `${I18N[CONFIG.currentLang].best_label}: ${bests.accuracy} % ${isNewAcc ? '🔥' : ''}`;
+    if (bestAccuracyEl) {
+        if (isTrainingMode()) {
+            bestAccuracyEl.textContent = '';
+            bestAccuracyEl.classList.add('is-hidden');
+        } else {
+            bestAccuracyEl.textContent = `${I18N[CONFIG.currentLang].best_label}: ${bests.accuracy} % ${isNewAcc ? '🔥' : ''}`;
+            bestAccuracyEl.classList.remove('is-hidden');
+        }
+    }
     document.getElementById('best-time').textContent = `${I18N[CONFIG.currentLang].best_label}: ${GAME_STATS.formatTime(bests.time)} ${isNewTime ? '🔥' : ''}`;
     
     // Render Wrong Answers List
     const list = document.getElementById('wrong-answers-list');
     list.innerHTML = '';
     
-    if (CONFIG.wrongAnswers.length === 0) {
+    if (isTrainingMode()) {
+        list.innerHTML = `<div style="text-align:center; color: #93c5fd; font-size: 1.05em;">${langText('此模式不設答題，目標是穩定維持專注並在分心後盡快拉回。', 'This mode has no quiz review. The goal is to sustain stable focus and recover quickly after distraction.')}</div>`;
+    } else if (CONFIG.wrongAnswers.length === 0) {
         list.innerHTML = `<div style="text-align:center; color: #16a34a; font-size: 1.05em;">${langText('全對完成，專注表現非常穩定。', 'Perfect run. Your focus stayed very stable.')}</div>`;
     } else {
         CONFIG.wrongAnswers.forEach(item => {
@@ -2493,6 +2540,26 @@ function handleStartupFailure(message) {
 
 function getDifficultyProfile() {
     return DIFFICULTY_PROFILES[CONFIG.difficulty] || DIFFICULTY_PROFILES.easy;
+}
+
+function applySessionModeUI() {
+    const questionPanel = document.getElementById('question-panel');
+    const scoreDisplay = document.getElementById('score-display');
+    const streakDisplay = document.getElementById('streak-display');
+    const scoreText = document.getElementById('score-text');
+
+    if (isTrainingMode()) {
+        if (questionPanel) questionPanel.style.display = 'none';
+        if (scoreDisplay) scoreDisplay.style.display = 'none';
+        if (streakDisplay) streakDisplay.style.display = 'none';
+        if (scoreText) scoreText.textContent = langText('訓練', 'TRAIN');
+        return;
+    }
+
+    if (questionPanel) questionPanel.style.display = 'none';
+    if (scoreDisplay) scoreDisplay.style.display = '';
+    if (streakDisplay) streakDisplay.style.display = '';
+    if (scoreText) scoreText.textContent = '0/10';
 }
 
 function getAgeBandLabel(profile = getDifficultyProfile()) {
@@ -4794,6 +4861,7 @@ function configureRuntime(options = {}) {
         user = CONFIG.currentUser,
         lang = CONFIG.currentLang,
         difficulty = CONFIG.difficulty,
+        testMode = CONFIG.testMode,
         inputMode = selectedInputMode,
         focusSource = CONFIG.focusSource,
         cameraConsent = CONFIG.cameraConsent,
@@ -4803,6 +4871,7 @@ function configureRuntime(options = {}) {
     CONFIG.currentUser = user || null;
     CONFIG.currentLang = lang || CONFIG.currentLang;
     CONFIG.difficulty = difficulty || CONFIG.difficulty;
+    CONFIG.testMode = ['training', 'challenge'].includes(testMode) ? testMode : CONFIG.testMode;
     CONFIG.focusSource = focusSource || CONFIG.focusSource;
     CONFIG.cameraConsent = cameraConsent || CONFIG.cameraConsent;
     if (['idle', 'simulation', 'eeg'].includes(inputMode)) {
@@ -4818,6 +4887,7 @@ function configureRuntime(options = {}) {
     document.body.dataset.lang = CONFIG.currentLang;
     document.documentElement.lang = CONFIG.currentLang === 'hk' ? 'zh-HK' : 'en';
     updateModeStatusUI();
+    applySessionModeUI();
 }
 
 function startGameSession() {
