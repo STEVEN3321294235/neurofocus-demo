@@ -96,7 +96,8 @@ export default {
             inputMode: state.inputMode,
             focusSource: state.focusSource,
             cameraConsent: state.cameraConsent,
-            testMode: state.testMode
+            testMode: state.testMode,
+            trainingDurationSec: state.trainingDurationSec
         });
         runtime.switchLanguage(state.lang);
         runtime.renderResults();

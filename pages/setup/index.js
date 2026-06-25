@@ -85,6 +85,47 @@ function renderDifficultyStep(state) {
     `;
 }
 
+function formatTrainingDurationLabel(totalSeconds) {
+    if (totalSeconds < 60) return `${totalSeconds}s`;
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+    return seconds === 0 ? `${minutes} min` : `${minutes}m ${seconds}s`;
+}
+
+function renderTrainingStep(state) {
+    const totalSeconds = Math.max(30, Math.min(1800, Number(state.trainingDurationSec || 180)));
+    return `
+        <div class="setup-card">
+            <h2>${t('setup_training_duration_title')}</h2>
+            <p>${t('setup_training_duration_desc')}</p>
+            <div class="mode-helper-card training-slider-card">
+                <div class="mode-helper-title">${t('setup_training_duration_value')}</div>
+                <div class="training-duration-value" id="training-duration-value">${formatTrainingDurationLabel(totalSeconds)}</div>
+                <input
+                    id="training-duration-slider"
+                    class="training-duration-slider"
+                    type="range"
+                    min="30"
+                    max="1800"
+                    step="30"
+                    value="${totalSeconds}"
+                />
+                <div class="training-duration-scale">
+                    <span>30s</span>
+                    <span>5m</span>
+                    <span>15m</span>
+                    <span>30m</span>
+                </div>
+                <div class="mode-helper-detail">${t('setup_training_duration_hint')}</div>
+            </div>
+            <div class="setup-footer-actions">
+                <button type="button" class="primary-btn" data-training-start>${t('setup_training_duration_start')}</button>
+                <button type="button" class="secondary-btn" data-back-training>${t('setup_back')}</button>
+            </div>
+        </div>
+    `;
+}
+
 function renderCameraStep(state) {
     const isGranted = state.cameraConsent === 'granted';
     const isDenied = state.cameraConsent === 'denied';
@@ -168,6 +209,8 @@ export default {
                         </div>
                         ${state.setupStep === 'test'
                             ? renderTestStep()
+                            : state.setupStep === 'training'
+                                ? renderTrainingStep(state)
                             : state.setupStep === 'difficulty'
                             ? renderDifficultyStep(state)
                             : state.setupStep === 'camera'
@@ -205,6 +248,7 @@ export default {
                 setState({
                     setupStep: 'test',
                     testMode: 'training',
+                    trainingDurationSec: 180,
                     inputMode: 'idle',
                     cameraConsent: 'unknown',
                     focusSource: 'simulation-fallback'
@@ -224,7 +268,8 @@ export default {
                     inputMode: 'idle',
                     focusSource: 'simulation-fallback',
                     cameraConsent: 'unknown',
-                    testMode: getState().testMode
+                    testMode: getState().testMode,
+                    trainingDurationSec: getState().trainingDurationSec
                 });
                 setState({
                     setupStep: 'test',
@@ -248,7 +293,8 @@ export default {
                     inputMode: 'idle',
                     focusSource: 'simulation-fallback',
                     cameraConsent: 'unknown',
-                    testMode: getState().testMode
+                    testMode: getState().testMode,
+                    trainingDurationSec: getState().trainingDurationSec
                 });
                 setState({
                     setupStep: 'mode',
@@ -267,6 +313,7 @@ export default {
                 setState({
                     testMode,
                     setupStep: 'mode',
+                    trainingDurationSec: 180,
                     difficulty: testMode === 'training' ? 'training' : null,
                     inputMode: 'idle',
                     cameraConsent: 'unknown',
@@ -279,7 +326,8 @@ export default {
                     inputMode: 'idle',
                     focusSource: 'simulation-fallback',
                     cameraConsent: 'unknown',
-                    testMode
+                    testMode,
+                    trainingDurationSec: 180
                 });
                 router.refresh();
             });
@@ -309,7 +357,7 @@ export default {
                                 if (skipNow) {
                                     setState({
                                         inputMode: 'eeg',
-                                        setupStep: getState().testMode === 'challenge' ? 'difficulty' : 'mode',
+                                        setupStep: getState().testMode === 'challenge' ? 'difficulty' : 'training',
                                         focusSource: 'eeg',
                                         cameraConsent: 'unknown'
                                     });
@@ -323,9 +371,10 @@ export default {
                                             inputMode: 'eeg',
                                             focusSource: 'eeg',
                                             cameraConsent: 'unknown',
-                                            testMode: getState().testMode
+                                            testMode: getState().testMode,
+                                            trainingDurationSec: getState().trainingDurationSec
                                         });
-                                        router.navigate('game');
+                                        router.refresh();
                                     }
                                     return;
                                 }
@@ -342,7 +391,7 @@ export default {
                         }
                         setState({
                             inputMode: 'eeg',
-                            setupStep: getState().testMode === 'challenge' ? 'difficulty' : 'mode',
+                            setupStep: getState().testMode === 'challenge' ? 'difficulty' : 'training',
                             focusSource: 'eeg',
                             cameraConsent: 'unknown'
                         });
@@ -354,9 +403,10 @@ export default {
                                 inputMode: 'eeg',
                                 focusSource: 'eeg',
                                 cameraConsent: 'unknown',
-                                testMode: getState().testMode
+                                testMode: getState().testMode,
+                                trainingDurationSec: getState().trainingDurationSec
                             });
-                            router.navigate('game');
+                            router.refresh();
                             return;
                         }
                     } else {
@@ -368,7 +418,8 @@ export default {
                             inputMode: 'simulation',
                             focusSource: 'simulation-fallback',
                             cameraConsent: 'prompt',
-                            testMode: getState().testMode
+                    testMode: getState().testMode,
+                    trainingDurationSec: getState().trainingDurationSec
                         });
                         setState({
                             inputMode: 'simulation',
@@ -413,7 +464,8 @@ export default {
                         inputMode: 'simulation',
                         focusSource: 'camera-ready',
                         cameraConsent: 'granted',
-                        testMode: getState().testMode
+                        testMode: getState().testMode,
+                        trainingDurationSec: getState().trainingDurationSec
                     });
                     setState({
                         cameraConsent: 'granted',
@@ -428,7 +480,8 @@ export default {
                         inputMode: 'simulation',
                         focusSource: 'simulation-fallback',
                         cameraConsent: 'error',
-                        testMode: getState().testMode
+                        testMode: getState().testMode,
+                        trainingDurationSec: getState().trainingDurationSec
                     });
                     setState({
                         cameraConsent: 'error',
@@ -450,12 +503,13 @@ export default {
                     inputMode: 'simulation',
                     focusSource: 'simulation-fallback',
                     cameraConsent: 'denied',
-                    testMode: getState().testMode
+                    testMode: getState().testMode,
+                    trainingDurationSec: getState().trainingDurationSec
                 });
                 setState({
                     cameraConsent: 'denied',
                     focusSource: 'simulation-fallback',
-                    setupStep: getState().testMode === 'challenge' ? 'difficulty' : 'camera'
+                    setupStep: getState().testMode === 'challenge' ? 'difficulty' : 'training'
                 });
                 if (getState().testMode === 'challenge') {
                     router.refresh();
@@ -467,9 +521,10 @@ export default {
                         inputMode: 'simulation',
                         focusSource: 'simulation-fallback',
                         cameraConsent: 'denied',
-                        testMode: getState().testMode
+                        testMode: getState().testMode,
+                        trainingDurationSec: getState().trainingDurationSec
                     });
-                    router.navigate('game');
+                    router.refresh();
                 }
             });
         }
@@ -477,7 +532,7 @@ export default {
         const cameraContinueBtn = root.querySelector('[data-camera-continue]');
         if (cameraContinueBtn) {
             cameraContinueBtn.addEventListener('click', async () => {
-                setState({ setupStep: 'difficulty' });
+                setState({ setupStep: getState().testMode === 'challenge' ? 'difficulty' : 'training' });
                 await syncRuntimeState({
                     user: getState().currentUser,
                     lang: getState().lang,
@@ -485,7 +540,8 @@ export default {
                     inputMode: 'simulation',
                     focusSource: getState().focusSource,
                     cameraConsent: getState().cameraConsent,
-                    testMode: getState().testMode
+                    testMode: getState().testMode,
+                    trainingDurationSec: getState().trainingDurationSec
                 });
                 if (getState().testMode === 'challenge') {
                     router.refresh();
@@ -497,9 +553,10 @@ export default {
                         inputMode: 'simulation',
                         focusSource: getState().focusSource,
                         cameraConsent: getState().cameraConsent,
-                        testMode: getState().testMode
+                        testMode: getState().testMode,
+                        trainingDurationSec: getState().trainingDurationSec
                     });
-                    router.navigate('game');
+                    router.refresh();
                 }
             });
         }
@@ -515,13 +572,65 @@ export default {
                     inputMode: 'simulation',
                     focusSource: 'simulation-fallback',
                     cameraConsent: 'denied',
-                    testMode: getState().testMode
+                    testMode: getState().testMode,
+                    trainingDurationSec: getState().trainingDurationSec
                 });
                 setState({
                     cameraConsent: 'denied',
                     focusSource: 'simulation-fallback'
                 });
                 router.refresh();
+            });
+        }
+
+        const trainingSlider = root.querySelector('#training-duration-slider');
+        const trainingValue = root.querySelector('#training-duration-value');
+        if (trainingSlider && trainingValue) {
+            trainingSlider.addEventListener('input', () => {
+                const nextValue = Number(trainingSlider.value || 180);
+                trainingValue.textContent = formatTrainingDurationLabel(nextValue);
+                setState({ trainingDurationSec: nextValue });
+            });
+        }
+
+        const backTraining = root.querySelector('[data-back-training]');
+        if (backTraining) {
+            backTraining.addEventListener('click', async () => {
+                const isSimulation = getState().inputMode === 'simulation';
+                const nextStep = isSimulation ? 'camera' : 'mode';
+                setState({ setupStep: nextStep });
+                await syncRuntimeState({
+                    user: getState().currentUser,
+                    lang: getState().lang,
+                    difficulty: 'training',
+                    inputMode: getState().inputMode,
+                    focusSource: getState().focusSource,
+                    cameraConsent: getState().cameraConsent,
+                    testMode: getState().testMode,
+                    trainingDurationSec: getState().trainingDurationSec
+                });
+                router.refresh();
+            });
+        }
+
+        const trainingStart = root.querySelector('[data-training-start]');
+        if (trainingStart) {
+            trainingStart.addEventListener('click', async () => {
+                if (getState().inputMode === 'simulation') {
+                    await activateSimulationMode();
+                }
+                await syncRuntimeState({
+                    user: getState().currentUser,
+                    lang: getState().lang,
+                    difficulty: 'training',
+                    inputMode: getState().inputMode,
+                    focusSource: getState().focusSource,
+                    cameraConsent: getState().cameraConsent,
+                    testMode: getState().testMode,
+                    trainingDurationSec: getState().trainingDurationSec
+                });
+                setState({ difficulty: 'training' });
+                router.navigate('game');
             });
         }
 
@@ -539,7 +648,8 @@ export default {
                     inputMode: getState().inputMode,
                     focusSource: getState().focusSource,
                     cameraConsent: getState().cameraConsent,
-                    testMode: getState().testMode
+                    testMode: getState().testMode,
+                    trainingDurationSec: getState().trainingDurationSec
                 });
                 router.navigate('game');
             });

@@ -92,6 +92,11 @@ export default {
                         <span id="play-time-value">00:00</span>
                     </div>
 
+                    <div id="training-countdown-display" style="display: none;">
+                        <div class="training-countdown-label">${t('game_training_countdown')}</div>
+                        <div id="training-countdown-value">03:00</div>
+                    </div>
+
                     <div id="question-panel" style="display: none;">
                         <div class="hologram"></div>
                         <div class="header" id="question-header">${t('game_question_title')}</div>
@@ -142,6 +147,7 @@ export default {
             focusSource: state.focusSource,
             cameraConsent: state.cameraConsent,
             testMode: state.testMode,
+            trainingDurationSec: state.trainingDurationSec,
             onResults: () => router.navigate('results')
         });
         runtime.switchLanguage(state.lang);

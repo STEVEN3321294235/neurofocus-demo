@@ -5,6 +5,7 @@ const state = {
     currentUser: null,
     authView: 'login',
     testMode: 'training',
+    trainingDurationSec: 180,
     inputMode: 'idle',
     setupStep: 'test',
     difficulty: null,
@@ -33,6 +34,7 @@ export function subscribe(listener) {
 export function resetFlowState() {
     setState({
         testMode: 'training',
+        trainingDurationSec: 180,
         inputMode: 'idle',
         setupStep: 'test',
         difficulty: null,

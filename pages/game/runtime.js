@@ -21,6 +21,7 @@ const CONFIG = {
     currentUser: null,
     difficulty: "easy",
     testMode: "challenge",
+    trainingDurationSec: 180,
     focusSource: 'simulation-fallback',
     cameraConsent: 'unknown',
     score: 0,
@@ -35,7 +36,7 @@ const CONFIG = {
     MAX_SHIP_SPEED: 130 // km/h
 };
 
-const TRAINING_SESSION_DURATION_MS = 3 * 60 * 1000;
+const DEFAULT_TRAINING_DURATION_SEC = 180;
 
 let runtimeResultsHandler = null;
 
@@ -49,6 +50,10 @@ function isChallengeMode() {
 
 function shouldUseQuestionFlow() {
     return isChallengeMode();
+}
+
+function getTrainingSessionDurationMs() {
+    return Math.max(30, Math.min(1800, Number(CONFIG.trainingDurationSec || DEFAULT_TRAINING_DURATION_SEC))) * 1000;
 }
 
 function isCompactViewport() {
@@ -1214,7 +1219,7 @@ function updateGameLogic(delta) {
             // TEST PANEL UPDATE
             TEST_PANEL.update(delta * 1000, CONFIG.totalDistance);
 
-            if (isTrainingMode() && CONFIG.accumulatedPlayTime >= TRAINING_SESSION_DURATION_MS) {
+            if (isTrainingMode() && CONFIG.accumulatedPlayTime >= getTrainingSessionDurationMs()) {
                 CONFIG.gameEndTime = performance.now();
                 isGameActive = false;
                 showResults();
@@ -1239,7 +1244,14 @@ function updateGameLogic(delta) {
             
             // Update Time
             const timeEl = document.getElementById('play-time-value');
-            if (timeEl) {
+            const trainingCountdownEl = document.getElementById('training-countdown-value');
+            if (isTrainingMode()) {
+                if (trainingCountdownEl) {
+                    const remainingMs = Math.max(0, getTrainingSessionDurationMs() - (CONFIG.accumulatedPlayTime || 0));
+                    const countdownText = GAME_STATS.formatTime(remainingMs).substring(0, 5);
+                    updateDigitDisplay(trainingCountdownEl, countdownText);
+                }
+            } else if (timeEl) {
                 const timeText = GAME_STATS.formatTime(CONFIG.accumulatedPlayTime || 0).substring(0, 5); // mm:ss only for HUD
                 if (CONFIG.isPaused) {
                     timeEl.innerHTML = `<span class="material-symbols-outlined pause-icon" style="font-size: 1.1em; vertical-align: text-bottom; margin-right: 4px; color: #FFD700; text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);">pause_circle</span>` + timeText;
@@ -2547,11 +2559,17 @@ function applySessionModeUI() {
     const scoreDisplay = document.getElementById('score-display');
     const streakDisplay = document.getElementById('streak-display');
     const scoreText = document.getElementById('score-text');
+    const playTimeDisplay = document.getElementById('play-time-display');
+    const trainingCountdownDisplay = document.getElementById('training-countdown-display');
+    const trainingCountdownValue = document.getElementById('training-countdown-value');
 
     if (isTrainingMode()) {
         if (questionPanel) questionPanel.style.display = 'none';
         if (scoreDisplay) scoreDisplay.style.display = 'none';
         if (streakDisplay) streakDisplay.style.display = 'none';
+        if (playTimeDisplay) playTimeDisplay.style.display = 'none';
+        if (trainingCountdownDisplay) trainingCountdownDisplay.style.display = '';
+        if (trainingCountdownValue) trainingCountdownValue.textContent = GAME_STATS.formatTime(getTrainingSessionDurationMs()).substring(0, 5);
         if (scoreText) scoreText.textContent = langText('訓練', 'TRAIN');
         return;
     }
@@ -2559,6 +2577,8 @@ function applySessionModeUI() {
     if (questionPanel) questionPanel.style.display = 'none';
     if (scoreDisplay) scoreDisplay.style.display = '';
     if (streakDisplay) streakDisplay.style.display = '';
+    if (playTimeDisplay) playTimeDisplay.style.display = '';
+    if (trainingCountdownDisplay) trainingCountdownDisplay.style.display = 'none';
     if (scoreText) scoreText.textContent = '0/10';
 }
 
@@ -4862,6 +4882,7 @@ function configureRuntime(options = {}) {
         lang = CONFIG.currentLang,
         difficulty = CONFIG.difficulty,
         testMode = CONFIG.testMode,
+        trainingDurationSec = CONFIG.trainingDurationSec,
         inputMode = selectedInputMode,
         focusSource = CONFIG.focusSource,
         cameraConsent = CONFIG.cameraConsent,
@@ -4872,6 +4893,7 @@ function configureRuntime(options = {}) {
     CONFIG.currentLang = lang || CONFIG.currentLang;
     CONFIG.difficulty = difficulty || CONFIG.difficulty;
     CONFIG.testMode = ['training', 'challenge'].includes(testMode) ? testMode : CONFIG.testMode;
+    CONFIG.trainingDurationSec = Math.max(30, Math.min(1800, Number(trainingDurationSec || CONFIG.trainingDurationSec || DEFAULT_TRAINING_DURATION_SEC)));
     CONFIG.focusSource = focusSource || CONFIG.focusSource;
     CONFIG.cameraConsent = cameraConsent || CONFIG.cameraConsent;
     if (['idle', 'simulation', 'eeg'].includes(inputMode)) {
