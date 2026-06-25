@@ -876,9 +876,12 @@ let eegConnectionState = 'idle';
 let eegStatusDetail = 'Choose a mode to begin.';
 let hasLiveEEGData = false;
 let connectionWatchdogInterval = null;
+let bridgeReconnectTimeoutId = null;
 let lastEEGDataTime = 0;
-let retryCount = 0;
-const MAX_RETRIES = 3;
+let bridgeReconnectAttempts = 0;
+let suppressBridgeAutoReconnect = false;
+const MAX_BRIDGE_RECONNECT_ATTEMPTS = 12;
+const LIVE_EEG_WAIT_TIMEOUT_MS = 18000;
 
 // #region debug-point C:runtime-report
 const DEBUG_SERVER_URL = window.__TRAE_DEBUG_SERVER_URL__ || null;
@@ -4290,6 +4293,12 @@ function animate() {
             }
 
             bridgeSocket.onopen = () => {
+                if (bridgeReconnectTimeoutId) {
+                    clearTimeout(bridgeReconnectTimeoutId);
+                    bridgeReconnectTimeoutId = null;
+                }
+                suppressBridgeAutoReconnect = false;
+                bridgeReconnectAttempts = 0;
                 bridgeConnected = true;
                 isConnected = true;
                 setEEGConnectionState('searching', 'Bridge connected. Opening your paired MindWave serial device...');
@@ -4337,6 +4346,7 @@ function animate() {
                         if (hasValidSignal) {
                             isHeadsetConnected = true;
                             hasLiveEEGData = true;
+                            bridgeReconnectAttempts = 0;
                             updateFocusFromEEG(attention);
                             setEEGConnectionState('streaming', `Live MindWave data received. Signal ${signal.toFixed(0)}%, attention ${attention}, meditation ${meditation}.`);
                             updateConnectBtn(`EEG Ready (${signal}%)`, false, true);
@@ -4394,10 +4404,13 @@ function animate() {
             bridgeSocket.onclose = () => {
                 bridgeConnected = false;
                 isConnected = false;
+                isHeadsetConnected = false;
+                hasLiveEEGData = false;
                 resetFocusTelemetry(selectedInputMode === 'eeg');
                 removeDebugOverlay();
-                if (selectedInputMode === 'eeg') {
-                    setEEGConnectionState('idle', langText('真實 EEG bridge 已關閉，請重新選擇 EEG 裝置。', 'Real EEG bridge is closed. Choose EEG Equipment to start again.'));
+                if (selectedInputMode === 'eeg' && !suppressBridgeAutoReconnect) {
+                    setEEGConnectionState('searching', langText('EEG bridge 已中斷，系統正持續嘗試重新連接。', 'EEG bridge disconnected. The system is trying to reconnect continuously.'));
+                    scheduleBridgeReconnect();
                 }
                 updateConnectBtn("Connect EEG", false, false);
                 stopConnectionWatchdog();
@@ -4406,13 +4419,68 @@ function animate() {
 
             bridgeSocket.onerror = (e) => {
                 console.error("Bridge WebSocket Error", e);
+                if (selectedInputMode === 'eeg' && eegModeActive) {
+                    setEEGConnectionState('searching', langText('EEG bridge 連線失敗，正準備重新嘗試。', 'EEG bridge connection failed. Preparing another retry.'));
+                    scheduleBridgeReconnect();
+                }
                 updateConnectBtn("Bridge Connection Failed", false, false);
                 settle(false);
             };
         });
     }
 
+    function scheduleBridgeReconnect(delayMs = 1800) {
+        if (!eegModeActive || selectedInputMode !== 'eeg') return;
+        if (bridgeConnected) return;
+        if (bridgeReconnectTimeoutId) return;
+        if (bridgeReconnectAttempts >= MAX_BRIDGE_RECONNECT_ATTEMPTS) {
+            setEEGConnectionState('warning', langText('已多次嘗試重連 EEG bridge，請確認 Python 視窗仍在執行及頭帶已重新配對。', 'Multiple EEG bridge reconnect attempts were made. Please confirm the Python bridge is still running and the headset has been paired again.'));
+            return;
+        }
+
+        bridgeReconnectAttempts += 1;
+        bridgeReconnectTimeoutId = setTimeout(async () => {
+            bridgeReconnectTimeoutId = null;
+            if (!eegModeActive || selectedInputMode !== 'eeg' || bridgeConnected) return;
+            try {
+                await connectBridge();
+            } catch (error) {
+                console.warn('Bridge reconnect attempt failed:', error);
+            }
+        }, delayMs);
+    }
+
+    function waitForLiveEEG(timeoutMs = LIVE_EEG_WAIT_TIMEOUT_MS) {
+        return new Promise((resolve) => {
+            const startedAt = Date.now();
+            const timer = setInterval(() => {
+                if (!eegModeActive || selectedInputMode !== 'eeg') {
+                    clearInterval(timer);
+                    resolve({ ok: false, reason: 'cancelled' });
+                    return;
+                }
+
+                if (hasLiveEEGData && isHeadsetConnected) {
+                    clearInterval(timer);
+                    resolve({ ok: true, reason: 'live' });
+                    return;
+                }
+
+                if (Date.now() - startedAt >= timeoutMs) {
+                    clearInterval(timer);
+                    resolve({ ok: false, reason: bridgeConnected ? 'no-live-data' : 'bridge-unavailable' });
+                }
+            }, 250);
+        });
+    }
+
     function disconnectBridge() {
+        if (bridgeReconnectTimeoutId) {
+            clearTimeout(bridgeReconnectTimeoutId);
+            bridgeReconnectTimeoutId = null;
+        }
+        suppressBridgeAutoReconnect = true;
+        bridgeReconnectAttempts = 0;
         if (bridgeSocket) {
             try {
                 bridgeSocket.send(JSON.stringify({ action: "stop_eeg" }));
@@ -4423,6 +4491,8 @@ function animate() {
         }
         bridgeConnected = false;
         isConnected = false;
+        isHeadsetConnected = false;
+        hasLiveEEGData = false;
         resetFocusTelemetry(selectedInputMode === 'eeg');
         removeDebugOverlay();
         if (selectedInputMode === 'eeg') {
@@ -4506,14 +4576,21 @@ function animate() {
         lastEEGDataTime = Date.now();
         
         connectionWatchdogInterval = setInterval(() => {
-            if (!bridgeConnected) return;
+            if (!eegModeActive || selectedInputMode !== 'eeg') return;
+
+            if (!bridgeConnected) {
+                scheduleBridgeReconnect();
+                return;
+            }
             
             const now = Date.now();
             if (isHeadsetConnected && now - lastEEGDataTime > 5000) {
                 console.warn("EEG Data Timeout (>5s). Signal Lost.");
+                hasLiveEEGData = false;
+                isHeadsetConnected = false;
                 resetFocusTelemetry(selectedInputMode === 'eeg');
-                setEEGConnectionState('warning', 'Signal timed out. The headset is connected but live EEG data stopped arriving.');
-                updateConnectBtn("Signal Lost", true, false);
+                setEEGConnectionState('searching', 'Signal timed out. Re-pairing will continue automatically once the headset comes back.');
+                updateConnectBtn("Reconnecting EEG...", true, false);
             }
         }, 1000);
     }
@@ -4830,7 +4907,27 @@ async function activateEEGMode() {
     );
     updateSimulationHint();
 
-    return connectBLE();
+    const bridgeOk = await connectBLE();
+    if (!bridgeOk) {
+        return { ok: false, reason: 'bridge-unavailable' };
+    }
+
+    const liveResult = await waitForLiveEEG();
+    if (!liveResult.ok) {
+        if (liveResult.reason === 'no-live-data') {
+            setEEGConnectionState(
+                'warning',
+                langText('已連接到 bridge，但未收到真實腦波。請確認頭帶已開機、重新配對並保持感測器貼合。', 'Bridge connected, but no live EEG arrived. Confirm the headset is powered on, paired again, and the sensor is touching well.')
+            );
+        }
+        return liveResult;
+    }
+
+    setEEGConnectionState(
+        'streaming',
+        langText('真實 EEG 已確認連接，可以開始遊戲。', 'Live EEG confirmed. You can start the game now.')
+    );
+    return { ok: true, reason: 'live' };
 }
 
 function setupLandingPage() {

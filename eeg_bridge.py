@@ -184,7 +184,7 @@ class EEGBridge:
         self.signal_quality = 0
         self.last_data_time = 0
 
-    def find_paired_mindwave_port(self):
+    def get_candidate_ports(self):
         preferred = []
         fallback = []
 
@@ -201,28 +201,43 @@ class EEGBridge:
                 # Windows COM ports fallback
                 fallback.append(device)
 
+        candidates = []
+
         if preferred:
-            port = preferred[0]
-            if port.startswith("/dev/cu."):
-                tty_port = port.replace("/dev/cu.", "/dev/tty.", 1)
-                if os.path.exists(tty_port):
-                    return tty_port
-            return port
-            
+            for port in preferred:
+                if port.startswith("/dev/cu."):
+                    tty_port = port.replace("/dev/cu.", "/dev/tty.", 1)
+                    if os.path.exists(tty_port):
+                        candidates.append(tty_port)
+                candidates.append(port)
+
         if fallback:
-            # On Windows, there might be multiple COM ports. 
-            # We try the last one first, as it's often the newly added Bluetooth SPP.
-            if any(p.upper().startswith("COM") for p in fallback):
-                return fallback[-1]
-                
-            port = fallback[0]
-            if port.startswith("/dev/cu."):
-                tty_port = port.replace("/dev/cu.", "/dev/tty.", 1)
-                if os.path.exists(tty_port):
-                    return tty_port
-            return port
-            
-        return None
+            windows_ports = [p for p in fallback if p.upper().startswith("COM")]
+            other_ports = [p for p in fallback if p not in windows_ports]
+
+            # On Windows, newly paired SPP devices are often the newest / highest COM numbers.
+            for port in reversed(windows_ports):
+                candidates.append(port)
+
+            for port in other_ports:
+                if port.startswith("/dev/cu."):
+                    tty_port = port.replace("/dev/cu.", "/dev/tty.", 1)
+                    if os.path.exists(tty_port):
+                        candidates.append(tty_port)
+                candidates.append(port)
+
+        deduped = []
+        seen = set()
+        for port in candidates:
+            if not port or port in seen:
+                continue
+            seen.add(port)
+            deduped.append(port)
+        return deduped
+
+    def find_paired_mindwave_port(self):
+        candidates = self.get_candidate_ports()
+        return candidates[0] if candidates else None
 
     def serial_worker(self):
         while self.running:
@@ -234,8 +249,8 @@ class EEGBridge:
                 time.sleep(0.2)
                 continue
 
-            port = self.find_paired_mindwave_port()
-            if not port:
+            candidate_ports = self.get_candidate_ports()
+            if not candidate_ports:
                 # #region debug-point E:no-port-found
                 self.report_debug("E", "bridge could not find paired mindwave port", {})
                 # #endregion
@@ -243,34 +258,49 @@ class EEGBridge:
                 time.sleep(PORT_RETRY_SECONDS)
                 continue
 
-            try:
-                self.current_port = port
-                # #region debug-point C:serial-open-attempt
-                self.report_debug("C", "bridge opening serial port", {"port": port, "capture_enabled": self.capture_enabled})
-                # #endregion
-                self.enqueue_status(f"Opening paired MindWave serial port: {port}", force=True)
-                self.serial_conn = serial.Serial(port, BAUD_RATE, timeout=1)
-                # #region debug-point C:serial-open-success
-                self.report_debug("C", "bridge serial port opened", {"port": port})
-                # #endregion
-                self.enqueue_status(f"MindWave serial connected: {port}", force=True)
-                self.read_serial_stream()
-            except Exception as e:
-                err_text = str(e)
-                # #region debug-point E:serial-open-failed
-                self.report_debug("E", "bridge serial open failed", {"port": port, "message": err_text})
-                # #endregion
-                if "Operation not permitted" in err_text:
-                    self.permission_blocked = True
-                    self.capture_enabled = False
-                    self.enqueue_status(
-                        "Port access denied. Reopen the launcher with device access permission, or grant Bluetooth/serial permission to the running app.",
-                        force=True,
-                    )
-                else:
-                    self.enqueue_status(f"Serial connection error on {port}: {e}", force=True)
+            opened = False
+            last_error = None
+
+            for port in candidate_ports:
+                try:
+                    self.current_port = port
+                    # #region debug-point C:serial-open-attempt
+                    self.report_debug("C", "bridge opening serial port", {"port": port, "capture_enabled": self.capture_enabled})
+                    # #endregion
+                    self.enqueue_status(f"Trying MindWave serial port: {port}", force=True)
+                    self.serial_conn = serial.Serial(port, BAUD_RATE, timeout=1)
+                    # #region debug-point C:serial-open-success
+                    self.report_debug("C", "bridge serial port opened", {"port": port})
+                    # #endregion
+                    self.enqueue_status(f"MindWave serial connected: {port}", force=True)
+                    opened = True
+                    self.read_serial_stream()
+                    break
+                except Exception as e:
+                    err_text = str(e)
+                    last_error = (port, err_text)
+                    # #region debug-point E:serial-open-failed
+                    self.report_debug("E", "bridge serial open failed", {"port": port, "message": err_text})
+                    # #endregion
+                    if "Operation not permitted" in err_text:
+                        self.permission_blocked = True
+                        self.capture_enabled = False
+                        self.enqueue_status(
+                            "Port access denied. Reopen the launcher with device access permission, or grant Bluetooth/serial permission to the running app.",
+                            force=True,
+                        )
+                        break
+                    self.close_serial()
+                    continue
+                finally:
+                    if not opened:
+                        self.close_serial()
+
+            if not opened and self.capture_enabled and not self.permission_blocked:
+                if last_error:
+                    self.enqueue_status(f"Serial connection error on {last_error[0]}: {last_error[1]}", force=True)
                 time.sleep(PORT_RETRY_SECONDS)
-            finally:
+            else:
                 self.close_serial()
 
     def close_serial(self):

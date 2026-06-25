@@ -7,3 +7,8 @@ __pycache__/
 bridge_log.txt
 *.log
 *.ndjson
+node_modules/
+.DS_Store
+.venv/
+venv/
+__pycache__/

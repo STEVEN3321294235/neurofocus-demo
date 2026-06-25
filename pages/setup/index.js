@@ -211,9 +211,15 @@ export default {
                         }
                         if (title) title.textContent = t('setup_eeg_armed');
                         if (message) message.textContent = t('setup_eeg_searching');
-                        const connected = await activateEEGMode();
-                        if (!connected) {
-                            if (message) message.textContent = t('setup_eeg_unavailable');
+                        const eegResult = await activateEEGMode();
+                        if (!eegResult?.ok) {
+                            if (message) {
+                                if (eegResult?.reason === 'no-live-data') {
+                                    message.textContent = '已連接到本機 bridge，但仍未收到真實腦波。請確認頭帶已開機、重新配對並保持感測器貼合。';
+                                } else {
+                                    message.textContent = t('setup_eeg_unavailable');
+                                }
+                            }
                             button.disabled = false;
                             return;
                         }
