@@ -91,7 +91,7 @@ const DIFFICULTY_PROFILES = {
     hard: {
         ageBand: { hk: '14-16 歲', en: 'Ages 14-16' },
         promptAge: 'secondary students aged 14-16',
-        skillPool: ['conditional logic', 'ratio reasoning', 'elimination']
+        skillPool: ['stroop conflict', 'reverse instruction', 'hidden rule detection']
     }
 };
 
@@ -326,13 +326,14 @@ const TOTAL_QUESTIONS = 10;
 const INITIAL_AI_TIMEOUT_MS = 8000;
 const BACKGROUND_AI_TIMEOUT_MS = 15000;
 const INITIAL_PLAYABLE_QUESTIONS = 4;
+const SIMULATION_STABLE_SEGMENT_PROBABILITY = 0.8;
 const FOCUS_TRAINING = {
     stableThreshold: 50,
     lowThreshold: 45,
     recoveryThreshold: 55,
     promptDelayMs: 400,
     triggerDurationMs: 5000,
-    interventionDurationMs: 24000,
+    interventionDurationMs: 12000,
     interventionCooldownMs: 10000,
     boostDurationMs: 5000
 };
@@ -593,21 +594,20 @@ function renderBreathingIntervention(now = performance.now()) {
     const helperEl = document.getElementById('breathing-helper');
     const elapsed = Math.max(0, now - trainingAnalytics.interventionStartMs);
     const cycleElapsed = elapsed % 12000;
-    const cycleIndex = Math.min(2, Math.floor(elapsed / 12000) + 1);
 
     let phaseClass = 'phase-inhale';
-    let phaseTitle = langText(`慢慢吸氣，第 ${cycleIndex} 輪`, `Slow inhale, round ${cycleIndex}`);
+    let phaseTitle = langText('慢慢吸氣，重新穩定', 'Slow inhale and reset');
     let phaseText = langText('吸氣', 'Inhale');
     let helperText = langText('跟住呼吸環由細慢慢放大，持續 4 秒吸氣。', 'Follow the ring from small to large and inhale for 4 seconds.');
 
     if (cycleElapsed >= 4000 && cycleElapsed < 8000) {
         phaseClass = 'phase-hold';
-        phaseTitle = langText(`憋氣穩住，第 ${cycleIndex} 輪`, `Hold steady, round ${cycleIndex}`);
+        phaseTitle = langText('憋氣穩住節奏', 'Hold and stay steady');
         phaseText = langText('憋氣', 'Hold');
         helperText = langText('保持呼吸環停留在最大狀態，穩住 4 秒。', 'Keep the ring at its largest size and hold for 4 seconds.');
     } else if (cycleElapsed >= 8000) {
         phaseClass = 'phase-exhale';
-        phaseTitle = langText(`慢慢呼氣，第 ${cycleIndex} 輪`, `Slow exhale, round ${cycleIndex}`);
+        phaseTitle = langText('慢慢呼氣，回到題目', 'Slow exhale and refocus');
         phaseText = langText('呼氣', 'Exhale');
         helperText = langText('跟住呼吸環由大慢慢收細，用 4 秒慢慢呼氣。', 'Follow the ring from large to small and exhale slowly over 4 seconds.');
     }
@@ -1080,10 +1080,12 @@ function updateGameLogic(delta) {
             focusLevel = 0;
             shouldPause = true;
             setEEGConnectionState('warning', langText('相機串流已中斷，計時已暫停。請重新回到鏡頭授權或鏡頭畫面。', 'Camera stream stopped, timer paused. Please restore camera access or return to the camera view.'));
-        } else if (!cameraTracking.hasFace) {
+        } else if (!cameraTracking.hasFace && !cameraTracking.faceRecentlySeen) {
             focusLevel = 0;
             shouldPause = true;
             setEEGConnectionState('warning', langText('未偵測到人臉，專注度已歸零並暫停計時。請回到鏡頭範圍內。', 'No face detected. Focus is now 0 and the timer is paused. Please return to the camera frame.'));
+        } else if (!cameraTracking.hasFace && cameraTracking.faceRecentlySeen) {
+            setEEGConnectionState('simulation', langText('正在重新鎖定人臉，專注值會短暫平滑維持。', 'Reacquiring your face. Focus stays smoothed briefly.'));
         }
     }
 
@@ -2234,34 +2236,34 @@ function startFocusSimulation() {
         console.log("Starting Focus Simulation...");
         resetFocusTelemetry(false);
         const useFallbackProfile = CONFIG.focusSource !== 'camera-ready';
-        focusLevel = useFallbackProfile ? 58 : 52;
+        focusLevel = useFallbackProfile ? 62 : 58;
         let phase = 0;
         let segmentTicks = 0;
         let profile = {
-            baseline: 52,
-            amplitude: 7,
-            jitter: 4,
+            baseline: 60,
+            amplitude: 6,
+            jitter: 3,
             detail: langText('模擬校準中，訊號逐步穩定。', 'Simulation calibrating. Signal is stabilizing.')
         };
 
         const createFallbackProfile = () => {
-            const isHighFocus = Math.random() < 0.7;
+            const isHighFocus = Math.random() < SIMULATION_STABLE_SEGMENT_PROBABILITY;
             if (isHighFocus) {
                 return {
-                    baseline: THREE.MathUtils.randFloat(58, 84),
-                    amplitude: THREE.MathUtils.randFloat(4.5, 8.5),
-                    jitter: THREE.MathUtils.randFloat(1.8, 3.8),
-                    duration: Math.round(THREE.MathUtils.randFloat(4, 10)),
-                    detail: langText('未授權相機，正以 30/70 fallback 模擬穩定專注片段。', 'Camera not allowed. Running the 30/70 fallback in a stable focus segment.')
+                    baseline: THREE.MathUtils.randFloat(64, 86),
+                    amplitude: THREE.MathUtils.randFloat(4.2, 7.2),
+                    jitter: THREE.MathUtils.randFloat(1.4, 3.0),
+                    duration: Math.round(THREE.MathUtils.randFloat(5, 11)),
+                    detail: langText('未授權相機，正以 20/80 fallback 模擬穩定專注片段。', 'Camera not allowed. Running the 20/80 fallback in a stable focus segment.')
                 };
             }
 
             return {
-                baseline: THREE.MathUtils.randFloat(16, 40),
-                amplitude: THREE.MathUtils.randFloat(6, 11),
-                jitter: THREE.MathUtils.randFloat(3.2, 5.8),
-                duration: Math.round(THREE.MathUtils.randFloat(2, 6)),
-                detail: langText('未授權相機，正以 30/70 fallback 模擬短暫失焦片段。', 'Camera not allowed. Running the 30/70 fallback in a short distraction segment.')
+                baseline: THREE.MathUtils.randFloat(34, 52),
+                amplitude: THREE.MathUtils.randFloat(4.5, 8.0),
+                jitter: THREE.MathUtils.randFloat(2.4, 4.2),
+                duration: Math.round(THREE.MathUtils.randFloat(2, 4)),
+                detail: langText('未授權相機，正以 20/80 fallback 模擬短暫失焦片段。', 'Camera not allowed. Running the 20/80 fallback in a short distraction segment.')
             };
         };
 
@@ -2291,12 +2293,17 @@ function startFocusSimulation() {
                 if (!cameraTracking.streamActive || !cameraTracking.modelReady || !cameraTracking.isPredicting) {
                     focusLevel = 0;
                     setEEGConnectionState('warning', langText('相機串流未持續運行，計時將保持暫停。', 'Camera stream is not running continuously. The timer stays paused.'));
-                } else if (!cameraTracking.hasFace) {
+                } else if (!cameraTracking.hasFace && !cameraTracking.faceRecentlySeen) {
                     focusLevel = 0;
                     setEEGConnectionState('warning', langText('未偵測到人臉，計時已暫停，請回到鏡頭範圍。', 'No face detected. Timer paused. Please return to the camera frame.'));
+                } else if (!cameraTracking.hasFace && cameraTracking.faceRecentlySeen) {
+                    focusLevel = Math.max(24, cameraTracking.focusScore || focusLevel || 0);
+                    setEEGConnectionState('simulation', langText('鏡頭正在重新鎖定人臉，專注度暫時平滑維持。', 'Camera is reacquiring your face. Focus is being smoothed temporarily.'));
                 } else {
                     const cameraScore = getCameraFocusScore();
-                    focusLevel = cameraScore;
+                    const centeredBonus = (cameraTracking.faceCenteredness || 0) * 8;
+                    const presenceBonus = (cameraTracking.facePresenceConfidence || 0) * 4;
+                    focusLevel = THREE.MathUtils.clamp(cameraScore + centeredBonus + presenceBonus, 0, 100);
                     setEEGConnectionState('simulation', langText('相機鏡頭正持續觀察專注狀態。', 'Camera is actively monitoring focus state.'));
                 }
             }
@@ -2581,7 +2588,16 @@ async function fetchBatchQuestions(count = 10, isInitial = true) {
         let diffStr = CONFIG.difficulty;
         if (diffStr === 'easy') diffStr = 'Medium-Easy';
         if (diffStr === 'medium') diffStr = 'Hard';
-        if (diffStr === 'hard') diffStr = 'Expert/Olympiad';
+        if (diffStr === 'hard') diffStr = 'Advanced Focus Training';
+
+        const hardModeRules = CONFIG.difficulty === 'hard'
+            ? `6. HARD mode must focus on attention-control puzzle types: Stroop-style conflict, reverse instruction, hidden instruction, elimination, misleading reading comprehension, or rule switching.
+        7. HARD mode must NOT require chemistry, biology, physics, or specialist school-subject knowledge to answer correctly.
+        8. At least 70% of the questions must use the hard-mode attention-control patterns above.
+        9. Prefer traps that reward slow reading and careful rule following instead of fact recall.`
+            : `6. Use school-friendly everyday logic and reasoning without requiring niche subject memorization.
+        7. Avoid repetitive algebra-only, equation-only, or pure number-sequence-only questions unless embedded in a realistic scenario.
+        8. Ensure high variety in question patterns to avoid repeating similar structures.`;
 
         const prompt = `Generate ${count} highly engaging real-world multiple-choice reasoning questions.
         Difficulty Level: ${diffStr}. Language: ${langStr}. Target Audience: ${difficultyProfile.promptAge}.
@@ -2592,10 +2608,8 @@ async function fetchBatchQuestions(count = 10, isInitial = true) {
         3. Keep each question concise: <= 42 Chinese characters or <= 100 English characters.
         4. Keep each option concise: <= 16 Chinese characters or <= 34 English characters.
         5. Keep explanation useful: <= 60 Chinese characters or <= 140 English characters.
-        6. At least half of the questions should come from everyday biology, chemistry, health, food, school lab, environment, or daily-life science situations.
-        7. Avoid repetitive algebra-only, equation-only, or pure number-sequence-only questions unless embedded in a realistic scenario.
-        8. Ensure high variety in question patterns to avoid repeating similar structures.
-        9. Return a STRICT JSON object with a "questions" array only.
+        ${hardModeRules}
+        10. Return a STRICT JSON object with a "questions" array only.
         
         Fields:
         {
@@ -2613,7 +2627,7 @@ async function fetchBatchQuestions(count = 10, isInitial = true) {
         }
         
         Example:
-        {"questions":[{"question":"A lunchbox is left in the sun. Which change is the clearest sign bacteria may grow faster?","options":["It gets warmer","It gets darker","It gets heavier","It gets louder"],"answer":0,"explanation":"Warmer food usually helps bacteria multiply faster, while the other changes do not directly indicate growth rate.","skill":"Biology Logic","ageBand":"${getAgeBandLabel(difficultyProfile)}","validation":"temperature affects bacterial growth"}]}`;
+        {"questions":[{"question":"Do not solve 48+27. How many digits appear in that expression?","options":["2","3","4","5"],"answer":2,"explanation":"The digits are 4, 8, 2, and 7, so there are four digits.","skill":"Hidden Instruction","ageBand":"${getAgeBandLabel(difficultyProfile)}","validation":"count digits, do not calculate"}]}`;
 
         const controller = new AbortController();
         const timeoutMs = isInitial ? INITIAL_AI_TIMEOUT_MS : BACKGROUND_AI_TIMEOUT_MS;
@@ -2628,7 +2642,7 @@ async function fetchBatchQuestions(count = 10, isInitial = true) {
             body: JSON.stringify({
                 model: "deepseek-chat", 
                 messages: [
-                    {"role": "system", "content": "You are a creative education game designer. Return strictly valid JSON object with a questions array only."},
+                    {"role": "system", "content": "You are a focus-training game designer. Return strictly valid JSON object with a questions array only."},
                     {"role": "user", "content": prompt}
                 ],
                 temperature: 0.9, 
@@ -2804,28 +2818,28 @@ function generateMockPuzzle(index = 0) {
         },
         hard: {
             hk: [
-                { q: "三杯液體只有一杯是酸性。甲說 A 是酸，乙說 C 不是酸。若只有一人正確，哪杯是酸？", o: ["A", "B", "C", "無法判斷"], a: 1, e: "若 B 是酸，甲錯、乙對；其餘假設都會出現 0 或 2 人正確。", s: "化學推理" },
-                { q: "甲乙兩盆植物同品種同水量，只有甲放近窗。三日後甲較高，最合理原因？", o: ["甲獲更多光", "乙土較重", "甲盆較圓", "乙名字較短"], a: 0, e: "在其他條件相近下，最大差異是光照，較可能影響生長。", s: "實驗判讀" },
-                { q: "若 3 個冷藏盒可保存 18 支試管，5 個同款冷藏盒可保存多少？", o: ["24", "28", "30", "36"], a: 2, e: "每盒可放 6 支，5 盒共 30 支。", s: "比例推理" },
-                { q: "若『不是所有樣本都變藍』為真，哪句一定真？", o: ["全部變紅", "至少一個沒變藍", "沒有樣本存在", "全部都變藍"], a: 1, e: "否定『全部變藍』即表示至少一個樣本沒有變藍。", s: "語句邏輯" },
-                { q: "如果今天之後第 15 天是星期五，今天是星期幾？", o: ["星期三", "星期四", "星期五", "星期六"], a: 0, e: "15 天後等同 1 天後，所以今天後一天是星期五，今天就是星期三。", s: "模運算" },
-                { q: "密封盒內濕度上升但水量沒加，最合理是？", o: ["水蒸發了", "氧氣變重", "盒子縮細了", "空氣消失了"], a: 0, e: "水量不變但濕度上升，最合理是部分液態水蒸發成水蒸氣。", s: "狀態變化" },
-                { q: "甲燒杯加熱、乙不加熱，兩者皆蓋好。若甲內壁先現水珠，最合理推論是？", o: ["甲先有蒸發再凝結", "乙較熱", "甲沒有水", "蓋子吸走熱"], a: 0, e: "加熱會先增加蒸發，水蒸氣遇較冷內壁後再凝結成水珠。", s: "熱與相變" },
-                { q: "實驗記錄顯示四株植物只有缺光組葉色變淡，最穩妥結論是？", o: ["缺光影響葉綠狀態", "所有植物都快枯死", "水一定不足", "肥料一定太多"], a: 0, e: "已知明顯差異只在光照，因此最穩妥是推論缺光與葉色變淡有關。", s: "證據判讀" },
-                { q: "若兩支體溫計讀數相差 1°C，而只有其中一支放入口中 3 分鐘，何者較可信？", o: ["放入口中較久那支", "較短那支", "兩支都一定錯", "只看外觀較新那支"], a: 0, e: "量測條件較符合標準的讀數通常較可信，不能只看外觀判斷。", s: "量測推理" },
-                { q: "某藥丸說明指『飯後每 8 小時一次』，若早上 7 時服第一粒，第二粒最早應在？", o: ["中午 1 時", "下午 3 時", "下午 5 時", "晚上 7 時"], a: 1, e: "7 時後加 8 小時是下午 3 時，早於此時間不符合間隔。", s: "時間規則" }
+                { q: "「紅」字用藍色顯示，代表「藍」的字體實際是？", o: ["紅色", "藍色", "綠色", "白色"], a: 0, e: "要看字體顏色，不是字面意思。", s: "閱讀陷阱" },
+                { q: "以下哪個不是「不是圓形」？", o: ["圓形", "三角形", "正方形", "長方形"], a: 0, e: "雙重否定代表它其實是圓形。", s: "反向指令" },
+                { q: "不要計算 48+27，只答共有多少個數字？", o: ["2", "4", "5", "6"], a: 1, e: "題目內有 4、8、2、7，共四個數字。", s: "隱藏指令" },
+                { q: "規則是「選字數最少但不要選 A」，哪個符合？", o: ["A蘋果", "雨", "白雲", "海洋"], a: 1, e: "最短的是「雨」，而且不是 A。", s: "規則切換" },
+                { q: "哪句與「所有方格都不是圓形」意思相同？", o: ["有些圓形是方格", "方格全都非圓形", "只有圓形是方格", "沒有方格存在"], a: 1, e: "它直接重述原句，其他都改變了意思。", s: "語句邏輯" },
+                { q: "看到「不要選最右邊」後，再看到「改為選最右邊」，應選？", o: ["最左", "左二", "右二", "最右"], a: 3, e: "後面的指令覆蓋前面的指令。", s: "反向指令" },
+                { q: "若後天是星期五，今天是星期幾？", o: ["星期三", "星期四", "星期五", "星期六"], a: 0, e: "後天是兩天後，所以今天是星期三。", s: "時間推理" },
+                { q: "題末最重要：3, 6, 9, 12。請選最大的偶數。", o: ["3", "6", "9", "12"], a: 3, e: "要忽略前面節奏，直接看最後指令。", s: "隱藏指令" },
+                { q: "題目叫你選第二長的詞，哪個正確？", o: ["山", "白雲", "微風聲", "深藍天空"], a: 2, e: "字數依次為 1、2、3、4，所以第二長是 3 字。", s: "閱讀理解" },
+                { q: "若「不是所有人都遲到」為真，哪句必真？", o: ["全部遲到", "至少一人準時", "沒有人到場", "全部準時"], a: 1, e: "代表至少有一個人不是遲到。", s: "語句邏輯" }
             ],
             en: [
-                { q: "Three liquids contain exactly one acid. A says 'A is acid'. B says 'C is not acid'. If only one is correct, which is acid?", o: ["A", "B", "C", "Unknown"], a: 1, e: "If B is acid, A is wrong and B's statement is true; other guesses make 0 or 2 statements true.", s: "Chemistry Logic" },
-                { q: "Two same plants get equal water, but only plant A stays near a window. After 3 days A grows more. Best reason?", o: ["A got more light", "B had heavier soil", "A had a rounder pot", "B had a shorter name"], a: 0, e: "With other conditions held constant, extra light is the strongest explanation.", s: "Experiment Reading" },
-                { q: "If 3 cold boxes hold 18 test tubes, how many do 5 identical boxes hold?", o: ["24", "28", "30", "36"], a: 2, e: "Each box holds 6 tubes, so 5 boxes hold 30.", s: "Ratio" },
-                { q: "If 'not every sample turned blue' is true, what must be true?", o: ["All turned red", "At least one did not turn blue", "No samples exist", "All turned blue"], a: 1, e: "Negating 'all turned blue' means at least one sample did not turn blue.", s: "Statement Logic" },
-                { q: "If the day 15 days from now is Friday, what day is today?", o: ["Wednesday", "Thursday", "Friday", "Saturday"], a: 0, e: "Fifteen days ahead is the same as one day ahead, so tomorrow is Friday and today is Wednesday.", s: "Calendar Logic" },
-                { q: "Humidity rises in a sealed box without adding water. What is the best explanation?", o: ["Water evaporated", "Oxygen got heavier", "The box shrank", "Air disappeared"], a: 0, e: "If no water is added but humidity rises, some liquid water most likely evaporated.", s: "State Change" },
-                { q: "Beaker A is heated and beaker B is not. Both are covered. If droplets appear first inside A, what best explains it?", o: ["More evaporation then condensation in A", "B is hotter", "A has no water", "The lid removes heat"], a: 0, e: "Heating A boosts evaporation, and that vapor can later condense on the cooler inner cover.", s: "Heat and Phase" },
-                { q: "Records show only the low-light plant group developed pale leaves. What is the safest conclusion?", o: ["Low light affected leaf condition", "All plants are dying soon", "Water was definitely missing", "There was definitely too much fertilizer"], a: 0, e: "The clear measured difference is light level, so that is the most defensible conclusion.", s: "Evidence Reading" },
-                { q: "Two thermometers differ by 1 C, but only one stayed under the tongue for 3 minutes. Which reading is more trustworthy?", o: ["The one measured for the full time", "The shorter reading", "Both must be wrong", "The newer-looking thermometer"], a: 0, e: "The reading taken under the more standard method is the more reliable one.", s: "Measurement Logic" },
-                { q: "Medicine says 'take one tablet every 8 hours after meals'. If the first dose is at 7 a.m., when is the earliest second dose?", o: ["1 p.m.", "3 p.m.", "5 p.m.", "7 p.m."], a: 1, e: "Eight hours after 7 a.m. is 3 p.m., so any earlier time breaks the interval rule.", s: "Time Rule" }
+                { q: "The word 'BLUE' is shown in red. What is the actual text color?", o: ["Red", "Blue", "Green", "White"], a: 0, e: "You must read the display color, not the word meaning.", s: "Stroop Trap" },
+                { q: "Which option is not 'not a circle'?", o: ["Circle", "Triangle", "Square", "Rectangle"], a: 0, e: "A double negative means the answer is the circle.", s: "Reverse Instruction" },
+                { q: "Do not solve 48+27. How many digits appear there?", o: ["2", "4", "5", "6"], a: 1, e: "The digits are 4, 8, 2, and 7, so there are four digits.", s: "Hidden Instruction" },
+                { q: "Rule: choose the shortest word but not A. Which fits?", o: ["A apple", "Rain", "Clouds", "Ocean"], a: 1, e: "Rain is the shortest non-A option.", s: "Rule Switching" },
+                { q: "Which sentence matches 'All squares are not circles'?", o: ["Some circles are squares", "No square is a circle", "Only circles are squares", "Squares do not exist"], a: 1, e: "It restates the original meaning without changing it.", s: "Statement Logic" },
+                { q: "First read 'Do not pick the far right', then 'Now pick the far right'. Choose?", o: ["Far left", "Left middle", "Right middle", "Far right"], a: 3, e: "The later instruction overrides the earlier one.", s: "Reverse Instruction" },
+                { q: "If the day after tomorrow is Friday, what day is today?", o: ["Wednesday", "Thursday", "Friday", "Saturday"], a: 0, e: "Two days before Friday is Wednesday.", s: "Calendar Logic" },
+                { q: "Most important: 3, 6, 9, 12. Pick the largest even number.", o: ["3", "6", "9", "12"], a: 3, e: "Ignore the setup and follow the final instruction exactly.", s: "Hidden Instruction" },
+                { q: "Pick the second longest word. Which is correct?", o: ["Sun", "Cloud", "Breeze", "DeepBlue"], a: 2, e: "Lengths are 3, 5, 6, and 8, so Breeze is second longest.", s: "Reading Control" },
+                { q: "If 'not everyone is late' is true, what must be true?", o: ["Everyone is late", "At least one is on time", "Nobody arrived", "Everyone is on time"], a: 1, e: "It means at least one person is not late.", s: "Statement Logic" }
             ]
         }
     };
@@ -4112,7 +4126,7 @@ function updateModeStatusUI() {
         titleEl.textContent = I18N[CONFIG.currentLang].mode_simulation_title;
         detailEl.textContent = CONFIG.focusSource === 'camera-ready'
             ? langText('相機鏡頭已準備，正在實時觀察你的專注狀態。', 'Camera is ready and actively monitoring your focus state.')
-            : langText('未授權相機，正使用 30/70 fallback 模擬專注片段。', 'Camera not allowed. Using 30/70 fallback focus segments.');
+            : langText('未授權相機，正使用 20/80 fallback 模擬專注片段。', 'Camera not allowed. Using 20/80 fallback focus segments.');
         return;
     }
 
@@ -4202,16 +4216,43 @@ function animate() {
     let bridgeSocket = null;
     let bridgeConnected = false;
 
+    function normalizeBridgeHost(value = '') {
+        return String(value || '')
+            .trim()
+            .replace(/^wss?:\/\//i, '')
+            .replace(/\/.*$/, '')
+            .replace(/:\d+$/, '');
+    }
+
+    function normalizeBridgeUrl(value = '') {
+        const raw = String(value || '').trim();
+        if (!raw) return '';
+        return /^wss?:\/\//i.test(raw) ? raw : `ws://${raw}`;
+    }
+
+    const bridgeParams = new URLSearchParams(window.location.search);
+    const queryBridgeHost = normalizeBridgeHost(bridgeParams.get('bridgeHost') || '');
+    const queryBridgeUrl = normalizeBridgeUrl(bridgeParams.get('bridgeUrl') || '');
+    const storedBridgeHost = normalizeBridgeHost(localStorage.getItem('eeg_bridge_host') || '');
+    const storedBridgeUrl = normalizeBridgeUrl(localStorage.getItem('eeg_bridge_url') || '');
+    const explicitBridgeHost = normalizeBridgeHost(window.__EEG_BRIDGE_HOST__ || queryBridgeHost || storedBridgeHost);
+    const explicitBridgeUrl = normalizeBridgeUrl(window.__EEG_BRIDGE_URL__ || queryBridgeUrl || storedBridgeUrl);
+
+    if (queryBridgeHost) localStorage.setItem('eeg_bridge_host', queryBridgeHost);
+    if (queryBridgeUrl) localStorage.setItem('eeg_bridge_url', queryBridgeUrl);
+
     const bridgeHosts = Array.from(new Set([
-        window.__EEG_BRIDGE_HOST__ || '',
-        window.location.hostname || '',
+        explicitBridgeHost,
+        '127.0.0.1',
         'localhost',
-        '127.0.0.1'
+        window.location.hostname || ''
     ].filter(Boolean)));
-    const bridgeUrls = bridgeHosts.flatMap((host) => [
-        `ws://${host}:8765`,
-        `ws://${host}:8766`
-    ]);
+    const bridgeUrls = explicitBridgeUrl
+        ? [explicitBridgeUrl]
+        : bridgeHosts.flatMap((host) => [
+            `ws://${host}:8765`,
+            `ws://${host}:8766`
+        ]);
     let bridgeUrlIndex = 0;
 
     function connectBridge() {
@@ -4572,7 +4613,7 @@ function animate() {
             'simulation',
             CONFIG.focusSource === 'camera-ready'
                 ? langText('相機鏡頭已準備。遊戲正透過相機觀察你的專注度。', 'Camera is ready. The game is monitoring your focus via camera.')
-                : langText('未授權相機。Simulation mode 正使用 30/70 fallback 專注片段。', 'Camera not allowed. Simulation mode is using the 30/70 fallback focus segments.')
+                : langText('未授權相機。Simulation mode 正使用 20/80 fallback 專注片段。', 'Camera not allowed. Simulation mode is using the 20/80 fallback focus segments.')
         );
         updateConnectBtn("Simulation Mode", false, true);
         startFocusSimulation();
@@ -4586,7 +4627,7 @@ function animate() {
             if (selectedInputMode === 'simulation') {
                 hintEl.textContent = CONFIG.focusSource === 'camera-ready'
                     ? langText('Camera active · tracking focus', 'Camera active · tracking focus')
-                    : langText('30/70 fallback simulation', '30/70 fallback simulation');
+                    : langText('20/80 fallback simulation', '20/80 fallback simulation');
                 hintEl.style.display = 'block';
                 hintEl.style.color = '#fde047';
                 hintEl.classList.add('simulation');

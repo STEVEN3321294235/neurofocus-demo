@@ -10,6 +10,10 @@ let isModelReady = false;
 let lastFaceDetectedAt = 0;
 let lastCameraError = null;
 let isFaceDetected = false;
+let faceCenteredness = 0;
+let facePresenceConfidence = 0;
+
+const FACE_GRACE_MS = 1400;
 
 // Internal off-screen video element to keep processing camera stream even when UI video is destroyed.
 // `display: none` can stop frame updates on some mobile browsers, so keep it mounted but off-screen.
@@ -95,9 +99,10 @@ function calculateFocusScore(results) {
     const faceHeight = Math.abs(chin.y - forehead.y);
     const centerOffsetX = Math.abs(faceCenterX - 0.5);
     const centerOffsetY = Math.abs(faceCenterY - 0.5);
-    const centeredness = clamp01(1 - (centerOffsetX * 1.6 + centerOffsetY * 1.8));
+    const centeredness = clamp01(1 - (centerOffsetX * 1.2 + centerOffsetY * 1.35));
     const sizeConfidence = clamp01((Math.max(eyeDistance, faceHeight * 0.42) - 0.08) / 0.12);
-    const basePoseScore = 35 + centeredness * 40 + sizeConfidence * 20;
+    const centralBonus = Math.pow(centeredness, 1.8) * 12;
+    const basePoseScore = 42 + centeredness * 30 + sizeConfidence * 16 + centralBonus;
 
     const blinkIntensity = (eyeBlinkLeft + eyeBlinkRight) / 2;
     let score = basePoseScore;
@@ -108,7 +113,11 @@ function calculateFocusScore(results) {
     const blinkDeduction = Math.min(22, blinkIntensity * 22);
     score -= blinkDeduction;
 
-    score += (Math.random() * 4 - 2);
+    if (lookAwayScore < 0.45 && blinkIntensity < 0.22 && centeredness > 0.72) {
+        score += 6;
+    }
+
+    score += (Math.random() * 2.4 - 1.2);
 
     return Math.max(0, Math.min(100, Math.round(score)));
 }
@@ -146,11 +155,29 @@ async function predictWebcam() {
         if (results.faceLandmarks && results.faceLandmarks.length > 0) {
             isFaceDetected = true;
             lastFaceDetectedAt = Date.now();
+            const noseTip = results.faceLandmarks[0]?.[1];
+            const forehead = results.faceLandmarks[0]?.[10];
+            const chin = results.faceLandmarks[0]?.[152];
+            if (noseTip && forehead && chin) {
+                const faceCenterX = noseTip.x;
+                const faceCenterY = (forehead.y + chin.y) * 0.5;
+                const centerOffsetX = Math.abs(faceCenterX - 0.5);
+                const centerOffsetY = Math.abs(faceCenterY - 0.5);
+                faceCenteredness = clamp01(1 - (centerOffsetX * 1.2 + centerOffsetY * 1.35));
+            }
+            facePresenceConfidence = Math.min(1, facePresenceConfidence + 0.28);
             const targetScore = calculateFocusScore(results);
-            currentFocusScore = currentFocusScore * 0.55 + targetScore * 0.45;
+            currentFocusScore = currentFocusScore * 0.5 + targetScore * 0.5;
         } else {
             isFaceDetected = false;
-            currentFocusScore = 0;
+            const missingMs = Date.now() - lastFaceDetectedAt;
+            facePresenceConfidence = Math.max(0, facePresenceConfidence - 0.2);
+            faceCenteredness = Math.max(0, faceCenteredness - 0.12);
+            if (missingMs <= FACE_GRACE_MS) {
+                currentFocusScore = Math.max(18, currentFocusScore * 0.94);
+            } else {
+                currentFocusScore = Math.max(0, currentFocusScore * 0.72 - 8);
+            }
         }
     }
 
@@ -165,11 +192,15 @@ export function getCameraFocusScore() {
 
 export function getCameraTrackingStatus() {
     const streamActive = getStreamActiveState();
+    const msSinceLastFace = lastFaceDetectedAt ? (Date.now() - lastFaceDetectedAt) : Number.POSITIVE_INFINITY;
     return {
         streamActive,
         modelReady: isModelReady,
         isPredicting,
         hasFace: streamActive && isFaceDetected,
+        faceRecentlySeen: streamActive && msSinceLastFace <= FACE_GRACE_MS,
+        faceCenteredness,
+        facePresenceConfidence,
         focusScore: currentFocusScore,
         lastFaceDetectedAt,
         lastCameraError: lastCameraError ? String(lastCameraError.message || lastCameraError) : null
@@ -258,6 +289,8 @@ export function stopCameraPreview() {
     lastPredictionAt = 0;
     lastFaceDetectedAt = 0;
     isFaceDetected = false;
+    faceCenteredness = 0;
+    facePresenceConfidence = 0;
     if (!previewStream) return;
     previewStream.getTracks().forEach((track) => track.stop());
     previewStream = null;

@@ -1,6 +1,7 @@
 import asyncio
 import json
 import os
+import socket
 import threading
 import time
 import urllib.request
@@ -37,6 +38,18 @@ class EEGBridge:
     def log(self, msg):
         ts = time.strftime("%H:%M:%S")
         print(f"{ts} {msg}", flush=True)
+
+    def get_access_urls(self, port):
+        urls = [f"ws://127.0.0.1:{port}", f"ws://localhost:{port}"]
+        try:
+            hostname = socket.gethostname()
+            for info in socket.getaddrinfo(hostname, None, family=socket.AF_INET):
+                ip = info[4][0]
+                if ip and not ip.startswith("127."):
+                    urls.append(f"ws://{ip}:{port}")
+        except Exception:
+            pass
+        return list(dict.fromkeys(urls))
 
     # #region debug-point shared:bridge-report
     def report_debug(self, hypothesis_id, msg, data=None):
@@ -77,8 +90,11 @@ class EEGBridge:
     async def start_ws_server(self):
         for port in (8765, 8766):
             try:
-                server = await websockets.serve(self.ws_handler, "127.0.0.1", port)
-                self.log(f"WebSocket server started on ws://localhost:{port}")
+                server = await websockets.serve(self.ws_handler, "0.0.0.0", port)
+                urls = self.get_access_urls(port)
+                self.log(f"WebSocket server started on {urls[0]}")
+                if len(urls) > 1:
+                    self.log(f"Additional bridge URLs: {', '.join(urls[1:])}")
                 return server
             except OSError as e:
                 self.log(f"WebSocket bind failed on {port}: {e}")
@@ -223,7 +239,7 @@ class EEGBridge:
                 # #region debug-point E:no-port-found
                 self.report_debug("E", "bridge could not find paired mindwave port", {})
                 # #endregion
-                self.enqueue_status("MindWave not found. Please pair the headset in macOS Bluetooth first.")
+                self.enqueue_status("MindWave not found. Please pair the headset in Bluetooth settings first.")
                 time.sleep(PORT_RETRY_SECONDS)
                 continue
 
@@ -248,7 +264,7 @@ class EEGBridge:
                     self.permission_blocked = True
                     self.capture_enabled = False
                     self.enqueue_status(
-                        "Port access denied. Start the launcher from your own macOS Terminal or grant Bluetooth/serial access to the running app.",
+                        "Port access denied. Reopen the launcher with device access permission, or grant Bluetooth/serial permission to the running app.",
                         force=True,
                     )
                 else:
