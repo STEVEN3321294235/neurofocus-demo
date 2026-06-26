@@ -92,6 +92,26 @@ function formatTrainingDurationLabel(totalSeconds) {
     return seconds === 0 ? `${minutes} min` : `${minutes}m ${seconds}s`;
 }
 
+function getTrainingDurationPercent(totalSeconds) {
+    const min = 30;
+    const max = 1800;
+    const clamped = Math.max(min, Math.min(max, Number(totalSeconds || 180)));
+    return ((clamped - min) / (max - min)) * 100;
+}
+
+function renderTrainingScaleMark(label, totalSeconds) {
+    return `<span class="training-duration-mark" style="left:${getTrainingDurationPercent(totalSeconds)}%">${label}</span>`;
+}
+
+function updateTrainingSliderUI(slider, valueEl) {
+    if (!slider) return;
+    const nextValue = Number(slider.value || 180);
+    slider.style.setProperty('--training-progress', `${getTrainingDurationPercent(nextValue)}%`);
+    if (valueEl) {
+        valueEl.textContent = formatTrainingDurationLabel(nextValue);
+    }
+}
+
 function renderTrainingStep(state) {
     const totalSeconds = Math.max(30, Math.min(1800, Number(state.trainingDurationSec || 180)));
     return `
@@ -111,10 +131,10 @@ function renderTrainingStep(state) {
                     value="${totalSeconds}"
                 />
                 <div class="training-duration-scale">
-                    <span>30s</span>
-                    <span>5m</span>
-                    <span>15m</span>
-                    <span>30m</span>
+                    ${renderTrainingScaleMark('30s', 30)}
+                    ${renderTrainingScaleMark('5m', 300)}
+                    ${renderTrainingScaleMark('15m', 900)}
+                    ${renderTrainingScaleMark('30m', 1800)}
                 </div>
                 <div class="mode-helper-detail">${t('setup_training_duration_hint')}</div>
             </div>
@@ -586,9 +606,10 @@ export default {
         const trainingSlider = root.querySelector('#training-duration-slider');
         const trainingValue = root.querySelector('#training-duration-value');
         if (trainingSlider && trainingValue) {
+            updateTrainingSliderUI(trainingSlider, trainingValue);
             trainingSlider.addEventListener('input', () => {
                 const nextValue = Number(trainingSlider.value || 180);
-                trainingValue.textContent = formatTrainingDurationLabel(nextValue);
+                updateTrainingSliderUI(trainingSlider, trainingValue);
                 setState({ trainingDurationSec: nextValue });
             });
         }

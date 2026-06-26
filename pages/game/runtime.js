@@ -1245,11 +1245,20 @@ function updateGameLogic(delta) {
             // Update Time
             const timeEl = document.getElementById('play-time-value');
             const trainingCountdownEl = document.getElementById('training-countdown-value');
+            const trainingCountdownDisplay = document.getElementById('training-countdown-display');
             if (isTrainingMode()) {
                 if (trainingCountdownEl) {
                     const remainingMs = Math.max(0, getTrainingSessionDurationMs() - (CONFIG.accumulatedPlayTime || 0));
                     const countdownText = GAME_STATS.formatTime(remainingMs).substring(0, 5);
-                    updateDigitDisplay(trainingCountdownEl, countdownText);
+                    const remainingRatio = getTrainingSessionDurationMs() > 0 ? remainingMs / getTrainingSessionDurationMs() : 1;
+                    if (trainingCountdownDisplay) {
+                        trainingCountdownDisplay.classList.toggle('is-critical', remainingRatio <= 0.2);
+                    }
+                    if (CONFIG.isPaused) {
+                        trainingCountdownEl.innerHTML = `<span class="material-symbols-outlined pause-icon" style="font-size: 1.1em; vertical-align: text-bottom; margin-right: 4px; color: inherit; text-shadow: inherit;">pause_circle</span>${countdownText}`;
+                    } else {
+                        updateDigitDisplay(trainingCountdownEl, countdownText);
+                    }
                 }
             } else if (timeEl) {
                 const timeText = GAME_STATS.formatTime(CONFIG.accumulatedPlayTime || 0).substring(0, 5); // mm:ss only for HUD
@@ -2569,6 +2578,7 @@ function applySessionModeUI() {
         if (streakDisplay) streakDisplay.style.display = 'none';
         if (playTimeDisplay) playTimeDisplay.style.display = 'none';
         if (trainingCountdownDisplay) trainingCountdownDisplay.style.display = '';
+        if (trainingCountdownDisplay) trainingCountdownDisplay.classList.remove('is-critical');
         if (trainingCountdownValue) trainingCountdownValue.textContent = GAME_STATS.formatTime(getTrainingSessionDurationMs()).substring(0, 5);
         if (scoreText) scoreText.textContent = langText('訓練', 'TRAIN');
         return;
