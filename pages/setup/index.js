@@ -31,11 +31,6 @@ function renderTestStep() {
 }
 
 function renderModeStep() {
-    const state = getState();
-    const testModeLabel = state.testMode === 'challenge'
-        ? t('setup_test_label_challenge')
-        : t('setup_test_label_training');
-
     return `
         <div class="setup-card">
             <h2>${t('setup_mode_title')}</h2>
@@ -53,8 +48,6 @@ function renderModeStep() {
             <div class="mode-helper-card">
                 <div id="mode-selection-helper-title" class="mode-helper-title">${t('setup_helper_title')}</div>
                 <div id="mode-selection-helper-detail" class="mode-helper-detail">${t('setup_helper_desc')}</div>
-                <div class="mode-helper-detail"><strong>${t('setup_test_current')}：</strong>${testModeLabel}</div>
-                ${state.testMode === 'training' ? `<div class="mode-helper-detail"><strong>${t('setup_training_length')}：</strong>${t('setup_training_length_desc')}</div>` : ''}
             </div>
             <div class="setup-footer-actions">
                 <button type="button" class="secondary-btn" data-back-test>${t('setup_back')}</button>
@@ -136,7 +129,6 @@ function renderTrainingStep(state) {
                     ${renderTrainingScaleMark('15m', 900)}
                     ${renderTrainingScaleMark('30m', 1800)}
                 </div>
-                <div class="mode-helper-detail">${t('setup_training_duration_hint')}</div>
             </div>
             <div class="setup-footer-actions">
                 <button type="button" class="primary-btn" data-training-start>${t('setup_training_duration_start')}</button>
