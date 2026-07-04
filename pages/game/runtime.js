@@ -2545,6 +2545,116 @@ function renderResults() {
     }
 }
 
+// --- Results Dashboard renderers (focus curve, halves compare, trend) ---
+
+function svgEscapeNumber(value) {
+    return Number.isFinite(value) ? Math.round(value * 100) / 100 : 0;
+}
+
+// Inline SVG focus curve for this session (no chart library, theme-aware via
+// currentColor + CSS classes).
+function renderSessionDashboard() {
+    const curveHost = document.getElementById('dash-focus-curve');
+    const halvesHost = document.getElementById('dash-halves');
+    const summary = lastSessionSummary;
+    const samples = trainingAnalytics.focusSamples;
+
+    if (curveHost) {
+        if (samples.length < 5) {
+            curveHost.innerHTML = `<p class="dash-empty">${langText('本局時間太短，未足以繪製專注曲線。', 'This session was too short to draw a focus curve.')}</p>`;
+        } else {
+            const w = 600;
+            const h = 160;
+            const pad = 8;
+            const stepX = (w - pad * 2) / Math.max(1, samples.length - 1);
+            const points = samples
+                .map((v, i) => `${svgEscapeNumber(pad + i * stepX)},${svgEscapeNumber(h - pad - (Math.max(0, Math.min(100, v)) / 100) * (h - pad * 2))}`)
+                .join(' ');
+            const stableY = svgEscapeNumber(h - pad - (FOCUS_TRAINING.stableThreshold / 100) * (h - pad * 2));
+            curveHost.innerHTML = `
+                <svg viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" class="dash-curve-svg" role="img" aria-label="focus curve">
+                    <line x1="${pad}" y1="${stableY}" x2="${w - pad}" y2="${stableY}" class="dash-curve-threshold" />
+                    <polyline points="${points}" class="dash-curve-line" fill="none" />
+                </svg>
+                <div class="dash-curve-legend">
+                    <span class="dash-legend-line"></span>${langText('專注值', 'Focus')}
+                    <span class="dash-legend-threshold"></span>${langText('穩定線', 'Stable line')} (${FOCUS_TRAINING.stableThreshold})
+                </div>`;
+        }
+    }
+
+    if (halvesHost && summary) {
+        const first = summary.firstHalfFocus || 0;
+        const second = summary.secondHalfFocus || 0;
+        const delta = second - first;
+        let verdictText = langText('局內保持平穩', 'Held steady during the session');
+        let verdictClass = 'is-flat';
+        if (delta >= 3) { verdictText = langText('局內有進步', 'Improved during the session'); verdictClass = 'is-up'; }
+        else if (delta <= -3) { verdictText = langText('局內有回落', 'Dropped during the session'); verdictClass = 'is-down'; }
+        const arrow = delta >= 3 ? '↑' : delta <= -3 ? '↓' : '→';
+        halvesHost.innerHTML = `
+            <div class="dash-halves-grid">
+                <div class="dash-half-card">
+                    <span class="dash-half-label">${langText('前半段', 'First Half')}</span>
+                    <span class="dash-half-value">${first.toFixed(1)}</span>
+                </div>
+                <div class="dash-half-arrow ${verdictClass}">${arrow}</div>
+                <div class="dash-half-card">
+                    <span class="dash-half-label">${langText('後半段', 'Second Half')}</span>
+                    <span class="dash-half-value">${second.toFixed(1)}</span>
+                </div>
+            </div>
+            <p class="dash-half-verdict ${verdictClass}">${verdictText} (${delta >= 0 ? '+' : ''}${delta.toFixed(1)})</p>`;
+    }
+}
+
+// Trend across recent sessions: focus-stability bars + recovery-time bars.
+async function renderHistoryTrend() {
+    const host = document.getElementById('dash-history-trend');
+    if (!host) return;
+
+    let history = [];
+    try {
+        history = await getSessionHistory(10);
+    } catch (e) {
+        history = [];
+    }
+
+    if (!Array.isArray(history) || history.length < 2) {
+        host.innerHTML = `<p class="dash-empty">${langText('多玩幾局就會解鎖你嘅進度趨勢圖。', 'Play a few more sessions to unlock your trend chart.')}</p>`;
+        return;
+    }
+
+    const bars = (values, formatter, invert = false) => {
+        const max = Math.max(...values, 1);
+        return values.map((v, i) => {
+            const ratio = Math.max(0.06, v / max);
+            const isLatest = i === values.length - 1;
+            // invert=true means lower is better (recovery time)
+            const goodness = invert ? 1 - ratio : ratio;
+            return `<div class="dash-bar-wrap" title="${formatter(v)}">
+                <div class="dash-bar ${isLatest ? 'is-latest' : ''} ${goodness > 0.66 ? 'is-good' : goodness < 0.33 ? 'is-weak' : ''}" style="height:${Math.round(ratio * 100)}%"></div>
+            </div>`;
+        }).join('');
+    };
+
+    const focusValues = history.map((s) => Math.max(0, Math.min(100, s.focusedRatio || 0)));
+    const recoveryValues = history.map((s) => Math.max(0, (s.avgRecoveryMs || 0) / 1000));
+
+    host.innerHTML = `
+        <div class="dash-trend-grid">
+            <div class="dash-trend-block">
+                <h4>${langText('專注穩定度 %', 'Focus Stability %')}</h4>
+                <div class="dash-bars">${bars(focusValues, (v) => `${v.toFixed(0)}%`)}</div>
+            </div>
+            <div class="dash-trend-block">
+                <h4>${langText('恢復時間（秒）', 'Recovery Time (s)')}</h4>
+                <div class="dash-bars">${bars(recoveryValues, (v) => `${v.toFixed(1)}s`, true)}</div>
+            </div>
+        </div>
+        <p class="dash-trend-note">${langText(`最近 ${history.length} 局，最右邊係今次。`, `Last ${history.length} sessions; rightmost is this one.`)}</p>`;
+}
+
 // Alias for compatibility if needed, but we should use ROUTER
 function showResults() {
     if (typeof runtimeResultsHandler === 'function') {
@@ -5177,6 +5287,8 @@ export {
     initGameSession,
     leaveEEGMode,
     renderResults,
+    renderSessionDashboard,
+    renderHistoryTrend,
     setEEGConnectionState,
     showResults,
     startGameSession,

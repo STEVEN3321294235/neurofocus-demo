@@ -73,7 +73,36 @@ export default {
                             </div>
                         </section>
 
-                        <div id="wrong-answers-list" data-mode="${state.testMode}"></div>
+                        <section class="results-dash-panel" aria-labelledby="dash-halves-title">
+                            <div class="results-training-header">
+                                <h2 id="dash-halves-title">${t('dash_halves_title')}</h2>
+                                <p>${t('dash_halves_lead')}</p>
+                            </div>
+                            <div id="dash-halves"></div>
+                        </section>
+
+                        <section class="results-dash-panel" aria-labelledby="dash-curve-title">
+                            <div class="results-training-header">
+                                <h2 id="dash-curve-title">${t('dash_curve_title')}</h2>
+                                <p>${t('dash_curve_lead')}</p>
+                            </div>
+                            <div id="dash-focus-curve"></div>
+                        </section>
+
+                        <section class="results-dash-panel" aria-labelledby="dash-trend-title">
+                            <div class="results-training-header">
+                                <h2 id="dash-trend-title">${t('dash_trend_title')}</h2>
+                                <p>${t('dash_trend_lead')}</p>
+                            </div>
+                            <div id="dash-history-trend"></div>
+                        </section>
+
+                        <section class="results-dash-panel" aria-labelledby="dash-review-title">
+                            <div class="results-training-header">
+                                <h2 id="dash-review-title">${t('dash_review_title')}</h2>
+                            </div>
+                            <div id="wrong-answers-list" data-mode="${state.testMode}"></div>
+                        </section>
 
                         <div class="results-actions">
                             <button type="button" class="primary-btn" id="btn-restart">${t('play_again')}</button>
@@ -101,6 +130,8 @@ export default {
         });
         runtime.switchLanguage(state.lang);
         runtime.renderResults();
+        runtime.renderSessionDashboard();
+        runtime.renderHistoryTrend().catch(() => {});
 
         root.querySelector('#btn-restart')?.addEventListener('click', () => {
             setState({ setupStep: 'test', difficulty: null });
