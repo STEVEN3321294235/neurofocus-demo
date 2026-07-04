@@ -19,6 +19,12 @@
 2. **第二訓練環境**：你唔想「簡約模式」太空泛——改為起一個 **voxel 風格書房/圖書館** 3D 環境（類 Minecraft 美術，但只用 Three.js BoxGeometry 砌、唔用任何 Minecraft asset/名字，避開版權），畀覺得海面太刺激嘅用戶揀（Prompt L，P2）。
 3. **EEG 裝置作用放大**：做 (a) 專注+放鬆雙軸狀態（用返一直送緊但前端未用嘅 meditation 數據，`runtime.js:4439`）、(c) 呼吸介入時實時顯示腦電放鬆值上升、(d) 佩戴/訊號質素 UI。全部原始數據顯示放喺一個 `DEMO_MODE` 開關後面——比賽 demo 時顯示，將來變產品可以一鍵收起（Prompt M）。
 4. **ADHD 定位**：行「ADHD-friendly 設計、唔落醫療宣稱」路線——對外只講「專注力訓練、目標長期改善」，設計上刻意照顧專注力弱嘅用戶（短 session、高頻離散獎勵、低雜訊畫面、即時回饋）。
+5. **字體統一**：全站有三隻字體——`Inter`（內文）、`EB Garamond`（標題）、`Orbitron`（`--font-tech` 科技感數字）。**Orbitron 只保留喺真正嘅遊戲畫面（3D game HUD）內**；Setup / Results / Auth 全部改用返 homepage 嗰對（EB Garamond 標題 + Inter 內文）。呢個係你嘅決定（見 Prompt N）。
+6. **Footer 死連結**：homepage footer 四個掣（隱私政策/服務條款/技術支援/聯絡我們）全部係 `href="#"` 死連結。決定：**隱私政策 + 聯絡變真，刪走服務條款 + 技術支援**。隱私政策要**先諗清楚法律問題**（見下面「Footer 法律考量」），再由 **Claude Code（我）/ TRAE** 撰寫。
+7. **文案 humanize**：全站文句要自然、有溫度、唔浮誇、唔過度宣稱（現有好多 marketing 式 + 過度宣稱句，例如「解鎖大腦無限可能」，本身亦係評判風險）。**網頁文句由 Claude Code（我）直接起草 + 同你逐句 iterate**，唔交晒俾 TRAE（見「文案 voice guide + 示範改寫」）。
+8. **更多動畫**：homepage / 選單 / 結果頁可以加 polish 同 micro-interaction；但**遊戲訓練期間必須保持克制**（低雜訊 = ADHD 護欄），只有獎勵一刻（通過 gate、boost）先俾明顯動畫（見 Prompt O）。
+
+> **邊啲由我（Claude Code）直接做**：#6 隱私政策/Footer、#7 網頁文案 humanize——呢兩樣我可以直接改、commit、push 上 branch，TRAE `git pull` 就同步。#5 字體、#8 動畫出 TRAE prompt（你想我直接做都得，因為字體改動純機械、我驗到）。
 
 ---
 
@@ -40,9 +46,11 @@
 - 有懷疑就叫 Claude Code review TRAE 改咗嘅嘢（git pull 之後叫佢對住個 prompt 逐項 check）
 
 **P2（第三星期）**
-- 同隊友一齊寫 README/Home page 文案統一版（你負責內容，TRAE 負責貼上去）
-- 貼 Prompt F/G/I/J/K/L 俾 TRAE（次序：F 先、G 最後；I/J/K/L 時間夠先做）
+- **文案 humanize + Footer 隱私政策**：直接同 Claude Code（我）一齊做——我起草雙語文案 + 誠實版隱私政策，你逐句睇、話我改，滿意我就 commit + push，你完全唔使掂 code
+- 貼 Prompt N（字體統一）、F/G/I/J/K/L/O 俾 TRAE（次序：F 先、G 最後；N 早啲做冇壞；I/J/K/L/O 時間夠先做）
 - 每做完一個都喺 Windows 機開一次網站行一圈
+
+> **UI 打磨呢批可以早過 P2 做**：字體統一（N）、文案 humanize、Footer 三樣都係「低風險、收窄評判風險、令個網站睇落成熟」嘅快贏，如果 P0 搞掂咗、你有心情，P1 期間隨時可以插隊做，唔使等到 P2。
 
 **P3（最後星期）——你做主角，唔再郁 code**
 - 帶隊 rehearsal 最少兩次（台詞 + demo + Q&A 互考）
@@ -114,6 +122,15 @@
 | G-3 | **UI/UX 可讀性 + 隻船嘅目的**：HUD 加一條「專注區間」band（分心 / 穩定 / 心流），令用戶睇**狀態**而唔係一個乾數字；頭 5-10 秒無字 onboarding 講明「**船就係你個腦嘅倒影**——你專注，佢就平穩加速」（直接回應「唔知隻船目的係咩」嘅用戶反饋）；令呼吸後嘅 100% boost 獎勵**睇得見**（發光+音效慶祝，佢而家靜靜雞發生咗都冇人知）；Results 頁配合 P1-5 將 Recovery Time 進步放到最大 | 攤位上 iPad 隔幾步睇都要一秒讀懂；解決「我到底要做咩」嘅 demo 殺手 | 中｜見 Prompt K |
 | G-4 | *(原則)* 唔好起需要新 asset 嘅 3D model / 大改 `runtime.js` 結構 | 一個 dev + deadline + 5,218 行 monolith，外部 asset 係時間黑洞。**juice 現有嘢**（燈光、post-processing、reactive 佈景）回報高、風險低。G-5 係唯一例外，因為 voxel 環境純用 code 砌、唔使任何外部 asset | — |
 | G-5 | **第二訓練環境「Voxel 書房」**：類 Minecraft 美術嘅 3D 書房/圖書館（純 Three.js BoxGeometry 砌，冇外部 asset），畀覺得海面/船太刺激嘅用戶揀——畫面近乎靜止，靠燈光/漂浮書本對專注反應。呢個都係 ADHD-friendly 設計嘅一部分：有啲用戶需要**更少**動態刺激 | 直接回應「隻船令人分心」嘅另一半用戶；環境選擇本身都係產品賣點（「唔同人需要唔同刺激水平」好啱評判聽） | 中，P2 尾（P0/P1 全部搞掂先郁；時間唔夠就跳過）｜見 Prompt L |
+
+### U｜UI 統一 / 文案 / Footer 法律（快贏 — 收窄評判風險、令網站睇落成熟，P1 有位就插隊做）
+
+| # | 項目 | 邊個做 | 價值 |
+|---|------|--------|------|
+| U-1 | **字體統一**：Orbitron（`--font-tech`）只保留喺 game HUD；Setup（setup.css 6 處）、Results（results.css）、utilities.css 嗰啲 Orbitron 全部改用 homepage 對（`--font-display` 標題 + `--font-main` 內文） | TRAE（Prompt N）或 Claude Code（純機械 CSS 改動，我驗到） | 全站字體由 3 隻收成 2 隻（+ 遊戲專用 1 隻），視覺即刻統一成熟 |
+| U-2 | **文案 humanize**：全站雙語文句改到自然、有溫度、誠實、唔過度宣稱（i18n.js + home/index.js 內嘅 `dualText()` 串） | **Claude Code（我）直接起草 + 同你逐句 iterate**，滿意先 push | 過度宣稱本身係評判風險（plan 前面已 flag）；humanized 文案令產品由「AI 生成感」變「真人做嘅產品」 |
+| U-3 | **Footer**：刪走「服務條款 / 技術支援」兩個死連結；「隱私政策」做成一頁誠實嘅短 policy、「聯絡我們」放真 email | **Claude Code（我）** 先諗清楚法律（見下），起草隱私政策，你睇完先 push | 死連結 = 未完成感；但隱私政策對一個收集 EEG/鏡頭/帳戶數據嘅產品係**加分**，唔係裝飾 |
+| U-4 | **更多動畫**：homepage/選單/結果頁加 polish + micro-interaction（scroll reveal 已有，可加 hero 入場、數字 count-up、按鈕回饋、頁面切換過場）；遊戲內保持克制，只獎勵一刻先加明顯動畫 | TRAE（Prompt O） | 攤位 wow factor + 產品質感；但要守住 ADHD 低雜訊護欄，唔可以喺訓練期間加干擾 |
 
 ### P3｜第四星期（07-24 → 07-31）：Rehearsal + 交付（唔再加新功能）
 
@@ -690,6 +707,129 @@ Do this:
 
 ---
 
+### Prompt N — 字體統一：Orbitron 只留喺遊戲畫面（對應 U-1）
+
+```
+Goal: Reduce font variety across the site. The site has three fonts defined in
+styles/shared/base.css: --font-main ('Inter', body), --font-display
+('EB Garamond', headings), and --font-tech ('Orbitron', sci-fi numbers). The
+homepage only uses --font-display + --font-main. Keep --font-tech (Orbitron)
+ONLY inside the actual in-game 3D HUD; every other page should match the
+homepage pairing.
+
+Do this:
+1. Find every use of var(--font-tech) OUTSIDE the live game HUD and replace it
+   with the appropriate homepage font: use var(--font-display) for heading-like
+   / emphasis text and var(--font-main) for body/label text. Known locations to
+   change: styles/pages/setup.css (6 uses), styles/pages/results.css (2 uses),
+   styles/shared/utilities.css (3 uses — CAUTION: these are shared utility
+   classes; check which pages actually apply them and make sure changing them
+   doesn't alter the in-game HUD; if a utility class is used by the game HUD,
+   split it rather than break the game look).
+2. KEEP --font-tech (Orbitron) in styles/pages/game.css (the 5 uses:
+   ~line 27, 282, 611, 775, 792) and the monospace in runtime.js (~line 773) —
+   that is the deliberate gameplay aesthetic the product owner wants to keep.
+   The line game.css:401 already uses --font-main; leave it.
+3. Do not touch the --font-* variable definitions themselves in base.css, and
+   do not remove the Orbitron @import from index.html (the game still needs it).
+4. After the change, the only place Orbitron appears on screen should be the
+   live 3D game HUD. Setup, Results, Auth should visually read like the
+   homepage.
+```
+
+**我會點 review**：開 Setup、Results、Auth 逐頁望，確認啲數字/標題唔再係 Orbitron（變返 EB Garamond / Inter）；開 game 入面確認 HUD 嗰啲科技感數字**仍然**係 Orbitron；特別留意 utilities.css 改完冇連累到 game HUD 個 look。
+
+---
+
+### Prompt O — 更多動畫：選單/結果頁 polish，遊戲內克制（對應 U-4）
+
+```
+Goal: Add tasteful animation polish to the marketing/menu surfaces (Home,
+Setup, Results) for wow-factor and product feel, while keeping the in-session
+training experience deliberately calm (ADHD low-noise guardrail).
+
+Context: The homepage already has scroll-reveal (fade-up-element via
+IntersectionObserver in pages/home/index.js mount ~line 396-407), animate-float,
+and glass-card hover transitions. A transition loader already exists for route
+changes. Fonts/colors are theme-aware (light/dark). Do NOT add ambient motion
+to the live training game beyond reward moments.
+
+Do this (marketing/menu surfaces — go for polish):
+1. Home: add a hero entrance animation on load (staggered fade/slide of the
+   title, subtitle, CTA), a subtle animated background motif that fits the
+   product (e.g. a slow-moving EEG-wave / aurora gradient — CSS only, cheap),
+   and number count-up animations for any stat figures.
+2. Setup: animate transitions between the setup steps (slide/fade as
+   state.setupStep changes) and add clear selection-feedback animation when a
+   mode/difficulty is chosen.
+3. Results: count-up the key numbers, and draw-in the trend sparkline
+   (from Prompt D/H) rather than popping it in.
+4. Route transitions: smooth the page-to-page handoff using the existing
+   transition loader rather than a hard swap.
+
+Do this (in-session training — stay calm, this is the guardrail):
+5. Inside the live game, do NOT add new ambient/background animation. The ONLY
+   new animation allowed here is on REWARD moments: a focus-gate cleared
+   (Prompt I), the post-breathing 100% boost (make the existing boost visibly
+   celebratory — glow + brief particle burst + sound), and flow-state entry
+   (Prompt J). These are earned, discrete, positive — consistent with the
+   ADHD-friendly design (reward, not noise).
+
+Constraints: all animations must respect prefers-reduced-motion (provide a
+reduced/none path), must not regress FPS on the Windows demo laptop (test with
+the FPS readout), and must not touch the EEG bridge, breathing state-machine
+logic, or question logic.
+```
+
+**我會點 review**：開 Home 睇入場動畫 + 背景 motif 順唔順、有冇掉幀；Setup 揀模式睇過場同選擇回饋；Results 睇數字 count-up + sparkline draw-in；**最緊要**入 game 確認訓練期間畫面依然平靜、只有通過 gate / boost / flow 嗰下先有慶祝動畫；開 OS 嘅 reduce-motion 設定確認有 fallback。
+
+---
+
+### 文案 humanize — voice guide + 示範改寫（U-2，由 Claude Code 直接做，唔使 TRAE）
+
+> 呢部分**唔係一個 TRAE prompt**——係我（Claude Code）直接起草雙語文案、同你逐句 iterate，滿意先 commit + push。以下係我會跟嘅 voice guide，等你知道個方向、可以隨時話我調整。
+
+**文案原則（humanized 即係咩）：**
+- **講返人話**：好似同一個中學生朋友解釋，唔好似 marketing slogan 或者 AI 生成
+- **誠實、唔過度宣稱**：唔好講「解鎖大腦無限可能」「釋放學術潛力」呢類——一嚟浮誇，二嚟正正係評判會質疑嘅過度宣稱（plan 前面已 flag）
+- **有溫度、唔責備**：分心唔係「你失敗咗」，係「拉返你入狀態」
+- **具體過抽象**：「一次大約 5 分鐘，你會即刻見到自己專注點影響個畫面」好過「體驗革命性神經科技」
+- **中文係主場**：香港中學隊，中文要似真人講嘢，英文係輔助
+
+**示範改寫（現有 → humanized）：**
+
+| 位置 | 現有（浮誇/robotic） | Humanized 方向 |
+|------|---------------------|----------------|
+| Home CTA 段 | 「今天就開始你的第一次訓練，解鎖大腦無限可能！」 | 「一次大概幾分鐘。開始之後，你會即刻見到自己專注嘅時候，個畫面點樣跟住變。」 |
+| Home CTA 標題 | 「準備好釋放你的學術潛力嗎？」 | 「想試下用另一種方法練專注？」 |
+| 裝置連接卡 | 「支援主流腦電波儀器，透過藍牙高速連接」 | 「而家用緊 MindWave 腦電波頭帶；架構上可以擴展去更多裝置。」（同 P0-3 一致，唔亂認 Muse/Emotiv） |
+| 科學段 | 把 Alpha/Beta 講到好絕對 | 「我哋用 Alpha／Beta 作為『專注同放鬆之間平衡』嘅設計框架」（同 PROJECT_ANALYSIS.md 建議一致，唔講成臨床定律） |
+
+**我點做**：我 pull 最新 repo → 改 `app/i18n.js`（hk/en）同 `pages/home/index.js` 入面嘅 `dualText()` 串 → 將改咗嘅逐句貼返俾你睇 → 你 OK 我先 commit + push。你完全唔使掂 code。
+
+---
+
+### Footer 法律考量 + 隱私政策（U-3，由 Claude Code 直接做）
+
+> **我唔係律師，以下係為一個學生比賽 prototype 而寫嘅「誠實、克制」版本，唔係正式法律意見。** 一旦將來真係商業化收錢，先好搵人做正式法律審查。但為咗比賽，一頁誠實嘅隱私政策**係加分**，因為你哋真係掂緊 EEG / 鏡頭 / 帳戶數據。
+
+**Footer 具體改動**（`pages/home/index.js:324-327`）：
+- **刪走**：「服務條款」（Terms of Service）、「技術支援」（Support）——未做、對一個 demo 唔必要、死連結反而扣分
+- **保留變真**：「隱私政策」→ 一頁誠實 policy；「聯絡我們」→ 放一個真 email（你俾我個 team/聯絡 email，我填入去；未有就先留 placeholder）
+
+**隱私政策要誠實 cover 嘅嘢（香港 PDPO 脈絡）：**
+1. **收咩數據**：帳戶（Supabase 嘅 email/username）、專注 session 數據（分數、recovery time、歷史）、鏡頭、EEG（attention/meditation 值）
+2. **最重要嘅誠實賣點——鏡頭係本機處理**：MediaPipe 喺瀏覽器本機分析臉部特徵，**唔會上傳或儲存任何影片**（呢個係真嘅，見 `focusInputService.js`）——呢句一定要清楚講，係好大嘅隱私加分
+3. **EEG 同樣本機處理**：經本地 Python bridge 讀 attention/meditation，只有**彙總嘅 session 數字**會存去 Supabase，唔存原始腦電波串流
+4. **唔賣、唔分享**畀第三方
+5. **未成年人**：因為目標用戶包括學生/兒童，講明未成年用戶應由家長/監護人同意及陪同（PDPO 冇硬性年齡線，但呢個係誠實 + 負責任嘅講法，評判會欣賞）
+6. **刪除數據途徑**：留個 email，用戶想刪帳戶/數據可以聯絡
+7. **明確講呢個係比賽/研究用 prototype**，唔係醫療產品、唔提供醫療診斷或治療（同全 plan 護欄一致）
+
+**我點做**：起一頁 `privacy.html`（或者 SPA 內一個 `#privacy` 路由，跟你哋現有 hash router 風格）+ 改 footer 連結 → 全部畀你睇過 → 你 OK 我先 push。
+
+---
+
 ## ADHD-friendly 設計原則（貫穿所有 prompt 嘅護欄，唔係一個獨立功能）
 
 對外一律講「**專注力訓練工具，目標係長期改善**」，唔講治療、唔講醫 ADHD——證據門檻同監管風險先唔會爆（`PROJECT_ANALYSIS.md` 自己都係咁建議）。但設計上刻意照顧專注力弱嘅用戶，每個 gameplay/UI prompt 執行時都應該對照呢五條：
@@ -721,4 +861,5 @@ Do this:
 - **P1-5（自適應門檻）完成後**：用同一個帳戶連續跑 4-5 次 session（Simulation-fallback 就夠快），確認門檻隨表現微調而唔係跳動、新用戶首次遊玩用返預設門檻、Recovery Time trend 方向正確。
 - **P1-6（EEG 放大）完成後**：必須用實機 MindWave 驗（配合 P0-2 rehearsal 同一日做最慳時間）——雙軸 bar 有郁、除頭帶 signal chip 即變、呼吸 overlay 實時 meditation 有更新、Simulation mode 下所有 EEG-only UI 完全唔出現、DEMO_MODE=false 收晒原始數字但機制照行。
 - **G 打磨層（Focus Gates / reactive 世界 / UI-UX / Voxel 書房）完成後**：每個新功能都要喺 Windows demo 機開住 FPS 讀數行一次，確認冇掉幀；Focus Gates 要用 Simulation-fallback 谷高谷低專注測 threshold 判定；Voxel 書房要確認切返海洋環境時原有玩法零改變；確認全部改動都冇整爛 EEG / 呼吸介入 / 出題流程（呢三個係明確劃咗界唔准郁）。
+- **U 打磨層（字體 / 文案 / Footer / 動畫）完成後**：字體——逐頁確認 Orbitron 只剩喺 game HUD；文案——你逐句睇過先 push；Footer——確認冇死連結、隱私政策一頁揀得開、聯絡 email 撳到；動畫——訓練期間畫面依然平靜（只獎勵一刻有慶祝）、開 reduce-motion 設定有 fallback、Windows 機 FPS 冇跌。
 - **P2/P3**：喺實際比賽會用嘅 Windows 手提電腦 + iPad 上面各行一次完整流程（包括斷網、EEG 斷線、切 Simulation 嘅救場流程），並喺最後一星期至少完整綵排兩次。
