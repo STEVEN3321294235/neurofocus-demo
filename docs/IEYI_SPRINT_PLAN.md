@@ -899,7 +899,7 @@ logic, or question logic.
 | 07-04 | Prompt I — Focus Gates | ✅ 完成 | （見本 commit） | 新 module pages/game/focusGates.js，HUD 有 🎯 counter，Dashboard 顯示通過率 |
 | 07-04 | Prompt K — 專注區間 chip + 開場教學 + boost 慶祝 | ✅ 完成 | （見本 commit） | 分心/穩定/心流三態；呼吸後 boost 有 🔥 動畫+音效 |
 | 07-04 | Prompt J — 心流 bloom 視覺回報 | ✅ 完成（縮窄版） | （見本 commit） | 原定 islands/balloons 反應：發現嗰啲佈景一早被移除咗，故只做 bloom 部分；Focus Gates 補上世界視覺趣味 |
-| — | Prompt M — EEG 放大（雙軸/呼吸實時腦電/訊號chip） | ⬜ 未做 | — | 要實機 MindWave 驗證，下一批 |
+| 07-04 | Prompt M — EEG 放大（雙軸/呼吸實時腦電/訊號chip） | ✅ 完成 | （見本 commit） | DEMO_MODE flag；雙軸心流（attention+meditation）；呼吸 overlay 實時 meditation bar；訊號質素 chip。**要實機 MindWave 先睇到效果** |
 | — | Prompt L — Voxel 書房 | ⬜ 未做 | — | P2 尾 |
 | — | Prompt O — 動畫 polish | ⬜ 未做 | — | |
 | — | Prompt F — Windows FPS | ⬜ 未做 | — | 要 Windows 實機 |

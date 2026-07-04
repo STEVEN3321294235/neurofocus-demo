@@ -17,6 +17,64 @@ import { initFocusGates, updateFocusGates, getGateStats, resetGateStats } from '
 // moment" checkpoints. Flip to false to demo the plain endless ocean.
 const FOCUS_GATES_ENABLED = true;
 
+// DEMO_MODE shows the raw EEG channels (attention / meditation / signal) for
+// the competition booth. Flip to false in a future product build to hide the
+// raw numbers while keeping the state-level behaviour (dual-axis flow, live
+// breathing feedback) intact.
+const DEMO_MODE = true;
+const MEDITATION_FLOW_THRESHOLD = 50;
+
+// Latest live EEG channels (Real EEG mode only). meditation/signal stay null
+// in Simulation/camera modes so nothing is ever faked.
+let latestEEG = { attention: 0, meditation: null, signal: null };
+
+function renderEegDualAxis() {
+    const host = document.getElementById('eeg-dual-axis');
+    if (!host) return;
+    const inEEG = selectedInputMode === 'eeg' && latestEEG.meditation !== null;
+    host.style.display = (DEMO_MODE && inEEG) ? '' : 'none';
+    if (!inEEG) return;
+    const focusBar = document.getElementById('eeg-attention-bar');
+    const relaxBar = document.getElementById('eeg-meditation-bar');
+    if (focusBar) focusBar.style.width = `${Math.max(0, Math.min(100, latestEEG.attention))}%`;
+    if (relaxBar) relaxBar.style.width = `${Math.max(0, Math.min(100, latestEEG.meditation))}%`;
+}
+
+function renderSignalChip() {
+    const chip = document.getElementById('eeg-signal-chip');
+    if (!chip) return;
+    if (selectedInputMode !== 'eeg' || latestEEG.signal === null) {
+        chip.style.display = 'none';
+        return;
+    }
+    chip.style.display = '';
+    const s = latestEEG.signal;
+    // MindWave signal_quality: 0 = perfect contact, 100+ = no contact.
+    let label = langText('訊號良好', 'Good signal');
+    let cls = 'sig-good';
+    if (s >= 50) { label = langText('冇接觸', 'No contact'); cls = 'sig-bad'; }
+    else if (s >= 20) { label = langText('訊號弱', 'Weak signal'); cls = 'sig-weak'; }
+    if (chip.className !== `eeg-signal-chip ${cls}`) chip.className = `eeg-signal-chip ${cls}`;
+    chip.textContent = `📶 ${label}`;
+}
+
+// Live meditation readout inside the breathing overlay (Real EEG mode only) —
+// "the headset can see your brain calming down."
+function renderBreathingEegFeedback() {
+    const host = document.getElementById('breathing-eeg-feedback');
+    if (!host) return;
+    const show = selectedInputMode === 'eeg' && latestEEG.meditation !== null;
+    host.style.display = show ? '' : 'none';
+    if (!show) return;
+    const bar = document.getElementById('breathing-meditation-bar');
+    const label = document.getElementById('breathing-meditation-label');
+    if (bar) bar.style.width = `${Math.max(0, Math.min(100, latestEEG.meditation))}%`;
+    if (label) label.textContent = langText(
+        `部機見到你個腦冷靜緊落嚟（放鬆 ${Math.round(latestEEG.meditation)}）`,
+        `The headset sees your brain calming down (relax ${Math.round(latestEEG.meditation)})`
+    );
+}
+
 function updateGateCounterHUD() {
     const el = document.getElementById('gate-counter');
     const valueEl = document.getElementById('gate-counter-value');
@@ -776,6 +834,8 @@ function renderBreathingIntervention(now = performance.now()) {
     if (titleEl) titleEl.textContent = phaseTitle;
     if (phaseEl) phaseEl.textContent = phaseText;
     if (helperEl) helperEl.textContent = helperText;
+
+    renderBreathingEegFeedback();
 }
 
 function startBreathingIntervention(now = performance.now()) {
@@ -1359,7 +1419,12 @@ function updateGameLogic(delta) {
     }
 
     // 0. Flow State Logic
-    const isFlowState = (focusLevel > 80 && CONFIG.streak >= 3);
+    // Dual-axis flow (Real EEG only): "focused AND relaxed". In Simulation/
+    // camera modes there is no meditation signal, so the single-axis rule
+    // stays unchanged.
+    const meditationOk = !(selectedInputMode === 'eeg' && latestEEG.meditation !== null)
+        || latestEEG.meditation >= MEDITATION_FLOW_THRESHOLD;
+    const isFlowState = (focusLevel > 80 && CONFIG.streak >= 3 && meditationOk);
     if (isFlowState) {
         document.body.classList.add('flow-state-mode');
     } else {
@@ -4887,6 +4952,10 @@ function animate() {
                         const meditation = Number(msg.meditation || 0);
                         const signal = Number(msg.signal_quality ?? 0);
                         const hasValidSignal = signal > 0 && attention >= 0 && attention <= 100;
+
+                        latestEEG = { attention, meditation, signal };
+                        renderSignalChip();
+                        renderEegDualAxis();
 
                         if (hasValidSignal) {
                             isHeadsetConnected = true;

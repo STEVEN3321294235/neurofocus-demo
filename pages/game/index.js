@@ -55,9 +55,21 @@ export default {
                             <div class="status-chip-row">
                                 <span id="mode-badge" class="status-chip neutral">Idle</span>
                                 <span id="device-badge" class="status-chip neutral">Waiting</span>
+                                <span id="eeg-signal-chip" class="eeg-signal-chip" style="display: none;"></span>
                             </div>
                             <div id="mode-status-title">Choose mode</div>
                             <div id="mode-status-detail">Real or simulation</div>
+                        </div>
+
+                        <div id="eeg-dual-axis" style="display: none;">
+                            <div class="eeg-axis-row">
+                                <span class="eeg-axis-label">${t('eeg_focus_axis')}</span>
+                                <div class="eeg-axis-track"><div id="eeg-attention-bar" class="eeg-axis-fill focus"></div></div>
+                            </div>
+                            <div class="eeg-axis-row">
+                                <span class="eeg-axis-label">${t('eeg_relax_axis')}</span>
+                                <div class="eeg-axis-track"><div id="eeg-meditation-bar" class="eeg-axis-fill relax"></div></div>
+                            </div>
                         </div>
 
                         <div class="label">
