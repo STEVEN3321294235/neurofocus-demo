@@ -10,6 +10,7 @@ import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js'
 import { SMAAPass } from 'three/addons/postprocessing/SMAAPass.js';
 import { setState } from '../../app/state.js';
 import { getCameraFocusScore, getCameraTrackingStatus, stopCameraPreview } from '../../services/focusInputService.js?v=2026-06-24-23';
+import { appendSessionSummary, getSessionHistory } from '../../services/storageService.js';
 
 // --- Configuration & State ---
 const CONFIG = {
@@ -39,6 +40,10 @@ const CONFIG = {
 const DEFAULT_TRAINING_DURATION_SEC = 180;
 
 let runtimeResultsHandler = null;
+
+// Snapshot of the just-finished session, set by renderResults() and read by
+// the results-dashboard renderers.
+let lastSessionSummary = null;
 
 function isTrainingMode() {
     return CONFIG.testMode === 'training';
@@ -359,6 +364,9 @@ const FOCUS_TRAINING = {
 };
 let isWaitingForQuestions = false;
 
+const FOCUS_SAMPLE_INTERVAL_MS = 2000;
+const FOCUS_SAMPLE_CAP = 1800; // 1 hour at 2s per sample
+
 function createTrainingAnalytics() {
     return {
         focusedTimeMs: 0,
@@ -373,7 +381,10 @@ function createTrainingAnalytics() {
         interventionEndsAt: 0,
         interventionCooldownUntil: 0,
         boostActive: false,
-        boostEndsAt: 0
+        boostEndsAt: 0,
+        // Silent focus timeline for the results dashboard (one value per ~2s).
+        focusSamples: [],
+        sampleAccumulatorMs: 0
     };
 }
 
@@ -693,6 +704,15 @@ function updateTrainingAnalytics(deltaMs, effectiveFocus = focusLevel) {
         trainingAnalytics.lowFocusStreakMs += deltaMs;
     } else {
         trainingAnalytics.lowFocusStreakMs = 0;
+    }
+
+    // Silent sampling for the results dashboard (focus curve + halves compare).
+    trainingAnalytics.sampleAccumulatorMs += deltaMs;
+    if (trainingAnalytics.sampleAccumulatorMs >= FOCUS_SAMPLE_INTERVAL_MS) {
+        trainingAnalytics.sampleAccumulatorMs = 0;
+        if (trainingAnalytics.focusSamples.length < FOCUS_SAMPLE_CAP) {
+            trainingAnalytics.focusSamples.push(Math.round(effectiveFocus));
+        }
     }
 }
 
@@ -2450,6 +2470,31 @@ function renderResults() {
     const scoreMetric = isTrainingMode() ? focusedRatio : accuracy;
     const { isNewDist, isNewAcc, isNewTime } = GAME_STATS.saveBest(CONFIG.totalDistance, scoreMetric, totalTimeMs);
     const bests = GAME_STATS.getBest();
+
+    // Within-session before/after: first half vs second half of the focus timeline.
+    const samples = trainingAnalytics.focusSamples;
+    const mid = Math.floor(samples.length / 2);
+    const avgOf = (arr) => (arr.length ? arr.reduce((s, v) => s + v, 0) / arr.length : 0);
+    const firstHalfFocus = avgOf(samples.slice(0, mid));
+    const secondHalfFocus = avgOf(samples.slice(mid));
+
+    // Persist this session into cross-session history (cloud when signed in,
+    // localStorage otherwise). Fire-and-forget: results must render even if
+    // storage fails.
+    lastSessionSummary = {
+        testMode: isTrainingMode() ? 'training' : 'challenge',
+        difficulty: CONFIG.difficulty,
+        focusedRatio: Math.round(focusedRatio * 10) / 10,
+        avgRecoveryMs: Math.round(averageRecoveryMs),
+        accuracy: isTrainingMode() ? null : Math.round(accuracy * 10) / 10,
+        distance: Math.round(CONFIG.totalDistance * 10) / 10,
+        durationMs: Math.round(totalTimeMs),
+        firstHalfFocus: Math.round(firstHalfFocus * 10) / 10,
+        secondHalfFocus: Math.round(secondHalfFocus * 10) / 10,
+        breathingCount: trainingAnalytics.interventionCount,
+        adaptiveThresholdUsed: FOCUS_TRAINING.recoveryThreshold
+    };
+    appendSessionSummary(lastSessionSummary).catch(() => {});
     
     // Update UI
     document.getElementById('res-distance').textContent = CONFIG.totalDistance.toFixed(1) + " m";

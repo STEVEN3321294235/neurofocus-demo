@@ -1,5 +1,5 @@
 import { clearCurrentUser, getCurrentUser, setCurrentUser } from './storageService.js';
-import { supabase } from './supabaseClient.js';
+import { getSupabase } from './supabaseClient.js';
 
 // Real accounts live in Supabase Auth. The rest of the app keeps reading the
 // "current user" display name from storageService, so nothing outside the auth
@@ -32,15 +32,15 @@ export async function login({ email, password }) {
     const normalizedEmail = String(email || '').trim().toLowerCase();
     const normalizedPassword = String(password || '');
 
+    if (!normalizedEmail || !normalizedPassword) throw authError('missing_fields');
+
+    const supabase = await getSupabase();
     if (!supabase) {
-        // Supabase not configured: keep the old local-session behaviour.
-        if (!normalizedEmail) throw authError('missing_fields');
+        // SDK unreachable (offline booth demo): local fallback session.
         const username = normalizedEmail.split('@')[0];
         setCurrentUser(username);
         return { username, offline: true };
     }
-
-    if (!normalizedEmail || !normalizedPassword) throw authError('missing_fields');
 
     try {
         const { data, error } = await supabase.auth.signInWithPassword({
@@ -71,13 +71,14 @@ export async function register({ username, email, password }) {
     const normalizedEmail = String(email || '').trim().toLowerCase();
     const normalizedPassword = String(password || '');
 
+    if (!normalizedUsername || !normalizedEmail || !normalizedPassword) throw authError('missing_fields');
+
+    const supabase = await getSupabase();
     if (!supabase) {
-        if (!normalizedUsername) throw authError('missing_fields');
+        // SDK unreachable (offline): register locally so the demo continues.
         setCurrentUser(normalizedUsername);
         return { username: normalizedUsername, offline: true };
     }
-
-    if (!normalizedUsername || !normalizedEmail || !normalizedPassword) throw authError('missing_fields');
     if (normalizedPassword.length < 6) throw authError('weak_password');
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) throw authError('invalid_email');
 
@@ -110,9 +111,7 @@ export async function register({ username, email, password }) {
 }
 
 export function logout() {
-    if (supabase) {
-        supabase.auth.signOut().catch(() => {});
-    }
+    getSupabase().then((supabase) => supabase?.auth.signOut()).catch(() => {});
     clearCurrentUser();
 }
 
@@ -124,8 +123,9 @@ export function getSessionUser() {
 // Supabase user id (uuid) for the currently signed-in cloud session, or null
 // when running as a local/offline session. Used by session-history storage.
 export async function getCloudUserId() {
-    if (!supabase) return null;
     try {
+        const supabase = await getSupabase();
+        if (!supabase) return null;
         const { data } = await supabase.auth.getSession();
         return data?.session?.user?.id || null;
     } catch (e) {

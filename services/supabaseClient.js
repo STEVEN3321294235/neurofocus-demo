@@ -1,35 +1,32 @@
-// Supabase browser client.
+// Supabase browser client (lazy-loaded).
 //
-// SUPABASE_URL and SUPABASE_ANON_KEY are DESIGNED to be public and shipped to
-// the browser. Real security comes from Row Level Security (RLS) policies on
-// the database, not from hiding these two values — so it is safe to commit them.
+// SUPABASE_URL and the publishable key are DESIGNED to be public and shipped
+// to the browser. Real security comes from Row Level Security (RLS) policies
+// on the database, not from hiding these two values.
 //
-// TODO(steven): fill in the two values from your Supabase project:
-//   Supabase Dashboard -> Project Settings -> API
-//     - Project URL     -> url
-//     - anon public key -> anonKey
-// Until you fill these in, getSupabase() returns null and any feature that
-// depends on Supabase (auth, session history) will gracefully fall back.
-import { createClient } from '@supabase/supabase-js';
+// IMPORTANT: the SDK is imported DYNAMICALLY on first use, never statically.
+// This keeps the app fully bootable when there is no internet (offline booth
+// demo via server.js) — cloud features simply fall back instead of crashing
+// the whole module graph at load time.
 
 const SUPABASE_CONFIG = {
     url: 'https://taqrixrltodrwxaxdobc.supabase.co',
     anonKey: 'sb_publishable_Mw_yfhcIWZhJoiWP1LFTMQ_T3Cnnahw'
 };
 
-function isConfigured() {
-    return SUPABASE_CONFIG.url.startsWith('https://') && SUPABASE_CONFIG.anonKey.length > 20;
-}
+let clientPromise = null;
 
-export const supabaseReady = isConfigured();
-
-export const supabase = supabaseReady
-    ? createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.anonKey)
-    : null;
-
+// Resolves to the Supabase client, or null when the SDK cannot be loaded
+// (offline) — callers must handle null and fall back gracefully.
 export function getSupabase() {
-    if (!supabase) {
-        console.warn('[supabaseClient] Supabase is not configured yet. Fill in services/supabaseClient.js (url + anonKey).');
+    if (!clientPromise) {
+        clientPromise = import('@supabase/supabase-js')
+            .then(({ createClient }) => createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.anonKey))
+            .catch((error) => {
+                console.warn('[supabaseClient] Supabase SDK unavailable (offline?). Cloud features disabled for this session.', error);
+                clientPromise = null; // allow retry on a later call
+                return null;
+            });
     }
-    return supabase;
+    return clientPromise;
 }
