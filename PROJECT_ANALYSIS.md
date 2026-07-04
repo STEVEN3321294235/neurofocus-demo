@@ -527,11 +527,14 @@
 2. **跨裝置實機驗證**
    - Windows + Chrome + `eeg_bridge.py` + Vercel 前端要完整走一次。
 
-3. **首頁與對外說法收斂**
-   - 避免首頁提到尚未穩定支援的裝置或功能。
+3. **Windows EEG 實機連線穩定性測試**
+   - 展覽現場可能會有大量藍牙干擾，需要在 Windows 筆電上進行長時間的 MindWave 連線壓力測試。
+   - 確認 `eeg_bridge.py` 能夠在斷線後穩定重連，或者提供清晰的報錯訊息。
 
-4. **建立更強的「效果驗證計劃」**
-   - 即使未做完，也要有清楚 roadmap 可以答評判。
+4. **Windows 本地伺服器與 Vercel 前端的跨網域 (CORS / Mixed Content) 驗證**
+   - 由於 Vercel 是 HTTPS，而本地 Bridge 是 HTTP/WS (`ws://127.0.0.1:8765`)，需確保 Windows 上的瀏覽器（如 Chrome / Edge）不會阻擋 Mixed Content。
+   - 驗證 `?bridgeHost=127.0.0.1` 參數在 Windows 實機上的有效性。
 
-5. **壓力測試與救場 rehearsal**
-   - 長時間掛站、斷線、切 Simulation、再回 EEG 的流程都要熟。
+5. **Windows 效能與 Memory Leak 測試**
+   - 確保在 Windows 電腦上長時間執行 WebGL (Three.js) 場景時，FPS 能夠維持穩定。
+   - 檢查是否有 Memory Leak 導致瀏覽器崩潰或卡頓。
