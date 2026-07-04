@@ -881,3 +881,30 @@ logic, or question logic.
 - **G 打磨層（Focus Gates / reactive 世界 / UI-UX / Voxel 書房）完成後**：每個新功能都要喺 Windows demo 機開住 FPS 讀數行一次，確認冇掉幀；Focus Gates 要用 Simulation-fallback 谷高谷低專注測 threshold 判定；Voxel 書房要確認切返海洋環境時原有玩法零改變；確認全部改動都冇整爛 EEG / 呼吸介入 / 出題流程（呢三個係明確劃咗界唔准郁）。
 - **U 打磨層（字體 / 文案 / Footer / 動畫）完成後**：字體——逐頁確認 Orbitron 只剩喺 game HUD；文案——你逐句睇過先 push；Footer——確認冇死連結、隱私政策一頁揀得開、聯絡 email 撳到；動畫——訓練期間畫面依然平靜（只獎勵一刻有慶祝）、開 reduce-motion 設定有 fallback、Windows 機 FPS 冇跌。
 - **P2/P3**：喺實際比賽會用嘅 Windows 手提電腦 + iPad 上面各行一次完整流程（包括斷網、EEG 斷線、切 Simulation 嘅救場流程），並喺最後一星期至少完整綵排兩次。
+
+---
+
+## 進度紀錄（每次改動後更新）
+
+| 日期 | Prompt / 項目 | 狀態 | Commit | 備註 |
+|------|--------------|------|--------|------|
+| 07-04 | Prompt A — Vercel proxy + 撤走前端 key | ✅ 完成 | `bbec2301` | Claude Code 直接實作（TRAE sandbox 問題後接手） |
+| 07-04 | Supabase keys 填入 + plan 改 Dashboard 方案 | ✅ 完成 | `f012f0f1` | baseline test 取消，改 C' |
+| 07-04 | Prompt B — Supabase 真登入 | ✅ 完成 | `4e259748` | 離線自動 fallback 本地模式 |
+| 07-04 | Prompt D — 跨 session history | ✅ 完成 | `9f01445c` | SQL 喺 docs/supabase_schema.sql，**用戶要去 Supabase SQL Editor 行一次** |
+| 07-04 | Prompt C' — Results Dashboard | ✅ 完成 | `31a27261` | 專注曲線 + 前後半對比 + 趨勢 + 題目回顧 |
+| 07-04 | Prompt E — Stroop 互動題 | ✅ 完成 | `785ef1f1` | Hard mode，9 秒倒數 |
+| 07-04 | Prompt H — 自適應門檻 | ✅ 完成 | `ded3f46c` | Console 有 [Adaptive] log 可驗證 |
+| 07-04 | Prompt N — 字體統一 | ✅ 完成 | `5aab7ba2` | Orbitron 只留 game HUD |
+| 07-04 | Prompt I — Focus Gates | ✅ 完成 | （見本 commit） | 新 module pages/game/focusGates.js，HUD 有 🎯 counter，Dashboard 顯示通過率 |
+| 07-04 | Prompt K — 專注區間 chip + 開場教學 + boost 慶祝 | ✅ 完成 | （見本 commit） | 分心/穩定/心流三態；呼吸後 boost 有 🔥 動畫+音效 |
+| 07-04 | Prompt J — 心流 bloom 視覺回報 | ✅ 完成（縮窄版） | （見本 commit） | 原定 islands/balloons 反應：發現嗰啲佈景一早被移除咗，故只做 bloom 部分；Focus Gates 補上世界視覺趣味 |
+| — | Prompt M — EEG 放大（雙軸/呼吸實時腦電/訊號chip） | ⬜ 未做 | — | 要實機 MindWave 驗證，下一批 |
+| — | Prompt L — Voxel 書房 | ⬜ 未做 | — | P2 尾 |
+| — | Prompt O — 動畫 polish | ⬜ 未做 | — | |
+| — | Prompt F — Windows FPS | ⬜ 未做 | — | 要 Windows 實機 |
+| — | Prompt G — repo 執手尾 | ⬜ 未做 | — | 最後先做 |
+| — | 文案 humanize + 隱私政策 | ⬜ 未做 | — | Claude Code 同用戶逐句傾 |
+| — | Merge feature branch → main（正式出街） | ⬜ 未做 | — | 全部測完先做 |
+
+**用戶待辦**：① Supabase SQL Editor 行 `docs/supabase_schema.sql`；② Supabase 關 Confirm email；③ Vercel 加多一條 `DEEPSEEK_API_KEY` 俾 Preview 環境（Production 嗰條掂唔到就另加一條 scope 做 Preview）。

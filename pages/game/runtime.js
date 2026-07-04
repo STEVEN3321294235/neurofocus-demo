@@ -11,6 +11,26 @@ import { SMAAPass } from 'three/addons/postprocessing/SMAAPass.js';
 import { setState } from '../../app/state.js';
 import { getCameraFocusScore, getCameraTrackingStatus, stopCameraPreview } from '../../services/focusInputService.js?v=2026-06-24-23';
 import { appendSessionSummary, getSessionHistory } from '../../services/storageService.js';
+import { initFocusGates, updateFocusGates, getGateStats, resetGateStats } from './focusGates.js';
+
+// Feature flag: focus gates are the discrete "did you hold focus at this
+// moment" checkpoints. Flip to false to demo the plain endless ocean.
+const FOCUS_GATES_ENABLED = true;
+
+function updateGateCounterHUD() {
+    const el = document.getElementById('gate-counter');
+    const valueEl = document.getElementById('gate-counter-value');
+    if (!el || !valueEl) return;
+    const { cleared, total } = getGateStats();
+    el.style.display = total > 0 ? '' : 'none';
+    valueEl.textContent = `${cleared}/${total}`;
+}
+
+// Module handle to the bloom pass so the game loop can escalate it during
+// flow state (it is created inside the post-processing setup function).
+let bloomPassRef = null;
+const BLOOM_BASE_STRENGTH = 0.6;
+const BLOOM_FLOW_STRENGTH = 1.05;
 
 // --- Configuration & State ---
 const CONFIG = {
@@ -786,6 +806,46 @@ function stopBreathingIntervention() {
     trainingAnalytics.boostActive = true;
     trainingAnalytics.boostEndsAt = performance.now() + FOCUS_TRAINING.boostDurationMs;
     hideBreathingIntervention();
+    celebrateBoost();
+}
+
+// Make the post-breathing 100% boost FELT — it used to happen silently.
+function celebrateBoost() {
+    playCorrectSound();
+    document.body.classList.add('boost-celebrate');
+    const flash = document.getElementById('boost-flash');
+    const flashText = document.getElementById('boost-flash-text');
+    if (flash && flashText) {
+        flashText.textContent = langText('🔥 專注全滿 5 秒！', '🔥 Full focus for 5s!');
+        flash.style.display = '';
+        flash.classList.remove('is-in');
+        void flash.offsetWidth; // restart CSS animation
+        flash.classList.add('is-in');
+    }
+    setTimeout(() => {
+        document.body.classList.remove('boost-celebrate');
+        if (flash) flash.style.display = 'none';
+    }, FOCUS_TRAINING.boostDurationMs);
+}
+
+// Wordless-first onboarding beat: one line that explains the core mapping,
+// shown as gameplay begins, auto-dismissed.
+function showOnboardingCue() {
+    const cue = document.getElementById('onboarding-cue');
+    const cueText = document.getElementById('onboarding-cue-text');
+    if (!cue || !cueText) return;
+    cueText.textContent = langText(
+        '🚤 隻船就係你個腦嘅倒影——集中精神，佢就會平穩加速',
+        '🚤 The boat mirrors your mind — focus, and it speeds up smoothly'
+    );
+    cue.style.display = '';
+    cue.classList.remove('is-in');
+    void cue.offsetWidth;
+    cue.classList.add('is-in');
+    setTimeout(() => {
+        cue.classList.remove('is-in');
+        setTimeout(() => { cue.style.display = 'none'; }, 600);
+    }, 8000);
 }
 
 function updateTrainingAnalytics(deltaMs, effectiveFocus = focusLevel) {
@@ -1326,12 +1386,22 @@ function updateGameLogic(delta) {
 
     // Flow State Boost
     if (isFlowState) {
-        speedMPS *= 1.2; 
+        speedMPS *= 1.2;
         camera.fov = THREE.MathUtils.lerp(camera.fov, 65, 0.05);
     } else {
         camera.fov = THREE.MathUtils.lerp(camera.fov, 55, 0.05);
     }
     camera.updateProjectionMatrix();
+
+    // Flow-state visual payoff: bloom swells while in flow, settles smoothly
+    // after. Only runs when post-processing exists (perf profile permitting).
+    if (bloomPassRef) {
+        bloomPassRef.strength = THREE.MathUtils.lerp(
+            bloomPassRef.strength,
+            isFlowState ? BLOOM_FLOW_STRENGTH : BLOOM_BASE_STRENGTH,
+            0.04
+        );
+    }
 
     const moveDist = speedMPS * delta; 
     
@@ -1399,7 +1469,21 @@ function updateGameLogic(delta) {
     if (boat) {
         // Move Boat
         boat.position.z -= moveDist;
-        
+
+        // Focus Gates: evaluate crossings against the live focus level.
+        if (FOCUS_GATES_ENABLED && isGameActive && !CONFIG.isPaused) {
+            const gateEvent = updateFocusGates({
+                boatZ: boat.position.z,
+                focus: getEffectiveFocusLevel(),
+                threshold: FOCUS_TRAINING.stableThreshold,
+                elapsedMs: performance.now()
+            });
+            if (gateEvent) {
+                if (gateEvent === 'cleared') playCorrectSound();
+                updateGateCounterHUD();
+            }
+        }
+
         // Update wake / splash effects
         updateParticles(delta, speedMPS);
 
@@ -1978,6 +2062,10 @@ function initGameSession() {
     lastFetchTime = 0;
     fallbackQuestionCursor = loadFallbackQuestionCursor();
     trainingAnalytics = createTrainingAnalytics();
+    resetGateStats();
+    updateGateCounterHUD();
+    // Teach the core mapping as play begins (after the entry countdown).
+    setTimeout(showOnboardingCue, 3500);
     // Personalize thresholds from recent history (resolves within the first
     // moments of play; defaults apply until then and for new players).
     resolveAdaptiveFocusTraining().catch(() => {});
@@ -2284,6 +2372,23 @@ function renderFocusTelemetry(level = 0) {
     if (focusValEl) {
         focusValEl.textContent = `${safeLevel}%`;
         focusValEl.dataset.boost = String(safeLevel >= 100);
+    }
+
+    // Focus-zone band: read the STATE, not just the number.
+    const zoneChip = document.getElementById('focus-zone-chip');
+    if (zoneChip) {
+        zoneChip.style.display = '';
+        let zoneClass = 'zone-stable';
+        let zoneText = langText('穩定', 'Stable');
+        if (safeLevel < FOCUS_TRAINING.lowThreshold) {
+            zoneClass = 'zone-low';
+            zoneText = langText('分心', 'Distracted');
+        } else if (safeLevel > 80) {
+            zoneClass = 'zone-flow';
+            zoneText = langText('心流', 'Flow');
+        }
+        if (zoneChip.className !== zoneClass) zoneChip.className = zoneClass;
+        if (zoneChip.textContent !== zoneText) zoneChip.textContent = zoneText;
     }
     const focusIndicatorEl = document.getElementById('focus-indicator');
     if (focusIndicatorEl) {
@@ -2712,7 +2817,15 @@ function renderSessionDashboard() {
                     <span class="dash-half-value">${second.toFixed(1)}</span>
                 </div>
             </div>
-            <p class="dash-half-verdict ${verdictClass}">${verdictText} (${delta >= 0 ? '+' : ''}${delta.toFixed(1)})</p>`;
+            <p class="dash-half-verdict ${verdictClass}">${verdictText} (${delta >= 0 ? '+' : ''}${delta.toFixed(1)})</p>
+            ${(() => {
+                const g = getGateStats();
+                if (!g.total) return '';
+                return `<p class="dash-gates-line">🎯 ${langText(
+                    `專注閘門：通過 ${g.cleared}/${g.total}`,
+                    `Focus gates cleared: ${g.cleared}/${g.total}`
+                )}</p>`;
+            })()}`;
     }
 }
 
@@ -3699,6 +3812,11 @@ function init3DScene() {
     // createFloatingIslands();  <-- Removed per request
     // createBalloons();         <-- Removed per request
     // setupSkySystem();         <-- DISABLED: Conflicts with HDRI
+
+    // Focus Gates: discrete, countable focus checkpoints along the rail.
+    if (FOCUS_GATES_ENABLED) {
+        initFocusGates(scene, THREE, boat ? boat.position.z : 0);
+    }
     
     // Setup Rim Light for Night Mode
     setupRimLight();
@@ -3786,8 +3904,9 @@ function setupPostProcessing() {
 
     const bloomPass = new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 1.5, 0.4, 0.85);
     bloomPass.threshold = 0.8;  // Only very bright things bloom
-    bloomPass.strength = 0.6;   // Moderate bloom intensity
+    bloomPass.strength = BLOOM_BASE_STRENGTH;   // Moderate bloom intensity
     bloomPass.radius = 0.5;     // Blur radius
+    bloomPassRef = bloomPass;   // expose to the game loop for flow-state boost
 
     // SMAA Pass for superior Anti-Aliasing
     const smaaPass = new SMAAPass(window.innerWidth * renderer.getPixelRatio(), window.innerHeight * renderer.getPixelRatio());

@@ -62,6 +62,7 @@ export default {
 
                         <div class="label">
                                 <span data-i18n="focus_level">Focus</span>
+                            <span id="focus-zone-chip" class="zone-stable" style="display: none;"></span>
                             <span id="focus-value">--</span>
                         </div>
                         <div class="bar-container">
@@ -86,6 +87,21 @@ export default {
                                 <span id="distance-value">0.0 m</span>
                             </div>
                         </div>
+
+                        <div id="gate-counter" style="display: none;">
+                            <div class="label">
+                                <span>🎯 <span data-i18n="gate_label">Gates</span></span>
+                                <span id="gate-counter-value">0/0</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="onboarding-cue" style="display: none;">
+                        <span id="onboarding-cue-text"></span>
+                    </div>
+
+                    <div id="boost-flash" style="display: none;">
+                        <span id="boost-flash-text"></span>
                     </div>
 
                     <div id="play-time-display">
