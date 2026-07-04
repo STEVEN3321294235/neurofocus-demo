@@ -903,7 +903,7 @@ logic, or question logic.
 | — | Prompt L — Voxel 書房 | ⬜ 未做 | — | P2 尾 |
 | 07-04 | UI 重塑 — Clay Morphism + Liquid Glass HUD + Apple slider | ✅ 完成 | （見本 commit） | 新 styles/shared/clay-liquid.css 集中覆蓋層；選單=黏土質感、HUD=液態玻璃、時長拉桿=Apple 風格 |
 | 07-04 | Prompt O — 動畫（scroll reveal / loading / 頁面過場 / hero 入場 / HUD 光澤） | ✅ 完成 | （見本 commit） | 全部收喺 clay-liquid.css，守 prefers-reduced-motion |
-| — | Prompt L — Voxel 書房 | ⏸ 暫緩 | — | 需喺 5000 行 monolith 深度分支場景初始化（船/水交織），風險高；建議獨立一批或比賽後做 |
+| 07-04 | Prompt L — Voxel 書房（環境層 + 場景） | ✅ 完成（未實機測） | （見本 commit） | 新 pages/game/environments/voxelStudy.js（純 BoxGeometry 書房）；用「隱藏海洋 + 疊書房 + 固定鏡頭」低侵入方式接駁，唔改 game loop 邏輯；Setup 加海洋/書房選擇；環境切換靠現有 if(boat)/if(water) guard。**未實機測，用戶 pull 後試切換** |
 | — | Prompt F — Windows FPS | ⬜ 未做 | — | 要 Windows 實機 |
 | — | Prompt G — repo 執手尾 | ⬜ 未做 | — | 最後先做 |
 | — | 文案 humanize + 隱私政策 | ⬜ 未做 | — | Claude Code 同用戶逐句傾 |

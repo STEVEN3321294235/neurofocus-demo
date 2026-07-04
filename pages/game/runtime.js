@@ -8,10 +8,38 @@ import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { SMAAPass } from 'three/addons/postprocessing/SMAAPass.js';
-import { setState } from '../../app/state.js';
+import { setState, getState } from '../../app/state.js';
 import { getCameraFocusScore, getCameraTrackingStatus, stopCameraPreview } from '../../services/focusInputService.js?v=2026-06-24-23';
 import { appendSessionSummary, getSessionHistory } from '../../services/storageService.js';
 import { initFocusGates, updateFocusGates, getGateStats, resetGateStats } from './focusGates.js';
+import { initVoxelStudy, updateVoxelStudy, disposeVoxelStudy, applyStudyCamera, driftStudyCamera, isStudyReady } from './environments/voxelStudy.js';
+
+// Active training environment: 'ocean' (default) or 'study' (voxel room). The
+// study environment hides the ocean meshes and overlays a calm voxel scene,
+// so the game loop and all gameplay logic stay untouched.
+let activeEnvironment = 'ocean';
+let studyApplied = false;
+let lastFlowState = false;
+
+// Lazily switch into the study scene once the boat/water exist. Runs on the
+// game loop; retries next frame while assets are still loading.
+function maybeApplyStudyEnvironment(deltaMs) {
+    if (activeEnvironment !== 'study') return;
+    if (!studyApplied) {
+        if (!scene) return;
+        // Hide the ocean scenery (kept alive so no null-guards break).
+        if (boat) boat.visible = false;
+        if (water) water.visible = false;
+        try { initVoxelStudy(scene, THREE); } catch (e) { console.warn('[study] init failed, staying on ocean', e); activeEnvironment = 'ocean'; if (boat) boat.visible = true; if (water) water.visible = true; return; }
+        if (controls) controls.enabled = false;
+        applyStudyCamera(camera, THREE);
+        studyApplied = true;
+    }
+    if (isStudyReady()) {
+        updateVoxelStudy(getEffectiveFocusLevel(), lastFlowState, deltaMs);
+        driftStudyCamera(camera);
+    }
+}
 
 // Feature flag: focus gates are the discrete "did you hold focus at this
 // moment" checkpoints. Temporarily disabled (2026-07-04) — the rings read as
@@ -1217,7 +1245,10 @@ const gameLoop = new PrecisionLoop((deltaMs, totalTimeMs) => {
 
     // 2. Logic Update
     updateGameLogic(deltaSec);
-    
+
+    // 2.05 Study environment (overlays a calm voxel room; ocean stays hidden)
+    maybeApplyStudyEnvironment(deltaMs);
+
     // 2.1 Environment Transition Lerp
     if (envState.isTransitioning) {
         const now = performance.now();
@@ -1427,6 +1458,7 @@ function updateGameLogic(delta) {
     const meditationOk = !(selectedInputMode === 'eeg' && latestEEG.meditation !== null)
         || latestEEG.meditation >= MEDITATION_FLOW_THRESHOLD;
     const isFlowState = (focusLevel > 80 && CONFIG.streak >= 3 && meditationOk);
+    lastFlowState = isFlowState;
     if (isFlowState) {
         document.body.classList.add('flow-state-mode');
     } else {
@@ -1558,14 +1590,15 @@ function updateGameLogic(delta) {
         // Update Water Position
         if (water) water.position.z = boat.position.z;
         
-        // Camera Follow Logic (Free View)
-        if (controls) {
+        // Camera Follow Logic (Free View) — skipped in the study environment,
+        // which uses its own fixed drifting camera.
+        if (controls && activeEnvironment !== 'study') {
             camera.position.z -= moveDist;
             controls.target.z -= moveDist;
-            
+
             // Clamp Camera Y (Seabed Collision Protection)
             if (camera.position.y < 1.0) camera.position.y = 1.0;
-            
+
             controls.update();
         }
     }
@@ -2131,6 +2164,16 @@ function initGameSession() {
     trainingAnalytics = createTrainingAnalytics();
     resetGateStats();
     updateGateCounterHUD();
+    // Pick the training environment for this session (ocean default).
+    activeEnvironment = getState().environment === 'study' ? 'study' : 'ocean';
+    studyApplied = false;
+    if (activeEnvironment === 'ocean') {
+        // Restore ocean scenery in case the previous session hid it for study.
+        try { disposeVoxelStudy(scene); } catch (e) {}
+        if (boat) boat.visible = true;
+        if (water) water.visible = true;
+        if (controls) controls.enabled = true;
+    }
     // Teach the core mapping as play begins (after the entry countdown).
     setTimeout(showOnboardingCue, 3500);
     // Personalize thresholds from recent history (resolves within the first
@@ -5450,6 +5493,8 @@ function disposeGameSession() {
     isGameActive = false;
     stopBGM();
     clearStroopTimer();
+    try { disposeVoxelStudy(scene); } catch (e) { /* scene may be gone */ }
+    studyApplied = false;
 
     if (startupTimeoutId) {
         clearTimeout(startupTimeoutId);

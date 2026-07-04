@@ -430,3 +430,34 @@ body.light-mode .page-setup {
         width: 100%;
     }
 }
+
+/* --- Environment picker (ocean / study) --- */
+.setup-env-picker {
+    margin-top: 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+.setup-env-label {
+    color: var(--text-muted);
+    font-weight: 600;
+}
+.setup-env-options { display: flex; gap: 0.6rem; }
+.env-chip {
+    padding: 0.5rem 1rem;
+    border-radius: 999px;
+    border: 1px solid var(--field-border);
+    background: var(--field-bg);
+    color: var(--text-color);
+    cursor: pointer;
+    font-weight: 600;
+    transition: transform 0.2s ease, border-color 0.2s ease, background 0.2s ease;
+}
+.env-chip:hover { transform: translateY(-1px); }
+.env-chip.is-active {
+    border-color: var(--primary-color);
+    background: color-mix(in srgb, var(--primary-color) 22%, transparent);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary-color) 14%, transparent);
+}

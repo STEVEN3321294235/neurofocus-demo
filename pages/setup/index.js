@@ -4,7 +4,8 @@ import { getState, setState } from '../../app/state.js';
 import { activateEEGMode, activateSimulationMode, disposeMode, syncRuntimeState } from '../../services/eegBridgeService.js?v=2026-06-24-21';
 import { attachCameraPreview, detachCameraPreview, requestCameraPreview, stopCameraPreview } from '../../services/focusInputService.js?v=2026-06-24-23';
 
-function renderTestStep() {
+function renderTestStep(state) {
+    const env = state?.environment || 'ocean';
     return `
         <div class="setup-card">
             <h2>${t('setup_test_title')}</h2>
@@ -18,6 +19,13 @@ function renderTestStep() {
                     <strong>${t('setup_test_challenge')}</strong>
                     <span>${t('setup_test_challenge_desc')}</span>
                 </button>
+            </div>
+            <div class="setup-env-picker">
+                <span class="setup-env-label">${t('setup_env_title')}</span>
+                <div class="setup-env-options">
+                    <button type="button" class="env-chip ${env === 'ocean' ? 'is-active' : ''}" data-env="ocean">🌊 ${t('setup_env_ocean')}</button>
+                    <button type="button" class="env-chip ${env === 'study' ? 'is-active' : ''}" data-env="study">📚 ${t('setup_env_study')}</button>
+                </div>
             </div>
             <div class="mode-helper-card">
                 <div class="mode-helper-title">${t('setup_test_helper_title')}</div>
@@ -220,7 +228,7 @@ export default {
                             <span>05 ${flowEnterLabel}</span>
                         </div>
                         ${state.setupStep === 'test'
-                            ? renderTestStep()
+                            ? renderTestStep(state)
                             : state.setupStep === 'training'
                                 ? renderTrainingStep(state)
                             : state.setupStep === 'difficulty'
@@ -318,6 +326,13 @@ export default {
                 router.refresh();
             });
         }
+
+        root.querySelectorAll('[data-env]').forEach((button) => {
+            button.addEventListener('click', () => {
+                setState({ environment: button.dataset.env });
+                router.refresh();
+            });
+        });
 
         root.querySelectorAll('[data-test-mode]').forEach((button) => {
             button.addEventListener('click', async () => {
