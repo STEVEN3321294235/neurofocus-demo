@@ -95,8 +95,8 @@
 | # | 項目 | 邊個做 | 點解 |
 |---|------|--------|-----|
 | P1-1 | 用 Supabase Auth 換走假登入（`services/authService.js`） | TRAE（見 Prompt B） | P0-1 起完 backend 之後嘅自然延伸，登入變真 |
-| P1-2 | **Pre/Post baseline test**：session 前後各做 60-90 秒反應力/準確度小測試，Results 頁顯示前後對比 | TRAE（見 Prompt C） | 直接回應「點證明有效」，係全個 list 入面對評判說服力最大嘅單一功能 |
-| P1-3 | 跨 session history + trend（存入 Supabase，冇網絡就 fallback 落 localStorage） | TRAE（見 Prompt D） | 補「冇長期數據」呢個評判必問缺口，而且日後都用得著 |
+| P1-2 | **Results Dashboard**（取代原本嘅 pre/post baseline test）：你決定唔好喺遊戲前逼用戶做測試（會唔耐煩）。改為將 Results 頁升級成 Dashboard——(a) **session 內前後對比**（同一局前半 vs 後半嘅專注平均值/恢復速度，零摩擦嘅「前後數據」）、(b) 本局專注曲線圖表、(c) 跨 session trend（配合 P1-3）、(d) 答錯題目 + 解釋回顧（code 已有，升級做 Dashboard 卡片） | **Claude Code 直接做**（見 Prompt C'） | 一樣回應「點證明有效」，但零遊戲前摩擦；圖表 + 前後對比對評判說服力仲高 |
+| P1-3 | 跨 session history + trend（存入 Supabase，冇網絡就 fallback 落 localStorage） | **Claude Code 直接做**（見 Prompt D） | 補「冇長期數據」呢個評判必問缺口，而且日後都用得著 |
 | P1-4 | 真正 Stroop 互動題（而家「Stroop」淨係得個名） | TRAE（見 Prompt E） | 令你哋台詞入面講嘅嘢變真，改動細但吸睛 |
 | P1-5 | **自適應門檻 + Recovery Time trend**：用用戶自己嘅歷史表現拉高/拉低 `FOCUS_TRAINING` 門檻（而唔係死用 45/55），並將 Recovery Time trend 變成 Results 頁最顯眼嘅「進步證明」 | TRAE（見 Prompt H，需要 Prompt D 先做完） | 呢個先係真正「訓練」機制，而唔淨係「量度」；同時係全個計劃入面對「長遠點樣切實改善專注力、可量度」呢條問題最紮實嘅答案 |
 | P1-6 | **放大 EEG 裝置作用**：(a) 專注+放鬆雙軸心流（用埋一直冇用嘅 meditation 數據）、(c) 呼吸介入時實時顯示腦電放鬆值上升、(d) 佩戴/訊號質素 UI——全部收喺 `DEMO_MODE` 開關後面 | TRAE（見 Prompt M） | 令部 EEG 由「單一數字來源」變成「見證你個腦點運作」嘅主角；呼吸時見住腦電平靜落嚟係攤位最有說服力嘅一幕；EEG 部分要有部 MindWave 先測到，配合 P0-2 rehearsal 一齊驗 |
@@ -235,7 +235,25 @@ Do this:
 
 ---
 
-### Prompt C — Pre/Post Baseline Test（對應 P1-2，全個計劃最重要嘅功能）
+### Prompt C'（新版）— Results Dashboard：session 內前後對比 + 圖表 + 題目解釋回顧（對應 P1-2）
+
+> **2026-07-04 決定**：原版 Prompt C 嘅「遊戲前 baseline test」會令用戶唔耐煩，取消。改為零摩擦方案：遊戲期間靜靜哋每 2 秒 sample 一次專注值，完場後喺 Dashboard 度做「本局前半 vs 後半」對比 + 專注曲線圖 + 跨 session trend + 答錯題解釋回顧。全部由 Claude Code 直接實作。
+
+```
+Goal: Upgrade the Results page into a Dashboard that proves progress with zero
+pre-game friction: (a) within-session before/after (first half vs second half
+average focus + recovery), (b) a focus-over-time curve for this session
+(inline SVG, no chart library), (c) cross-session trend (from Prompt D data),
+(d) the existing wrong-answer + explanation review restyled as a dashboard
+card. Sample focus silently every ~2s during play into trainingAnalytics
+(capped array), compute halves at session end, include them in the session
+summary saved by appendSessionSummary, and render everything in
+pages/results/index.js via new runtime exports following the existing
+renderResults() DOM-by-id pattern. i18n strings in app/i18n.js (hk/en).
+No EEG/camera dependency; works in all modes.
+```
+
+### Prompt C（舊版，已取消——保留做紀錄）— Pre/Post Baseline Test
 
 ```
 Goal: Add an optional 60-90 second "baseline" reaction/accuracy test that runs

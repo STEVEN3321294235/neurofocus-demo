@@ -13,15 +13,12 @@
 import { createClient } from '@supabase/supabase-js';
 
 const SUPABASE_CONFIG = {
-    url: 'https://YOUR-PROJECT-REF.supabase.co',   // TODO: replace with your Project URL
-    anonKey: 'YOUR-SUPABASE-ANON-PUBLIC-KEY'        // TODO: replace with your anon public key
+    url: 'https://taqrixrltodrwxaxdobc.supabase.co',
+    anonKey: 'sb_publishable_Mw_yfhcIWZhJoiWP1LFTMQ_T3Cnnahw'
 };
 
 function isConfigured() {
-    return (
-        !SUPABASE_CONFIG.url.includes('YOUR-PROJECT-REF') &&
-        !SUPABASE_CONFIG.anonKey.includes('YOUR-SUPABASE-ANON')
-    );
+    return SUPABASE_CONFIG.url.startsWith('https://') && SUPABASE_CONFIG.anonKey.length > 20;
 }
 
 export const supabaseReady = isConfigured();
