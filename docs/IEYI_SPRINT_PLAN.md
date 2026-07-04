@@ -901,7 +901,9 @@ logic, or question logic.
 | 07-04 | Prompt J — 心流 bloom 視覺回報 | ✅ 完成（縮窄版） | （見本 commit） | 原定 islands/balloons 反應：發現嗰啲佈景一早被移除咗，故只做 bloom 部分；Focus Gates 補上世界視覺趣味 |
 | 07-04 | Prompt M — EEG 放大（雙軸/呼吸實時腦電/訊號chip） | ✅ 完成 | （見本 commit） | DEMO_MODE flag；雙軸心流（attention+meditation）；呼吸 overlay 實時 meditation bar；訊號質素 chip。**要實機 MindWave 先睇到效果** |
 | — | Prompt L — Voxel 書房 | ⬜ 未做 | — | P2 尾 |
-| — | Prompt O — 動畫 polish | ⬜ 未做 | — | |
+| 07-04 | UI 重塑 — Clay Morphism + Liquid Glass HUD + Apple slider | ✅ 完成 | （見本 commit） | 新 styles/shared/clay-liquid.css 集中覆蓋層；選單=黏土質感、HUD=液態玻璃、時長拉桿=Apple 風格 |
+| 07-04 | Prompt O — 動畫（scroll reveal / loading / 頁面過場 / hero 入場 / HUD 光澤） | ✅ 完成 | （見本 commit） | 全部收喺 clay-liquid.css，守 prefers-reduced-motion |
+| — | Prompt L — Voxel 書房 | ⏸ 暫緩 | — | 需喺 5000 行 monolith 深度分支場景初始化（船/水交織），風險高；建議獨立一批或比賽後做 |
 | — | Prompt F — Windows FPS | ⬜ 未做 | — | 要 Windows 實機 |
 | — | Prompt G — repo 執手尾 | ⬜ 未做 | — | 最後先做 |
 | — | 文案 humanize + 隱私政策 | ⬜ 未做 | — | Claude Code 同用戶逐句傾 |
