@@ -13,10 +13,10 @@ import { getCameraFocusScore, getCameraTrackingStatus, stopCameraPreview } from 
 
 // --- Configuration & State ---
 const CONFIG = {
-    // SECURITY NOTE: In a real production app, never hardcode API keys.
-    // Use a backend proxy. For this prototype, only read the latest user-provided key.
-    deepseekApiKey: String(localStorage.getItem('deepseek_api_key') || '').trim(),
-    apiUrl: "https://api.deepseek.com/chat/completions",
+    // Questions come from our own serverless proxy (/api/questions.js), which
+    // holds the DeepSeek key server-side. No API key is ever read or stored on
+    // the client.
+    apiUrl: "/api/questions",
     currentLang: "hk",
     currentUser: null,
     difficulty: "easy",
@@ -2655,8 +2655,6 @@ function finalizeQuestionBatch(items = [], count = 10) {
 
 async function fetchBatchQuestions(count = 10, isInitial = true) {
     const requestSessionId = activeGameSessionId;
-    const apiKey = String(localStorage.getItem('deepseek_api_key') || CONFIG.deepseekApiKey || '').trim();
-    CONFIG.deepseekApiKey = apiKey;
     // Reset lock if it's been too long (e.g. > 15 seconds)
     if (isFetchingQuestion && (Date.now() - lastFetchTime > 15000)) {
         console.warn("Resetting fetch lock due to timeout");
@@ -2670,84 +2668,26 @@ async function fetchBatchQuestions(count = 10, isInitial = true) {
     updateLoadingStatus(I18N[CONFIG.currentLang].loading_ai_connect);
 
     try {
-        if (!apiKey) {
-            throw new Error("Missing API Key");
-        }
-
-        console.info('[AI] Starting question fetch', {
+        console.info('[AI] Starting question fetch via proxy', {
             requestedCount: count,
             isInitial,
             difficulty: CONFIG.difficulty,
-            language: CONFIG.currentLang,
-            hasApiKey: true
+            language: CONFIG.currentLang
         });
-
-        const difficultyProfile = getDifficultyProfile();
-        const langStr = CONFIG.currentLang === 'hk' ? "Traditional Chinese (Cantonese context if applicable)" : "English";
-        
-        let diffStr = CONFIG.difficulty;
-        if (diffStr === 'easy') diffStr = 'Medium-Easy';
-        if (diffStr === 'medium') diffStr = 'Hard';
-        if (diffStr === 'hard') diffStr = 'Advanced Focus Training';
-
-        const hardModeRules = CONFIG.difficulty === 'hard'
-            ? `6. HARD mode must focus on attention-control puzzle types: Stroop-style conflict, reverse instruction, hidden instruction, elimination, misleading reading comprehension, or rule switching.
-        7. HARD mode must NOT require chemistry, biology, physics, or specialist school-subject knowledge to answer correctly.
-        8. At least 70% of the questions must use the hard-mode attention-control patterns above.
-        9. Prefer traps that reward slow reading and careful rule following instead of fact recall.`
-            : `6. Use school-friendly everyday logic and reasoning without requiring niche subject memorization.
-        7. Avoid repetitive algebra-only, equation-only, or pure number-sequence-only questions unless embedded in a realistic scenario.
-        8. Ensure high variety in question patterns to avoid repeating similar structures.`;
-
-        const prompt = `Generate ${count} highly engaging real-world multiple-choice reasoning questions.
-        Difficulty Level: ${diffStr}. Language: ${langStr}. Target Audience: ${difficultyProfile.promptAge}.
-        Training goal: strictly challenge and extend focus span, emphasizing ${difficultyProfile.skillPool.join(', ')}.
-        REQUIREMENTS:
-        1. Puzzles MUST require multi-step thinking or careful deduction. Avoid trivial or immediate answers.
-        2. Every puzzle MUST have exactly ONE objectively correct answer.
-        3. Keep each question concise: <= 42 Chinese characters or <= 100 English characters.
-        4. Keep each option concise: <= 16 Chinese characters or <= 34 English characters.
-        5. Keep explanation useful: <= 60 Chinese characters or <= 140 English characters.
-        ${hardModeRules}
-        10. Return a STRICT JSON object with a "questions" array only.
-        
-        Fields:
-        {
-          "questions": [
-            {
-              "question": string,
-              "options": string[4],
-              "answer": integer 0-3,
-              "explanation": "explain why the correct option is unique and why the others fail",
-              "skill": "one short label such as Biology Logic, Chemistry Reasoning, Deduction",
-              "ageBand": "${getAgeBandLabel(difficultyProfile)}",
-              "validation": "one short rule proving the answer"
-            }
-          ]
-        }
-        
-        Example:
-        {"questions":[{"question":"Do not solve 48+27. How many digits appear in that expression?","options":["2","3","4","5"],"answer":2,"explanation":"The digits are 4, 8, 2, and 7, so there are four digits.","skill":"Hidden Instruction","ageBand":"${getAgeBandLabel(difficultyProfile)}","validation":"count digits, do not calculate"}]}`;
 
         const controller = new AbortController();
         const timeoutMs = isInitial ? INITIAL_AI_TIMEOUT_MS : BACKGROUND_AI_TIMEOUT_MS;
         const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
+        // The prompt is built server-side by /api/questions.js; the browser only
+        // sends the parameters and never sees the DeepSeek key.
         const response = await fetch(CONFIG.apiUrl, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${apiKey}`
-            },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                model: "deepseek-chat", 
-                messages: [
-                    {"role": "system", "content": "You are a focus-training game designer. Return strictly valid JSON object with a questions array only."},
-                    {"role": "user", "content": prompt}
-                ],
-                temperature: 0.9, 
-                max_tokens: 1500,
-                response_format: { type: "json_object" }
+                count,
+                difficulty: CONFIG.difficulty,
+                lang: CONFIG.currentLang
             }),
             signal: controller.signal
         });
@@ -2757,33 +2697,20 @@ async function fetchBatchQuestions(count = 10, isInitial = true) {
             const errText = await response.text();
             throw new Error(`API Error ${response.status}: ${errText}`);
         }
-        
+
         updateLoadingStatus(I18N[CONFIG.currentLang].loading_ai_parse);
         const data = await response.json();
-        let content = data?.choices?.[0]?.message?.content;
-        if (typeof content !== 'string' || !content.trim()) {
-            console.warn('[AI] Response missing message content', data);
-            throw new Error("AI response missing content");
+        if (!data || data.ok === false) {
+            throw new Error(data && data.reason ? `Proxy error: ${data.reason}` : "Proxy returned no questions");
         }
-        content = content.replace(/```json/g, '').replace(/```/g, '');
-        
-        // Ensure it's an array
-        let parsed;
-        try {
-            parsed = JSON.parse(content);
-        } catch(e) {
-            throw new Error("Invalid JSON from AI");
-        }
-        
-        let newQuestions = [];
 
-        if (Array.isArray(parsed?.questions)) {
-            newQuestions = finalizeQuestionBatch(parsed.questions, count);
-        } else if (Array.isArray(parsed)) {
-            newQuestions = finalizeQuestionBatch(parsed, count);
-        } else if (parsed.question) {
-            newQuestions = finalizeQuestionBatch([parsed], count);
+        const rawQuestions = Array.isArray(data.questions) ? data.questions : [];
+        if (rawQuestions.length === 0) {
+            throw new Error("AI returned empty question list");
         }
+
+        // Client-side authoritative validation + fallback merge (defense in depth).
+        const newQuestions = finalizeQuestionBatch(rawQuestions, count);
 
         if (requestSessionId !== activeGameSessionId) return;
         
@@ -2826,7 +2753,6 @@ async function fetchBatchQuestions(count = 10, isInitial = true) {
             isInitial,
             difficulty: CONFIG.difficulty,
             language: CONFIG.currentLang,
-            hasApiKey: Boolean(apiKey),
             reason: error?.message || String(error)
         });
         if (lowerMessage.includes('401') || lowerMessage.includes('unauthorized') || lowerMessage.includes('missing api key')) {

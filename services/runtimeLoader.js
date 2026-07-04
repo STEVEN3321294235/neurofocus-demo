@@ -1,4 +1,6 @@
-const FRONTEND_DEEPSEEK_API_KEY = 'sk-34b023fc593e4cc6b5b2c7c5d8fda6b7';
+// The DeepSeek API key now lives ONLY on the server (Vercel env var
+// DEEPSEEK_API_KEY, used by /api/questions.js). It must never appear in any
+// client-side file again.
 const MODULE_VERSION = '2026-06-24-23';
 
 // #region debug-point C:runtime-loader-report
@@ -15,10 +17,12 @@ const reportRuntimeLoaderDebug = (hypothesisId, msg, data = {}) => {
 };
 // #endregion
 
+// Clean up any key that older builds persisted into this browser's
+// localStorage, so the leaked value stops lingering on returning visitors.
 try {
-    localStorage.setItem('deepseek_api_key', FRONTEND_DEEPSEEK_API_KEY);
+    localStorage.removeItem('deepseek_api_key');
 } catch (error) {
-    console.warn('[runtimeLoader] Failed to persist DeepSeek API key in localStorage.', error);
+    /* ignore storage access errors */
 }
 
 function withModuleVersion(relativePath) {
