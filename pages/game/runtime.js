@@ -146,6 +146,66 @@ const HUD_GRADIENTS = {
     ]
 };
 
+// --- Stroop stimulus (hard difficulty only) ---
+// A real color/word-conflict task: the WORD names one color, the FONT shows
+// another; the player must answer the font color under time pressure.
+const STROOP_COLORS = [
+    { hk: '紅色', en: 'RED', hex: '#ef4444' },
+    { hk: '藍色', en: 'BLUE', hex: '#3b82f6' },
+    { hk: '綠色', en: 'GREEN', hex: '#22c55e' },
+    { hk: '黃色', en: 'YELLOW', hex: '#eab308' },
+    { hk: '紫色', en: 'PURPLE', hex: '#a855f7' },
+    { hk: '橙色', en: 'ORANGE', hex: '#f97316' }
+];
+
+const STROOP_TIME_LIMIT_MS = 9000;
+let stroopTimerId = null;
+
+function clearStroopTimer() {
+    if (stroopTimerId) {
+        clearInterval(stroopTimerId);
+        stroopTimerId = null;
+    }
+    const timerEl = document.getElementById('question-timer');
+    if (timerEl) {
+        timerEl.textContent = '';
+        timerEl.classList.remove('stroop-active', 'is-urgent');
+    }
+}
+
+function generateStroopPuzzle(index = 0) {
+    const isHk = CONFIG.currentLang === 'hk';
+    const n = STROOP_COLORS.length;
+    const wordIdx = index % n;
+    const displayIdx = (wordIdx + 1 + (index % (n - 1))) % n; // guaranteed !== wordIdx
+    const word = STROOP_COLORS[wordIdx];
+    const display = STROOP_COLORS[displayIdx];
+
+    // Options always include the correct font color AND the trap word meaning.
+    const others = STROOP_COLORS.filter((c) => c !== word && c !== display);
+    const extra1 = others[index % others.length];
+    const extra2 = others[(index + 1) % others.length];
+    const pool = [display, word, extra1, extra2];
+    const rot = index % 4;
+    const rotated = pool.slice(rot).concat(pool.slice(0, rot));
+    const label = (c) => (isHk ? c.hk : c.en);
+
+    return normalizeQuestionItem({
+        type: 'stroop',
+        word: label(word),
+        displayColor: display.hex,
+        question: isHk ? '呢個字係用咩顏色顯示？' : 'What COLOR is this word displayed in?',
+        options: rotated.map(label),
+        answer: rotated.indexOf(display),
+        explanation: isHk ? '要答字體顯示嘅顏色，唔好被字嘅意思誤導。' : 'Answer the display color, not what the word says.',
+        skill: isHk ? 'Stroop 陷阱' : 'Stroop Trap',
+        ageBand: getAgeBandLabel(),
+        validation: isHk ? '字體顏色先係答案' : 'The font color is the answer',
+        source: 'fallback',
+        isMock: true
+    });
+}
+
 function getFallbackQuestions(count = 10) {
     const fallback = [];
     const seen = new Set(questionBank.map(questionSignature));
@@ -2752,6 +2812,9 @@ function getAgeBandLabel(profile = getDifficultyProfile()) {
 }
 
 function questionSignature(item = {}) {
+    if (item.type === 'stroop') {
+        return `stroop::${String(item.word || '').toLowerCase()}::${String(item.displayColor || '').toLowerCase()}`;
+    }
     const question = String(item.question || '').toLowerCase().replace(/\s+/g, ' ').trim();
     const options = Array.isArray(item.options)
         ? item.options.map((option) => String(option || '').toLowerCase().replace(/\s+/g, ' ').trim()).join('|')
@@ -2764,6 +2827,18 @@ function validateQuestionItem(item, seenSignatures = new Set()) {
     const normalizedOptions = Array.isArray(item.options)
         ? item.options.map((option) => String(option || '').trim()).filter(Boolean)
         : [];
+
+    // Stroop items validate on word/displayColor instead of question text length.
+    if (item.type === 'stroop') {
+        if (!item.word || String(item.word).trim().length === 0) reasons.push('stroop-missing-word');
+        if (!/^#[0-9a-fA-F]{6}$/.test(String(item.displayColor || ''))) reasons.push('stroop-bad-color');
+        if (normalizedOptions.length !== 4) reasons.push('option-count');
+        if (new Set(normalizedOptions.map((option) => option.toLowerCase())).size !== 4) reasons.push('duplicate-options');
+        if (!Number.isInteger(item.answer) || item.answer < 0 || item.answer > 3) reasons.push('answer-range');
+        const stroopSignature = questionSignature(item);
+        if (!stroopSignature || seenSignatures.has(stroopSignature)) reasons.push('duplicate-question');
+        return { ok: reasons.length === 0, reasons, signature: stroopSignature };
+    }
 
     if (!item.question || item.question.length < 6) reasons.push('question-too-short');
     if (normalizedOptions.length !== 4) reasons.push('option-count');
@@ -2944,6 +3019,10 @@ async function fetchBatchQuestions(count = 10, isInitial = true) {
 }
 
 function generateMockPuzzle(index = 0) {
+    // Hard mode: every third fallback item is a real interactive Stroop task.
+    if (CONFIG.difficulty === 'hard' && index % 3 === 2) {
+        return generateStroopPuzzle(Math.floor(index / 3));
+    }
     const localBank = {
         easy: {
             hk: [
@@ -3059,7 +3138,7 @@ function normalizeQuestionItem(item = {}) {
     const explanationLimit = isHk ? 60 : 140;
     const profile = getDifficultyProfile();
 
-    return {
+    const normalized = {
         question: compactText(item.question),
         options: Array.isArray(item.options)
             ? item.options.slice(0, 4).map((option) => compactText(option))
@@ -3071,6 +3150,15 @@ function normalizeQuestionItem(item = {}) {
         validation: compactText(item.validation || item.explanation || '', explanationLimit),
         source: item.source || 'ai'
     };
+
+    // Stroop items carry the stimulus word and its display color through.
+    if (item.type === 'stroop') {
+        normalized.type = 'stroop';
+        normalized.word = compactText(item.word, 12);
+        normalized.displayColor = String(item.displayColor || '').trim();
+    }
+
+    return normalized;
 }
 
 function renderPuzzle(data) {
@@ -3086,7 +3174,34 @@ function renderPuzzle(data) {
 
     if (qSkill) qSkill.textContent = data.skill || langText('邏輯推理', 'Logic');
     if (qBand) qBand.textContent = data.ageBand || getAgeBandLabel();
-    qText.textContent = data.question;
+
+    clearStroopTimer();
+    const isStroop = data.type === 'stroop';
+
+    if (isStroop) {
+        // Show the conflicting word in its display color, plus a small swatch
+        // so the hue stays identifiable for color-blind players.
+        qText.textContent = '';
+        qText.classList.add('stroop-word');
+        const instruction = document.createElement('span');
+        instruction.className = 'stroop-instruction';
+        instruction.textContent = data.question;
+        const wordEl = document.createElement('span');
+        wordEl.className = 'stroop-stimulus';
+        wordEl.textContent = data.word;
+        wordEl.style.color = data.displayColor;
+        const swatch = document.createElement('span');
+        swatch.className = 'stroop-swatch';
+        swatch.style.background = data.displayColor;
+        wordEl.appendChild(swatch);
+        qText.appendChild(instruction);
+        qText.appendChild(wordEl);
+    } else {
+        qText.classList.remove('stroop-word');
+        qText.style.color = '';
+        qText.textContent = data.question;
+    }
+
     qOptions.innerHTML = '';
 
     data.options.forEach((opt, index) => {
@@ -3094,9 +3209,65 @@ function renderPuzzle(data) {
         btn.className = 'option-btn';
         btn.textContent = opt;
         // Pass all buttons to checkAnswer so we can highlight correct one
-        btn.onclick = () => checkAnswer(index, data.answer, btn, qOptions.children);
+        btn.onclick = () => {
+            clearStroopTimer();
+            checkAnswer(index, data.answer, btn, qOptions.children);
+        };
         qOptions.appendChild(btn);
     });
+
+    if (isStroop) {
+        startStroopCountdown(data);
+    }
+}
+
+// Time pressure is what makes Stroop a focus task: run a visible countdown
+// and treat expiry as a wrong answer.
+function startStroopCountdown(data) {
+    const timerEl = document.getElementById('question-timer');
+    const deadline = performance.now() + STROOP_TIME_LIMIT_MS;
+    if (timerEl) timerEl.classList.add('stroop-active');
+
+    const tick = () => {
+        const remainingMs = deadline - performance.now();
+        if (remainingMs <= 0) {
+            clearStroopTimer();
+            handleStroopTimeout(data);
+            return;
+        }
+        if (timerEl) {
+            timerEl.textContent = `⏱ ${Math.ceil(remainingMs / 1000)}s`;
+            timerEl.classList.toggle('is-urgent', remainingMs <= 3000);
+        }
+    };
+    tick();
+    stroopTimerId = setInterval(tick, 200);
+}
+
+function handleStroopTimeout(data) {
+    const options = document.querySelectorAll('.option-btn');
+    options.forEach((opt) => (opt.disabled = true));
+
+    playWrongSound();
+    CONFIG.streak = 0;
+    updateStreakDisplay();
+
+    if (options[data.answer]) {
+        options[data.answer].style.background = '#4eff4e';
+        options[data.answer].style.color = 'black';
+    }
+
+    CONFIG.wrongAnswers.push({
+        question: `${data.question} [${data.word}]`,
+        userChoice: langText('（超時未答）', '(time out)'),
+        correctChoice: data.options[data.answer],
+        explanation: data.explanation
+    });
+
+    setTimeout(() => {
+        currentQuestionIndex++;
+        loadQuestionFromBank();
+    }, 2000);
 }
 
 function checkAnswer(selectedIndex, correctIndex, btn) {
@@ -5011,6 +5182,7 @@ function disposeGameSession() {
     activeGameSessionId += 1;
     isGameActive = false;
     stopBGM();
+    clearStroopTimer();
 
     if (startupTimeoutId) {
         clearTimeout(startupTimeoutId);

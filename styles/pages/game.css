@@ -1237,3 +1237,52 @@ html[data-platform='windows'] .breathing-prompt-pill {
         display: none !important;
     }
 }
+
+/* --- Stroop stimulus (hard difficulty) --- */
+
+#question-text.stroop-word {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.stroop-instruction {
+    font-size: 0.9em;
+    color: var(--text-muted, #94a3b8);
+}
+
+.stroop-stimulus {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-family: var(--font-tech);
+    font-size: clamp(2rem, 5vw, 3rem);
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-shadow: 0 0 18px currentColor;
+}
+
+.stroop-swatch {
+    width: 0.9em;
+    height: 0.9em;
+    border-radius: 50%;
+    border: 2px solid rgba(255, 255, 255, 0.75);
+    display: inline-block;
+}
+
+#question-timer.stroop-active {
+    font-family: var(--font-tech);
+    font-size: 1.1rem;
+    color: #7dd3fc;
+}
+
+#question-timer.stroop-active.is-urgent {
+    color: #f87171;
+    animation: stroop-timer-pulse 0.5s ease-in-out infinite alternate;
+}
+
+@keyframes stroop-timer-pulse {
+    from { opacity: 1; }
+    to { opacity: 0.45; }
+}
