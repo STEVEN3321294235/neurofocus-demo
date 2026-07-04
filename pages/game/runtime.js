@@ -14,8 +14,10 @@ import { appendSessionSummary, getSessionHistory } from '../../services/storageS
 import { initFocusGates, updateFocusGates, getGateStats, resetGateStats } from './focusGates.js';
 
 // Feature flag: focus gates are the discrete "did you hold focus at this
-// moment" checkpoints. Flip to false to demo the plain endless ocean.
-const FOCUS_GATES_ENABLED = true;
+// moment" checkpoints. Temporarily disabled (2026-07-04) — the rings read as
+// passing on the right rather than through the centre, so the X/Y score wasn't
+// legible. Module + integration kept; flip back to true after a redesign.
+const FOCUS_GATES_ENABLED = false;
 
 // DEMO_MODE shows the raw EEG channels (attention / meditation / signal) for
 // the competition booth. Flip to false in a future product build to hide the

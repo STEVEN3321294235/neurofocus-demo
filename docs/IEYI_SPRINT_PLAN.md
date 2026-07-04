@@ -909,4 +909,6 @@ logic, or question logic.
 | — | 文案 humanize + 隱私政策 | ⬜ 未做 | — | Claude Code 同用戶逐句傾 |
 | — | Merge feature branch → main（正式出街） | ⬜ 未做 | — | 全部測完先做 |
 
+| 07-04 | UI 修正批次 1（收窄卡片 + Focus Gates 移除 + Loading 重設計） | ✅ 完成 | （見本 commit） | navbar 唔再圓角空缺；計時器/COMBO 去卡片變發光字；loading 去卡片變全屏簡約；Focus Gates 停用（保留 code） |
+
 **用戶待辦**：① Supabase SQL Editor 行 `docs/supabase_schema.sql`；② Supabase 關 Confirm email；③ Vercel 加多一條 `DEEPSEEK_API_KEY` 俾 Preview 環境（Production 嗰條掂唔到就另加一條 scope 做 Preview）。
