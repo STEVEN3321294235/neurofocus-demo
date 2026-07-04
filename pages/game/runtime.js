@@ -412,7 +412,7 @@ const INITIAL_AI_TIMEOUT_MS = 8000;
 const BACKGROUND_AI_TIMEOUT_MS = 15000;
 const INITIAL_PLAYABLE_QUESTIONS = 4;
 const SIMULATION_STABLE_SEGMENT_PROBABILITY = 0.8;
-const FOCUS_TRAINING = {
+const DEFAULT_FOCUS_TRAINING = {
     stableThreshold: 50,
     lowThreshold: 45,
     recoveryThreshold: 55,
@@ -422,6 +422,51 @@ const FOCUS_TRAINING = {
     interventionCooldownMs: 10000,
     boostDurationMs: 5000
 };
+
+// Per-session copy: adaptive personalization reassigns this at session start;
+// the shared defaults above are never mutated.
+let FOCUS_TRAINING = { ...DEFAULT_FOCUS_TRAINING };
+
+// Adapt the recovery bar to the player's own recent history (simple clamped
+// rules, deliberately not ML — easy to explain to judges):
+// - recoveryThreshold rises from 55 toward 65 as average focus stability
+//   across the last sessions improves.
+// - triggerDurationMs tightens from 5000ms toward a 3500ms floor as the
+//   player's average recovery gets faster.
+// Fewer than 3 past sessions -> pure defaults (first-timers never face a
+// harder bar).
+async function resolveAdaptiveFocusTraining() {
+    FOCUS_TRAINING = { ...DEFAULT_FOCUS_TRAINING };
+    try {
+        const history = await getSessionHistory(5);
+        if (!Array.isArray(history) || history.length < 3) {
+            console.info('[Adaptive] Using default thresholds (history:', history?.length || 0, 'sessions)');
+            return FOCUS_TRAINING;
+        }
+        const avg = (arr) => arr.reduce((s, v) => s + v, 0) / arr.length;
+        const avgFocusedRatio = avg(history.map((s) => Math.max(0, Math.min(100, s.focusedRatio || 0))));
+        const avgRecoveryMs = avg(history.map((s) => Math.max(0, s.avgRecoveryMs || 0)));
+
+        const recoveryThreshold = Math.round(
+            Math.min(65, Math.max(55, 55 + (avgFocusedRatio - 50) * 0.2))
+        );
+        const triggerDurationMs = Math.round(
+            Math.min(5000, Math.max(3500, 3500 + avgRecoveryMs * 0.15))
+        );
+
+        FOCUS_TRAINING = { ...DEFAULT_FOCUS_TRAINING, recoveryThreshold, triggerDurationMs };
+        console.info('[Adaptive] Personalized thresholds for this session:', {
+            sessions: history.length,
+            avgFocusedRatio: Math.round(avgFocusedRatio * 10) / 10,
+            avgRecoverySec: Math.round(avgRecoveryMs / 100) / 10,
+            recoveryThreshold,
+            triggerDurationMs
+        });
+    } catch (e) {
+        console.warn('[Adaptive] Falling back to default thresholds.', e);
+    }
+    return FOCUS_TRAINING;
+}
 let isWaitingForQuestions = false;
 
 const FOCUS_SAMPLE_INTERVAL_MS = 2000;
@@ -1933,6 +1978,9 @@ function initGameSession() {
     lastFetchTime = 0;
     fallbackQuestionCursor = loadFallbackQuestionCursor();
     trainingAnalytics = createTrainingAnalytics();
+    // Personalize thresholds from recent history (resolves within the first
+    // moments of play; defaults apply until then and for new players).
+    resolveAdaptiveFocusTraining().catch(() => {});
     hideBreathingPrompt();
     hideBreathingIntervention();
     updateLoadingStatus(
@@ -2701,7 +2749,36 @@ async function renderHistoryTrend() {
     const focusValues = history.map((s) => Math.max(0, Math.min(100, s.focusedRatio || 0)));
     const recoveryValues = history.map((s) => Math.max(0, (s.avgRecoveryMs || 0) / 1000));
 
+    // Headline: is the player recovering faster than their own recent average?
+    let headline = '';
+    const withRecovery = recoveryValues.filter((v) => v > 0);
+    if (withRecovery.length >= 2) {
+        const latest = recoveryValues[recoveryValues.length - 1];
+        const previous = recoveryValues.slice(0, -1).filter((v) => v > 0);
+        const prevAvg = previous.length ? previous.reduce((s, v) => s + v, 0) / previous.length : 0;
+        if (latest > 0 && prevAvg > 0) {
+            const diffPct = ((prevAvg - latest) / prevAvg) * 100;
+            if (diffPct >= 5) {
+                headline = `<p class="dash-recovery-headline is-up">▲ ${langText(
+                    `分心後拉返專注快咗 ${diffPct.toFixed(0)}%（對比你之前幾局平均）`,
+                    `You recover from distraction ${diffPct.toFixed(0)}% faster than your recent average`
+                )}</p>`;
+            } else if (diffPct <= -5) {
+                headline = `<p class="dash-recovery-headline is-down">▼ ${langText(
+                    `今局恢復速度慢過你之前平均 ${Math.abs(diffPct).toFixed(0)}%，好正常，繼續練`,
+                    `Recovery was ${Math.abs(diffPct).toFixed(0)}% slower than your recent average — keep training`
+                )}</p>`;
+            } else {
+                headline = `<p class="dash-recovery-headline is-flat">▶ ${langText(
+                    '恢復速度同你最近平均相若',
+                    'Recovery speed is in line with your recent average'
+                )}</p>`;
+            }
+        }
+    }
+
     host.innerHTML = `
+        ${headline}
         <div class="dash-trend-grid">
             <div class="dash-trend-block">
                 <h4>${langText('專注穩定度 %', 'Focus Stability %')}</h4>

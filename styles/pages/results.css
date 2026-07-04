@@ -270,3 +270,16 @@
         grid-template-columns: 1fr;
     }
 }
+
+.dash-recovery-headline {
+    margin-top: 0.8rem;
+    padding: 0.7rem 1rem;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--panel-border);
+    font-weight: 700;
+    font-size: 1.05rem;
+}
+
+.dash-recovery-headline.is-up { color: #22c55e; background: rgba(34, 197, 94, 0.08); }
+.dash-recovery-headline.is-down { color: #f59e0b; background: rgba(245, 158, 11, 0.08); }
+.dash-recovery-headline.is-flat { color: var(--text-muted); }
