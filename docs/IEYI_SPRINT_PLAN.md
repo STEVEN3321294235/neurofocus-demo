@@ -1,3 +1,9 @@
+# ⚠️ 已封存（2026-07-05）—— 呢份係舊 plan，只作歷史紀錄
+
+> **現行計劃係 [`docs/IEYI_PLAN_V2.md`](./IEYI_PLAN_V2.md)。** 本檔嘅 to-do 同 prompt 大部分已完成
+> （見 V2 §1 snapshot）；書房環境（Prompt L / Batch C）已於 2026-07-05 整個移除，兩個模式統一用海洋。
+> 唔好再跟呢份做嘢。
+
 # NeuroFocus IEYI 比賽衝刺計劃（2026-07-03 → 七月尾）
 
 ## Context（點解要做呢個計劃）

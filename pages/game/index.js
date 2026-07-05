@@ -8,17 +8,6 @@ async function getRuntime() {
     return importGameRuntime('/pages/game/runtime.js');
 }
 
-// #region debug-point C:game-page-report
-const DEBUG_SERVER_URL = window.__TRAE_DEBUG_SERVER_URL__ || null;
-const reportGamePageDebug = (hypothesisId, msg, data = {}) => {
-    if (!DEBUG_SERVER_URL || DEBUG_SERVER_URL.includes('127.0.0.1:7777')) return Promise.resolve();
-    return fetch(DEBUG_SERVER_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sessionId: 'stitch-layout-game-render', runId: 'post-fix', hypothesisId, location: 'pages/game/index.js', msg: `[DEBUG] ${msg}`, data, ts: Date.now() })
-    }).catch(() => {});
-};
-// #endregion
 
 export default {
     render() {
@@ -153,15 +142,6 @@ export default {
 
     async mount({ root, router }) {
         const state = getState();
-        // #region debug-point C:game-mount-entry
-        reportGamePageDebug('C', 'game page mount entry', {
-            currentUser: state.currentUser,
-            difficulty: state.difficulty,
-            hasCanvasContainer: Boolean(root.querySelector('#canvas-container')),
-            hasUiContainer: Boolean(root.querySelector('#ui-container')),
-            canvasContainerRect: root.querySelector('#canvas-container')?.getBoundingClientRect?.() || null
-        });
-        // #endregion
         if (!state.currentUser || !state.difficulty) {
             router.navigate('setup');
             return;
@@ -180,13 +160,6 @@ export default {
             onResults: () => router.navigate('results')
         });
         runtime.switchLanguage(state.lang);
-        // #region debug-point C:game-runtime-ready
-        reportGamePageDebug('C', 'game runtime imported and configured', {
-            selectedRoute: state.route,
-            lang: state.lang,
-            canvasChildrenBeforeStart: root.querySelector('#canvas-container')?.childElementCount || 0
-        });
-        // #endregion
         runtime.startGameSession();
 
         const homeButton = root.querySelector('#btn-back-home-game');
@@ -218,9 +191,6 @@ export default {
 
     async unmount() {
         try {
-            // #region debug-point D:game-unmount
-            reportGamePageDebug('D', 'game page unmount', {});
-            // #endregion
             const runtime = await getRuntime();
             runtime.disposeGameSession();
         } catch (error) {

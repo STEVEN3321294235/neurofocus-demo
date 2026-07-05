@@ -12,53 +12,6 @@ import { setState, getState } from '../../app/state.js';
 import { getCameraFocusScore, getCameraTrackingStatus, stopCameraPreview } from '../../services/focusInputService.js?v=2026-06-24-23';
 import { appendSessionSummary, getSessionHistory } from '../../services/storageService.js';
 import { initFocusGates, updateFocusGates, getGateStats, resetGateStats } from './focusGates.js';
-import { initVoxelStudy, updateVoxelStudy, disposeVoxelStudy, applyStudyCamera, driftStudyCamera, isStudyReady } from './environments/voxelStudy.js';
-
-// Active training environment: 'ocean' (default) or 'study' (voxel room). The
-// study environment hides the ocean meshes and overlays a calm voxel scene,
-// so the game loop and all gameplay logic stay untouched.
-let activeEnvironment = 'ocean';
-let studyApplied = false;
-let lastFlowState = false;
-
-// Saved ocean scene backdrop so an ocean session can restore it after study.
-let savedOceanBackground = null;
-let savedOceanFog = null;
-let oceanBackdropSaved = false;
-
-// Lazily switch into the study scene once the boat/water exist. Runs on the
-// game loop; retries next frame while assets are still loading.
-function maybeApplyStudyEnvironment(deltaMs) {
-    if (activeEnvironment !== 'study') return;
-    if (!studyApplied) {
-        if (!scene) return;
-        try { initVoxelStudy(scene, THREE); } catch (e) { console.warn('[study] init failed, staying on ocean', e); activeEnvironment = 'ocean'; return; }
-        if (controls) controls.enabled = false;
-        // Replace the ocean sky/fog with a warm neutral backdrop so nothing
-        // outside the room is ever visible.
-        if (!oceanBackdropSaved) {
-            savedOceanBackground = scene.background;
-            savedOceanFog = scene.fog;
-            oceanBackdropSaved = true;
-        }
-        scene.background = new THREE.Color(0x2a2119);
-        scene.fog = null;
-        applyStudyCamera(camera, THREE);
-        studyApplied = true;
-    }
-
-    // Ocean assets load asynchronously (GLTF boat, water) and env transitions
-    // keep touching the backdrop — enforce the study look EVERY frame.
-    if (boat && boat.visible) boat.visible = false;
-    if (water && water.visible) water.visible = false;
-    if (typeof boatParticles !== 'undefined' && boatParticles && boatParticles.visible) boatParticles.visible = false;
-    if (scene && scene.fog) scene.fog = null;
-
-    if (isStudyReady()) {
-        updateVoxelStudy(getEffectiveFocusLevel(), lastFlowState, deltaMs);
-        driftStudyCamera(camera);
-    }
-}
 
 // Feature flag: focus gates are the discrete "did you hold focus at this
 // moment" checkpoints. Temporarily disabled (2026-07-04) — the rings read as
@@ -963,15 +916,10 @@ function showOnboardingCue() {
     const cue = document.getElementById('onboarding-cue');
     const cueText = document.getElementById('onboarding-cue-text');
     if (!cue || !cueText) return;
-    cueText.textContent = activeEnvironment === 'study'
-        ? langText(
-            '📚 呢間書房就係你個腦——專注，燈光就會變暖變亮',
-            '📚 This room mirrors your mind — focus, and the light warms up'
-        )
-        : langText(
-            '🚤 隻船就係你個腦嘅倒影——集中精神，佢就會平穩加速',
-            '🚤 The boat mirrors your mind — focus, and it speeds up smoothly'
-        );
+    cueText.textContent = langText(
+        '🚤 隻船就係你個腦嘅倒影——集中精神，佢就會平穩加速',
+        '🚤 The boat mirrors your mind — focus, and it speeds up smoothly'
+    );
     cue.style.display = '';
     cue.classList.remove('is-in');
     void cue.offsetWidth;
@@ -1222,17 +1170,6 @@ let suppressBridgeAutoReconnect = false;
 const MAX_BRIDGE_RECONNECT_ATTEMPTS = 12;
 const LIVE_EEG_WAIT_TIMEOUT_MS = 18000;
 
-// #region debug-point C:runtime-report
-const DEBUG_SERVER_URL = window.__TRAE_DEBUG_SERVER_URL__ || null;
-const reportRuntimeDebug = (hypothesisId, msg, data = {}) => {
-    if (!DEBUG_SERVER_URL || DEBUG_SERVER_URL.includes('127.0.0.1:7777')) return Promise.resolve();
-    return fetch(DEBUG_SERVER_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sessionId: 'eeg-mac-bridge', runId: 'pre-fix', hypothesisId, location: 'pages/game/runtime.js', msg: `[DEBUG] ${msg}`, data, ts: Date.now() })
-    }).catch(() => {});
-};
-// #endregion
 
 let scene, camera, renderer, controls;
 let mixer; // Animation Mixer
@@ -1291,9 +1228,6 @@ const gameLoop = new PrecisionLoop((deltaMs, totalTimeMs) => {
 
     // 2. Logic Update
     updateGameLogic(deltaSec);
-
-    // 2.05 Study environment (overlays a calm voxel room; ocean stays hidden)
-    maybeApplyStudyEnvironment(deltaMs);
 
     // 2.1 Environment Transition Lerp
     if (envState.isTransitioning) {
@@ -1504,7 +1438,6 @@ function updateGameLogic(delta) {
     const meditationOk = !(selectedInputMode === 'eeg' && latestEEG.meditation !== null)
         || latestEEG.meditation >= MEDITATION_FLOW_THRESHOLD;
     const isFlowState = (focusLevel > 80 && CONFIG.streak >= 3 && meditationOk);
-    lastFlowState = isFlowState;
     if (isFlowState) {
         document.body.classList.add('flow-state-mode');
     } else {
@@ -1636,9 +1569,8 @@ function updateGameLogic(delta) {
         // Update Water Position
         if (water) water.position.z = boat.position.z;
         
-        // Camera Follow Logic (Free View) — skipped in the study environment,
-        // which uses its own fixed drifting camera.
-        if (controls && activeEnvironment !== 'study') {
+        // Camera Follow Logic (Free View)
+        if (controls) {
             camera.position.z -= moveDist;
             controls.target.z -= moveDist;
 
@@ -2186,15 +2118,6 @@ function attachRendererToCanvasHost() {
 function initGameSession() {
     console.log("Starting Game Session...");
     const sessionId = ++activeGameSessionId;
-    // #region debug-point C:init-game-session
-    reportRuntimeDebug('C', 'initGameSession called', {
-        selectedInputMode,
-        hasExistingScene: Boolean(scene),
-        hasBoat: Boolean(boat),
-        hasRenderer: Boolean(renderer),
-        currentQuestionBankSize: questionBank.length
-    });
-    // #endregion
     CONFIG.score = 0;
     CONFIG.streak = 0;
     CONFIG.wrongAnswers = [];
@@ -2210,22 +2133,6 @@ function initGameSession() {
     trainingAnalytics = createTrainingAnalytics();
     resetGateStats();
     updateGateCounterHUD();
-    // Pick the training environment for this session (ocean default).
-    activeEnvironment = getState().environment === 'study' ? 'study' : 'ocean';
-    studyApplied = false;
-    if (activeEnvironment === 'ocean') {
-        // Restore ocean scenery in case the previous session hid it for study.
-        try { disposeVoxelStudy(scene); } catch (e) {}
-        if (boat) boat.visible = true;
-        if (water) water.visible = true;
-        if (typeof boatParticles !== 'undefined' && boatParticles) boatParticles.visible = true;
-        if (controls) controls.enabled = true;
-        if (oceanBackdropSaved && scene) {
-            scene.background = savedOceanBackground;
-            scene.fog = savedOceanFog;
-            oceanBackdropSaved = false;
-        }
-    }
     // Teach the core mapping as play begins (after the entry countdown).
     setTimeout(showOnboardingCue, 3500);
     // Personalize thresholds from recent history (resolves within the first
@@ -2331,15 +2238,6 @@ function initGameSession() {
 
     Promise.allSettled([coreAssetPromise, initialQuestionPromise]).then(() => {
         if (sessionId !== activeGameSessionId) return;
-        // #region debug-point D:game-start-ready
-        reportRuntimeDebug('D', 'game start promise settled', {
-            hasBoat: Boolean(boat),
-            questionBankSize: questionBank.length,
-            hasScene: Boolean(scene),
-            hasRendererDom: Boolean(renderer?.domElement),
-            canvasChildren: document.getElementById('canvas-container')?.childElementCount || 0
-        });
-        // #endregion
         // 1. Ensure boat exists if it failed
         if (!boat) {
             console.warn("Boat missing after timeout. Creating fallback.");
@@ -3716,13 +3614,6 @@ const assetsLoadedPromise = new Promise(resolve => assetsLoadedResolve = resolve
 
 function init3DScene() {
     const sceneSessionId = activeGameSessionId;
-    // #region debug-point C:init-scene-entry
-    reportRuntimeDebug('C', 'init3DScene entry', {
-        hasCanvasContainer: Boolean(document.getElementById('canvas-container')),
-        windowWidth: window.innerWidth,
-        windowHeight: window.innerHeight
-    });
-    // #endregion
     // 0. Initialize Loading Manager
     loadingManager = new THREE.LoadingManager();
     loadingManager.onLoad = () => {
@@ -3734,9 +3625,6 @@ function init3DScene() {
     };
     loadingManager.onError = (url) => {
         console.error('[Loading] There was an error loading ' + url);
-        // #region debug-point E:loading-manager-error
-        reportRuntimeDebug('E', 'loading manager asset error', { url });
-        // #endregion
     };
 
     // 1. Scene Setup
@@ -3768,13 +3656,6 @@ function init3DScene() {
     renderer.shadowMap.enabled = PERFORMANCE_PROFILE.enableShadows;
     renderer.shadowMap.type = PERFORMANCE_PROFILE.enableShadows ? THREE.PCFSoftShadowMap : THREE.BasicShadowMap;
     document.getElementById('canvas-container').appendChild(renderer.domElement);
-    // #region debug-point C:renderer-appended
-    reportRuntimeDebug('C', 'renderer appended', {
-        hasScene: Boolean(scene),
-        hasRenderer: Boolean(renderer),
-        canvasChildren: document.getElementById('canvas-container')?.childElementCount || 0
-    });
-    // #endregion
 
     // Setup Post-Processing (Bloom + SMAA)
     setupPostProcessing();
@@ -3823,13 +3704,6 @@ function init3DScene() {
     Promise.all([texturesPromise, boatLoadedPromise, envPromise])
         .then(() => {
              console.log("Promise.all complete: Textures, Boat, and HDRI loaded.");
-             // #region debug-point D:asset-promise-all-success
-             reportRuntimeDebug('D', 'all core assets resolved', {
-                 hasBoat: Boolean(boat),
-                 hasWaterNormalTexture: Boolean(waterNormalTexture),
-                 hasSceneEnvironment: Boolean(scene?.environment)
-             });
-             // #endregion
              if (assetsLoadedResolve) assetsLoadedResolve();
         })
         .catch(err => {
@@ -3849,12 +3723,6 @@ function init3DScene() {
         ASSET_URLS.boat,
         function (gltf) {
             if (sceneSessionId !== activeGameSessionId) return;
-            // #region debug-point E:boat-load-success
-            reportRuntimeDebug('E', 'boat model load success callback', {
-                hasScene: Boolean(gltf?.scene),
-                childCount: gltf?.scene?.children?.length || 0
-            });
-            // #endregion
             const loadTime = performance.now() - modelLoadStart;
             console.log(`[Performance] Model loaded in ${loadTime.toFixed(2)}ms`);
 
@@ -3945,21 +3813,10 @@ function init3DScene() {
             });
             scene.add(boat);
             console.log("Model added to scene with scale (3,3,3) and Y-offset -0.5");
-            // #region debug-point E:boat-added-scene
-            reportRuntimeDebug('E', 'boat added to scene', {
-                boatType: boat?.type,
-                sceneChildren: scene?.children?.length || 0
-            });
-            // #endregion
         },
         undefined,
         function (error) {
             if (sceneSessionId !== activeGameSessionId) return;
-            // #region debug-point E:boat-load-error
-            reportRuntimeDebug('E', 'boat model load error callback', {
-                message: String(error?.message || error)
-            });
-            // #endregion
             console.error('Error loading boat model:', error);
             boat = createFallbackBoat();
             boat.position.y = -0.35;
@@ -4097,15 +3954,9 @@ function loadTextures() {
             tex.minFilter = THREE.LinearMipmapLinearFilter;
             tex.magFilter = THREE.LinearFilter;
             tex.anisotropy = Math.min(renderer?.capabilities?.getMaxAnisotropy?.() || 1, isCompactViewport() ? 4 : 12);
-            // #region debug-point D:texture-water-normal
-            reportRuntimeDebug('D', 'water normal texture loaded', {
-                imageWidth: tex.image?.width || null,
-                imageHeight: tex.image?.height || null
-            });
-            // #endregion
             resolve(tex);
         }, undefined, () => {
-            reportRuntimeDebug('E', 'water normal texture failed, using generated placeholder', {});
+            console.warn('[assets] water normal texture failed, using generated placeholder');
             const fallback = new THREE.Texture();
             waterNormalTexture = fallback;
             resolve(fallback);
@@ -4118,16 +3969,9 @@ function loadTextures() {
             tex.minFilter = THREE.LinearMipmapLinearFilter;
             tex.magFilter = THREE.LinearFilter;
             tex.anisotropy = Math.min(renderer?.capabilities?.getMaxAnisotropy?.() || 1, isCompactViewport() ? 4 : 8);
-            // #region debug-point D:texture-foam
-            reportRuntimeDebug('D', 'foam fallback texture loaded', {
-                imageWidth: tex.image?.width || null,
-                imageHeight: tex.image?.height || null,
-                source: ASSET_URLS.splash
-            });
-            // #endregion
             resolve(tex);
         }, undefined, () => {
-            reportRuntimeDebug('E', 'foam fallback texture failed, reusing water normal texture', {});
+            console.warn('[assets] foam texture failed, reusing water normal texture');
             foamTexture = waterNormalTexture || new THREE.Texture();
             resolve(foamTexture);
         });
@@ -4138,15 +3982,9 @@ function loadTextures() {
             tex.minFilter = THREE.LinearMipmapLinearFilter;
             tex.magFilter = THREE.LinearFilter;
             tex.anisotropy = Math.min(renderer?.capabilities?.getMaxAnisotropy?.() || 1, isCompactViewport() ? 4 : 8);
-            // #region debug-point D:texture-splash
-            reportRuntimeDebug('D', 'splash texture loaded', {
-                imageWidth: tex.image?.width || null,
-                imageHeight: tex.image?.height || null
-            });
-            // #endregion
             resolve(tex);
         }, undefined, () => {
-            reportRuntimeDebug('E', 'splash texture failed, using foam fallback texture', {});
+            console.warn('[assets] splash texture failed, using foam fallback texture');
             splashTexture = foamTexture || waterNormalTexture || new THREE.Texture();
             resolve(splashTexture);
         });
@@ -4973,14 +4811,6 @@ function animate() {
         updateConnectBtn("Connecting EEG Bridge...", true, false);
         const url = bridgeUrls[bridgeUrlIndex % bridgeUrls.length];
         bridgeUrlIndex++;
-        // #region debug-point B:bridge-connect-attempt
-        reportRuntimeDebug('B', 'browser starting bridge connection attempt', {
-            url,
-            selectedInputMode,
-            eegModeActive,
-            bridgeConnected
-        });
-        // #endregion
 
         return new Promise((resolve) => {
             let settled = false;
@@ -5009,29 +4839,10 @@ function animate() {
                 bridgeConnected = true;
                 isConnected = true;
                 setEEGConnectionState('searching', 'Bridge connected. Opening your paired MindWave serial device...');
-                // #region debug-point B:bridge-open
-                reportRuntimeDebug('B', 'browser websocket opened', {
-                    url,
-                    selectedInputMode,
-                    eegModeActive
-                });
-                // #endregion
                 try {
                     bridgeSocket.send(JSON.stringify({ action: "start_eeg" }));
-                    // #region debug-point B:start-eeg-sent
-                    reportRuntimeDebug('B', 'browser sent start_eeg command', {
-                        url,
-                        selectedInputMode,
-                        eegModeActive
-                    });
-                    // #endregion
                 } catch (e) {
                     console.error("Failed to request EEG start", e);
-                    // #region debug-point E:start-eeg-send-failed
-                    reportRuntimeDebug('E', 'browser failed to send start_eeg command', {
-                        message: e?.message || String(e)
-                    });
-                    // #endregion
                 }
                 updateConnectBtn("Bridge Connected", false, true);
                 startConnectionWatchdog();
@@ -5078,13 +4889,6 @@ function animate() {
                         console.log("[Bridge Status]", msg.message);
                         const statusText = String(msg.message || "");
                         const statusLower = statusText.toLowerCase();
-                        // #region debug-point B:bridge-status-message
-                        reportRuntimeDebug('B', 'browser received bridge status', {
-                            statusText,
-                            selectedInputMode,
-                            eegModeActive
-                        });
-                        // #endregion
                         if (
                             statusLower.includes("failed") ||
                             statusLower.includes("error") ||
@@ -5545,8 +5349,6 @@ function disposeGameSession() {
     isGameActive = false;
     stopBGM();
     clearStroopTimer();
-    try { disposeVoxelStudy(scene); } catch (e) { /* scene may be gone */ }
-    studyApplied = false;
 
     if (startupTimeoutId) {
         clearTimeout(startupTimeoutId);
@@ -5600,15 +5402,6 @@ async function activateEEGMode() {
     selectedInputMode = 'eeg';
     eegModeActive = true;
     isSimulationMode = false;
-    // #region debug-point A:activate-eeg-mode
-    reportRuntimeDebug('A', 'activateEEGMode invoked from setup', {
-        selectedInputMode,
-        eegModeActive,
-        isSimulationMode,
-        bridgeHosts,
-        bridgeUrls
-    });
-    // #endregion
 
     if (focusInterval) {
         clearInterval(focusInterval);

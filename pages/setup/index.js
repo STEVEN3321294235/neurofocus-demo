@@ -334,9 +334,7 @@ export default {
                 const testMode = button.dataset.testMode;
                 setState({
                     testMode,
-                    // Environment is bound to the goal: training happens in the
-                    // calm voxel study; challenge sails the ocean.
-                    environment: testMode === 'training' ? 'study' : 'ocean',
+                    environment: 'ocean',
                     setupStep: 'mode',
                     trainingDurationSec: 180,
                     difficulty: testMode === 'training' ? 'training' : null,
