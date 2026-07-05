@@ -1,25 +1,55 @@
 // Voxel Library — an enclosed, cozy reading room for the calm training mode.
 // Fully sealed (four walls + floor + ceiling) so NOTHING outside the room is
-// ever visible: no sky, no sea, no drifting particles. Built only from
-// Three.js BoxGeometry (no external assets, no Minecraft naming).
+// ever visible: no sky, no sea, no drifting particles.
 //
-// Layout: bookshelves line every wall; a reading desk with a chair sits in the
-// centre with a few books and a lamp on top. The camera is parked at the desk,
-// looking across it toward the far bookshelves. Focus feedback is carried by
-// light: the lamp and room warm/brighten with focus; during flow a couple of
-// books on the desk lift and glow. Deliberately near-static.
+// Furniture is progressive-enhancement:
+//   * The room shell (floor/ceiling/walls) is always Three.js BoxGeometry.
+//   * The furniture (shelves/desk/chair/lamp) is procedural BoxGeometry by
+//     DEFAULT, but if real .glb models are present in assets/models/ (see the
+//     STUDY_ASSETS manifest below) they are loaded and swapped in. If ANY
+//     manifest file is missing / fails / empty, the whole set falls back to the
+//     procedural furniture — so the demo never white-screens and never shows a
+//     half-asset/half-box room.
+//   * The desk "flow books" stay procedural in both modes (they animate on
+//     flow) and sit on top of whichever desk is shown.
+//
+// Focus feedback is carried by light: the lamp and room warm/brighten with
+// focus; during flow a couple of books on the desk lift and glow.
 //
 // Interface: initVoxelStudy(scene, THREE), updateVoxelStudy(focus, isFlow, dt),
 // applyStudyCamera(camera, THREE), driftStudyCamera(camera),
 // disposeVoxelStudy(scene), isStudyReady().
 
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+
+// --- Asset manifest -------------------------------------------------------
+// Drop Kenney Furniture Kit (CC0) .glb files into assets/models/ (see the
+// README there). Positions/rotations/scales below are STARTING GUESSES to be
+// tuned once the real models are in the repo — they are all that changes when
+// iterating on the look. `file` is resolved relative to this module.
+// `scale` brings Kenney's ~1-unit models up to this room's ~44-unit scale.
+const STUDY_ASSETS = [
+    { key: 'shelfBack',  file: 'bookcaseClosed.glb', position: [0, 0, -20],  rotationY: 0,             scale: 9 },
+    { key: 'shelfLeft',  file: 'bookcaseClosed.glb', position: [-20, 0, 0],  rotationY: Math.PI / 2,   scale: 9 },
+    { key: 'shelfRight', file: 'bookcaseClosed.glb', position: [20, 0, 0],   rotationY: -Math.PI / 2,  scale: 9 },
+    { key: 'desk',       file: 'desk.glb',           position: [0, 0, 0],    rotationY: 0,             scale: 9 },
+    { key: 'chair',      file: 'chair.glb',          position: [0, 0, 10],   rotationY: Math.PI,       scale: 9 },
+    { key: 'lamp',       file: 'lampRoundFloor.glb', position: [16, 0, -16], rotationY: 0,             scale: 9 }
+];
+
+const assetUrl = (file) => new URL(`../../../assets/models/${file}`, import.meta.url).href;
+
 let group = null;
+let furnitureGroup = null;   // procedural furniture (hidden if assets swap in)
+let assetGroup = null;       // loaded .glb furniture
+let booksGroup = null;       // desk flow-books (always shown, always procedural)
 let roomLight = null;
 let lampLight = null;
 let lampShade = null;
 let deskBooks = [];   // books on the desk that lift/glow during flow
 let elapsed = 0;
 let THREERef = null;
+let loadToken = 0;    // invalidates in-flight async loads on re-init/dispose
 
 const ROOM = 44;        // interior width/depth
 const WALL_H = 26;      // wall height
@@ -73,10 +103,12 @@ export function initVoxelStudy(scene, THREE) {
     disposeVoxelStudy(scene);
     THREERef = THREE;
     group = new THREE.Group();
+    furnitureGroup = new THREE.Group();
+    booksGroup = new THREE.Group();
     deskBooks = [];
     elapsed = 0;
 
-    // --- Sealed shell (floor, ceiling, 4 walls) ---
+    // --- Sealed shell (floor, ceiling, 4 walls) — always procedural ---
     const floor = box(THREE, ROOM, 1, ROOM, 0x5a4632, { roughness: 1 });
     floor.position.set(0, -0.5, 0);
     group.add(floor);
@@ -104,12 +136,13 @@ export function initVoxelStudy(scene, THREE) {
         group.add(wall);
     }
 
+    // --- Procedural furniture (default; hidden if .glb assets swap in) ---
     // Bookshelves on back + left + right walls (front wall left open behind cam)
-    buildShelfWall(THREE, group, 0, -ROOM / 2 + 0.9, 0, ROOM - 4);
-    buildShelfWall(THREE, group, -ROOM / 2 + 0.9, 0, Math.PI / 2, ROOM - 4);
-    buildShelfWall(THREE, group, ROOM / 2 - 0.9, 0, -Math.PI / 2, ROOM - 4);
+    buildShelfWall(THREE, furnitureGroup, 0, -ROOM / 2 + 0.9, 0, ROOM - 4);
+    buildShelfWall(THREE, furnitureGroup, -ROOM / 2 + 0.9, 0, Math.PI / 2, ROOM - 4);
+    buildShelfWall(THREE, furnitureGroup, ROOM / 2 - 0.9, 0, -Math.PI / 2, ROOM - 4);
 
-    // --- Central reading desk ---
+    // Central reading desk
     const desk = new THREE.Group();
     const top = box(THREE, 16, 1, 9, WOOD_MED);
     top.position.set(0, 6, 0);
@@ -118,16 +151,6 @@ export function initVoxelStudy(scene, THREE) {
         const leg = box(THREE, 1, 6, 1, WOOD_DARK);
         leg.position.set(lx, 3, lz);
         desk.add(leg);
-    }
-    // Books flat + a small standing stack on the desk
-    for (let i = 0; i < 4; i++) {
-        const bk = box(THREE, 4.5, 0.7, 6, SHELF_BOOK_COLORS[i % SHELF_BOOK_COLORS.length], { roughness: 0.6 });
-        bk.position.set(-4 + i * 0.2, 6.9 + i * 0.75, -1 + i * 0.3);
-        bk.rotation.y = (i % 2) * 0.2 - 0.1;
-        bk.userData.baseY = bk.position.y;
-        bk.userData.phase = i * 1.1;
-        desk.add(bk);
-        deskBooks.push(bk);
     }
     const openBook = box(THREE, 6, 0.4, 5, 0xf5efdc, { roughness: 0.5 });
     openBook.position.set(3.5, 6.7, 1.5);
@@ -144,7 +167,7 @@ export function initVoxelStudy(scene, THREE) {
     lampShade = box(THREE, 2.2, 1.3, 2.2, 0x1f1f1f, { emissive: 0xffcf8a, emissiveIntensity: 1.0 });
     lampShade.position.set(5, 11, -2);
     desk.add(lampShade);
-    group.add(desk);
+    furnitureGroup.add(desk);
 
     // Chair in front of the desk (camera sits just behind it)
     const chair = new THREE.Group();
@@ -159,7 +182,20 @@ export function initVoxelStudy(scene, THREE) {
         leg.position.set(lx, 2, lz);
         chair.add(leg);
     }
-    group.add(chair);
+    furnitureGroup.add(chair);
+    group.add(furnitureGroup);
+
+    // --- Flow books (always shown; sit on the desk surface, animate on flow) ---
+    for (let i = 0; i < 4; i++) {
+        const bk = box(THREE, 4.5, 0.7, 6, SHELF_BOOK_COLORS[i % SHELF_BOOK_COLORS.length], { roughness: 0.6 });
+        bk.position.set(-4 + i * 0.2, 6.9 + i * 0.75, -1 + i * 0.3);
+        bk.rotation.y = (i % 2) * 0.2 - 0.1;
+        bk.userData.baseY = bk.position.y;
+        bk.userData.phase = i * 1.1;
+        booksGroup.add(bk);
+        deskBooks.push(bk);
+    }
+    group.add(booksGroup);
 
     // --- Lighting (warm, enclosed) ---
     roomLight = new THREE.AmbientLight(0xffe9cf, 0.55);
@@ -172,7 +208,63 @@ export function initVoxelStudy(scene, THREE) {
     group.add(fill);
 
     scene.add(group);
+
+    // Kick off async asset load; procedural furniture shows until (and unless)
+    // every manifest model resolves. Fire-and-forget — never blocks the scene.
+    loadStudyAssets(THREE).catch(() => { /* keep procedural furniture */ });
+
     return group;
+}
+
+// Load one GLB, resolving to its scene (or rejecting on empty/error).
+function loadGlb(loader, url) {
+    return new Promise((resolve, reject) => {
+        loader.load(
+            url,
+            (gltf) => {
+                if (gltf?.scene && gltf.scene.children.length > 0) resolve(gltf.scene);
+                else reject(new Error('empty glb'));
+            },
+            undefined,
+            (err) => reject(err)
+        );
+    });
+}
+
+// All-or-nothing: load every UNIQUE manifest file once, then place all
+// instances (cloning shared files). If any file fails, keep procedural.
+async function loadStudyAssets(THREE) {
+    const token = ++loadToken;
+    const uniqueFiles = [...new Set(STUDY_ASSETS.map((a) => a.file))];
+    const loader = new GLTFLoader();
+
+    let loaded;
+    try {
+        const scenes = await Promise.all(uniqueFiles.map((f) => loadGlb(loader, assetUrl(f))));
+        loaded = new Map(uniqueFiles.map((f, i) => [f, scenes[i]]));
+    } catch (e) {
+        console.warn('[study] furniture assets unavailable, using procedural room', e?.message || e);
+        return;
+    }
+
+    // Re-init or dispose happened while we were loading — drop this result.
+    if (token !== loadToken || !group) return;
+
+    const loadedGroup = new THREE.Group();
+    for (const item of STUDY_ASSETS) {
+        const src = loaded.get(item.file);
+        const inst = src.clone(true);
+        inst.position.set(item.position[0], item.position[1], item.position[2]);
+        inst.rotation.y = item.rotationY || 0;
+        inst.scale.setScalar(item.scale || 1);
+        inst.traverse((o) => { if (o.isMesh) { o.castShadow = false; o.receiveShadow = false; } });
+        loadedGroup.add(inst);
+    }
+
+    assetGroup = loadedGroup;
+    group.add(assetGroup);
+    if (furnitureGroup) furnitureGroup.visible = false; // swap procedural -> assets
+    console.log('[study] loaded furniture assets:', uniqueFiles.join(', '));
 }
 
 const lerp = (a, b, t) => a + (b - a) * t;
@@ -224,14 +316,21 @@ export function driftStudyCamera(camera) {
 }
 
 export function disposeVoxelStudy(scene) {
+    loadToken++; // invalidate any in-flight asset load
     if (group) {
         if (scene) scene.remove(group);
         group.traverse((obj) => {
             if (obj.geometry) obj.geometry.dispose();
-            if (obj.material) obj.material.dispose();
+            if (obj.material) {
+                if (Array.isArray(obj.material)) obj.material.forEach((m) => m.dispose());
+                else obj.material.dispose();
+            }
         });
     }
     group = null;
+    furnitureGroup = null;
+    assetGroup = null;
+    booksGroup = null;
     roomLight = null;
     lampLight = null;
     lampShade = null;
