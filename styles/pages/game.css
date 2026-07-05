@@ -1416,3 +1416,25 @@ body.boost-celebrate #focus-indicator {
     color: rgba(255,255,255,0.85);
     text-align: center;
 }
+
+/* --- FPS meter (DEMO_MODE perf readout) --- */
+#fps-meter {
+    position: fixed;
+    top: 0.6rem;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 80;
+    padding: 0.15rem 0.6rem;
+    border-radius: 999px;
+    font-family: var(--font-tech);
+    font-size: 0.8rem;
+    font-weight: 700;
+    background: rgba(2, 8, 23, 0.6);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    color: #94a3b8;
+    pointer-events: none;
+}
+#fps-meter[data-tier="good"] { color: #4ade80; }
+#fps-meter[data-tier="ok"] { color: #fbbf24; }
+#fps-meter[data-tier="low"] { color: #f87171; }

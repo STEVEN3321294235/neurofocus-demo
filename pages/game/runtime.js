@@ -124,6 +124,26 @@ function renderBreathingEegFeedback() {
     );
 }
 
+// Live FPS readout (behind DEMO_MODE) so performance is judged by numbers,
+// not by feel. Averaged over ~0.5s windows.
+let fpsAccumMs = 0;
+let fpsFrames = 0;
+function updateFpsMeter(deltaMs) {
+    const el = document.getElementById('fps-meter');
+    if (!el) return;
+    if (!DEMO_MODE) { if (el.style.display !== 'none') el.style.display = 'none'; return; }
+    if (el.style.display === 'none') el.style.display = '';
+    fpsFrames += 1;
+    fpsAccumMs += deltaMs;
+    if (fpsAccumMs >= 500) {
+        const fps = Math.round((fpsFrames * 1000) / fpsAccumMs);
+        el.textContent = `${fps} FPS`;
+        el.dataset.tier = fps >= 55 ? 'good' : fps >= 35 ? 'ok' : 'low';
+        fpsAccumMs = 0;
+        fpsFrames = 0;
+    }
+}
+
 function updateGateCounterHUD() {
     const el = document.getElementById('gate-counter');
     const valueEl = document.getElementById('gate-counter-value');
@@ -136,8 +156,8 @@ function updateGateCounterHUD() {
 // Module handle to the bloom pass so the game loop can escalate it during
 // flow state (it is created inside the post-processing setup function).
 let bloomPassRef = null;
-const BLOOM_BASE_STRENGTH = 0.6;
-const BLOOM_FLOW_STRENGTH = 1.05;
+const BLOOM_BASE_STRENGTH = 0.35;
+const BLOOM_FLOW_STRENGTH = 0.7;
 
 // --- Configuration & State ---
 const CONFIG = {
@@ -211,12 +231,12 @@ function getPerformanceProfile() {
         compactViewport,
         lowPowerDevice,
         ultraLowProfile,
-        pixelRatioCap: ultraLowProfile ? 1.0 : isWindows ? 1.25 : compactViewport ? 1.5 : Math.min(dpr, 2),
+        pixelRatioCap: ultraLowProfile ? 1.0 : isWindows ? 1.1 : compactViewport ? 1.25 : Math.min(dpr, 1.5),
         antialias: !(isMobile || lowPowerDevice),
         usePostProcessing: !(isWindows || lowPowerDevice),
         enableShadows: !lowPowerDevice,
-        shadowMapSize: ultraLowProfile ? 512 : compactViewport ? 768 : 1536,
-        waterResolution: ultraLowProfile ? 256 : 384,
+        shadowMapSize: ultraLowProfile ? 512 : compactViewport ? 768 : 1024,
+        waterResolution: ultraLowProfile ? 192 : lowPowerDevice ? 256 : 320,
         textureAnisotropy: ultraLowProfile ? 2 : lowPowerDevice ? 4 : 8,
         particleMultiplier: ultraLowProfile ? 0.45 : lowPowerDevice ? 0.65 : 1.0
     };
@@ -1263,6 +1283,8 @@ const gameLoop = new PrecisionLoop((deltaMs, totalTimeMs) => {
     // This is the core update function called every frame
     // Allow loop to run even if game not active (for idle animations/water)
     // if (!isGameActive) return;
+
+    updateFpsMeter(deltaMs);
 
     // 1. Calculate Delta in Seconds (High Precision)
     const deltaSec = deltaMs / 1000;
@@ -4043,9 +4065,9 @@ function setupPostProcessing() {
     const renderScene = new RenderPass(scene, camera);
 
     const bloomPass = new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 1.5, 0.4, 0.85);
-    bloomPass.threshold = 0.8;  // Only very bright things bloom
-    bloomPass.strength = BLOOM_BASE_STRENGTH;   // Moderate bloom intensity
-    bloomPass.radius = 0.5;     // Blur radius
+    bloomPass.threshold = 0.82; // Only very bright things bloom
+    bloomPass.strength = BLOOM_BASE_STRENGTH;   // Lighter bloom (perf)
+    bloomPass.radius = 0.4;     // Blur radius
     bloomPassRef = bloomPass;   // expose to the game loop for flow-state boost
 
     // SMAA Pass for superior Anti-Aliasing

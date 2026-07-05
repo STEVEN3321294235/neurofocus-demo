@@ -41,6 +41,7 @@ export default {
                     </div>
 
                     <div id="manual-debug-panel" style="display: none;"></div>
+                    <div id="fps-meter" style="display: none;">-- FPS</div>
                     <div id="user-info">${t('game_player')}：<span id="display-username">${state.currentUser || '-'}</span></div>
 
                     <div id="top-bar">
