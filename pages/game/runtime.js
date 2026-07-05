@@ -21,20 +21,39 @@ let activeEnvironment = 'ocean';
 let studyApplied = false;
 let lastFlowState = false;
 
+// Saved ocean scene backdrop so an ocean session can restore it after study.
+let savedOceanBackground = null;
+let savedOceanFog = null;
+let oceanBackdropSaved = false;
+
 // Lazily switch into the study scene once the boat/water exist. Runs on the
 // game loop; retries next frame while assets are still loading.
 function maybeApplyStudyEnvironment(deltaMs) {
     if (activeEnvironment !== 'study') return;
     if (!studyApplied) {
         if (!scene) return;
-        // Hide the ocean scenery (kept alive so no null-guards break).
-        if (boat) boat.visible = false;
-        if (water) water.visible = false;
-        try { initVoxelStudy(scene, THREE); } catch (e) { console.warn('[study] init failed, staying on ocean', e); activeEnvironment = 'ocean'; if (boat) boat.visible = true; if (water) water.visible = true; return; }
+        try { initVoxelStudy(scene, THREE); } catch (e) { console.warn('[study] init failed, staying on ocean', e); activeEnvironment = 'ocean'; return; }
         if (controls) controls.enabled = false;
+        // Replace the ocean sky/fog with a warm neutral backdrop so nothing
+        // outside the room is ever visible.
+        if (!oceanBackdropSaved) {
+            savedOceanBackground = scene.background;
+            savedOceanFog = scene.fog;
+            oceanBackdropSaved = true;
+        }
+        scene.background = new THREE.Color(0x2a2119);
+        scene.fog = null;
         applyStudyCamera(camera, THREE);
         studyApplied = true;
     }
+
+    // Ocean assets load asynchronously (GLTF boat, water) and env transitions
+    // keep touching the backdrop — enforce the study look EVERY frame.
+    if (boat && boat.visible) boat.visible = false;
+    if (water && water.visible) water.visible = false;
+    if (typeof boatParticles !== 'undefined' && boatParticles && boatParticles.visible) boatParticles.visible = false;
+    if (scene && scene.fog) scene.fog = null;
+
     if (isStudyReady()) {
         updateVoxelStudy(getEffectiveFocusLevel(), lastFlowState, deltaMs);
         driftStudyCamera(camera);
@@ -924,10 +943,15 @@ function showOnboardingCue() {
     const cue = document.getElementById('onboarding-cue');
     const cueText = document.getElementById('onboarding-cue-text');
     if (!cue || !cueText) return;
-    cueText.textContent = langText(
-        '🚤 隻船就係你個腦嘅倒影——集中精神，佢就會平穩加速',
-        '🚤 The boat mirrors your mind — focus, and it speeds up smoothly'
-    );
+    cueText.textContent = activeEnvironment === 'study'
+        ? langText(
+            '📚 呢間書房就係你個腦——專注，燈光就會變暖變亮',
+            '📚 This room mirrors your mind — focus, and the light warms up'
+        )
+        : langText(
+            '🚤 隻船就係你個腦嘅倒影——集中精神，佢就會平穩加速',
+            '🚤 The boat mirrors your mind — focus, and it speeds up smoothly'
+        );
     cue.style.display = '';
     cue.classList.remove('is-in');
     void cue.offsetWidth;
@@ -2172,7 +2196,13 @@ function initGameSession() {
         try { disposeVoxelStudy(scene); } catch (e) {}
         if (boat) boat.visible = true;
         if (water) water.visible = true;
+        if (typeof boatParticles !== 'undefined' && boatParticles) boatParticles.visible = true;
         if (controls) controls.enabled = true;
+        if (oceanBackdropSaved && scene) {
+            scene.background = savedOceanBackground;
+            scene.fog = savedOceanFog;
+            oceanBackdropSaved = false;
+        }
     }
     // Teach the core mapping as play begins (after the entry countdown).
     setTimeout(showOnboardingCue, 3500);

@@ -177,8 +177,11 @@ export function driftStudyCamera(camera) {
     if (!camera) return;
     const t = performance.now() / 1000;
     const baseX = camera.userData.studyBaseX ?? 10;
+    // Pin ALL THREE axes every frame — other systems (intro tweens, follow
+    // logic) must never be able to walk the camera out of the room.
     camera.position.x = baseX + Math.sin(t * 0.15) * 0.8;
     camera.position.y = 9 + Math.cos(t * 0.1) * 0.4;
+    camera.position.z = 26;
     camera.lookAt(0, 8, 0);
 }
 

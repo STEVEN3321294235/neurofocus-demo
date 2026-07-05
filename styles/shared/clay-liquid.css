@@ -12,7 +12,9 @@
         inset 1px 1px 1px rgba(255, 255, 255, 0.10),
         inset -2px -2px 6px rgba(2, 8, 23, 0.30);
     --clay-radius: 28px;
-    --glass-bg: rgba(18, 28, 48, 0.42);
+    /* Glass HUD is deliberately IDENTICAL in light and dark mode: a dark,
+       slightly-less-transparent panel that stays readable over a bright sea. */
+    --glass-bg: rgba(14, 22, 38, 0.60);
     --glass-border: rgba(255, 255, 255, 0.18);
     --glass-blur: saturate(160%) blur(18px);
     --glass-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.35);
@@ -26,9 +28,14 @@ body.light-mode {
         -8px -8px 22px rgba(255, 255, 255, 0.90),
         inset 1px 1px 2px rgba(255, 255, 255, 0.90),
         inset -3px -3px 7px rgba(148, 170, 200, 0.18);
-    --glass-bg: rgba(255, 255, 255, 0.55);
-    --glass-border: rgba(255, 255, 255, 0.75);
-    --glass-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.9);
+    /* NOTE: no --glass-* overrides here — the HUD keeps the dark glass. */
+}
+
+/* In-game HUD text must stay light in BOTH themes (it sits on dark glass). */
+#focus-indicator,
+#mode-status-card,
+#question-panel {
+    color: #f1f5f9;
 }
 
 /* ---- Clay cards: re-skin the existing menu/card surfaces ----
@@ -78,8 +85,7 @@ button[data-enter-app],
    standalone glyphs, not cards, so they are intentionally left out. */
 #focus-indicator,
 #question-panel,
-#mode-status-card,
-#training-countdown-display {
+#mode-status-card {
     background: var(--glass-bg) !important;
     backdrop-filter: var(--glass-blur);
     -webkit-backdrop-filter: var(--glass-blur);
@@ -88,8 +94,9 @@ button[data-enter-app],
     border-radius: 22px !important;
 }
 
-/* Timer + COMBO: no card — clean glowing glyphs that sit on the scene. */
+/* Timers + COMBO: no card — clean glowing glyphs that sit on the scene. */
 #play-time-display,
+#training-countdown-display,
 #score-display,
 #streak-display {
     background: transparent !important;
@@ -187,13 +194,11 @@ button[data-enter-app],
 }
 
 /* ---- Loading: modern, card-less full-screen scrim ---- */
+/* The loading scrim is dark in BOTH themes, so its text is always white. */
 #transition-loader {
     background: rgba(7, 17, 31, 0.72) !important;
     backdrop-filter: saturate(140%) blur(14px);
     -webkit-backdrop-filter: saturate(140%) blur(14px);
-}
-body.light-mode #transition-loader {
-    background: rgba(243, 247, 251, 0.72) !important;
 }
 #transition-loader .loader-content {
     background: transparent !important;
@@ -222,7 +227,7 @@ body.light-mode #transition-loader {
 .loading-text {
     font-weight: 500;
     letter-spacing: 0.02em;
-    color: var(--text-color);
+    color: #f8fafc !important; /* always white — the scrim is always dark */
     animation: loading-breathe 1.8s ease-in-out infinite;
 }
 @keyframes loading-breathe {

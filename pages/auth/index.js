@@ -74,7 +74,8 @@ export default {
         const continueButton = root.querySelector('[data-continue-setup]');
         if (continueButton) {
             continueButton.addEventListener('click', () => {
-                setState({ setupStep: 'mode' });
+                // Setup must start at step 01 (session goal), not input mode.
+                setState({ setupStep: 'test' });
                 router.navigate('setup');
             });
         }
@@ -122,7 +123,7 @@ export default {
 
                     setState({
                         currentUser: session.username,
-                        setupStep: 'mode',
+                        setupStep: 'test',
                         inputMode: 'idle',
                         cameraConsent: 'unknown',
                         focusSource: 'simulation-fallback'

@@ -911,4 +911,6 @@ logic, or question logic.
 
 | 07-04 | UI 修正批次 1（收窄卡片 + Focus Gates 移除 + Loading 重設計） | ✅ 完成 | （見本 commit） | navbar 唔再圓角空缺；計時器/COMBO 去卡片變發光字；loading 去卡片變全屏簡約；Focus Gates 停用（保留 code） |
 
+| 07-04 | 實測反饋修正批次 2（6 項） | ✅ 完成 | （見本 commit） | ①Auth 繼續→跳返步驟01 ②取消場景選擇：訓練=書房、挑戰=海洋自動綁定 ③書房洩漏修復（船/水/粒子逐幀強制隱藏、天空背景接管、鏡頭三軸釘死） ④Loading 文字兩主題都白色 ⑤HUD 玻璃兩主題統一深色+減透明 ⑥倒計時去卡 + setup 文案更新 + 書房開場提示語 |
+
 **用戶待辦**：① Supabase SQL Editor 行 `docs/supabase_schema.sql`；② Supabase 關 Confirm email；③ Vercel 加多一條 `DEEPSEEK_API_KEY` 俾 Preview 環境（Production 嗰條掂唔到就另加一條 scope 做 Preview）。
