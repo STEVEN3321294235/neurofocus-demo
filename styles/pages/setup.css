@@ -249,14 +249,6 @@ body.light-mode .page-setup {
     white-space: nowrap;
 }
 
-.training-duration-mark:first-child {
-    transform: translateX(0);
-}
-
-.training-duration-mark:last-child {
-    transform: translateX(-100%);
-}
-
 .camera-consent-shell {
     display: grid;
 }

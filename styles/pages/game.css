@@ -610,7 +610,13 @@
 #countdown-text {
     font-family: var(--font-tech);
     font-size: clamp(4rem, 16vw, 8rem);
-    text-shadow: 0 0 24px rgba(56, 189, 248, 0.36);
+    /* Always white with a dark outline so it reads on the bright study/sky
+       scene in BOTH light and dark mode. */
+    color: #ffffff;
+    text-shadow:
+        0 0 24px rgba(56, 189, 248, 0.5),
+        0 2px 8px rgba(2, 8, 23, 0.7),
+        0 0 2px rgba(2, 8, 23, 0.9);
     transform: scale(0.92);
     opacity: 1;
     transition: transform 0.22s ease, opacity 0.22s ease, filter 0.22s ease;

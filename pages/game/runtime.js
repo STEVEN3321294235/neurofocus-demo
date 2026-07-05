@@ -211,7 +211,7 @@ function getPerformanceProfile() {
         compactViewport,
         lowPowerDevice,
         ultraLowProfile,
-        pixelRatioCap: ultraLowProfile ? 1.0 : isWindows ? 1.1 : compactViewport ? 1.25 : Math.min(dpr, 1.5),
+        pixelRatioCap: ultraLowProfile ? 1.0 : isWindows ? 1.25 : compactViewport ? 1.5 : Math.min(dpr, 2),
         antialias: !(isMobile || lowPowerDevice),
         usePostProcessing: !(isWindows || lowPowerDevice),
         enableShadows: !lowPowerDevice,

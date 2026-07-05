@@ -92,14 +92,24 @@ function getTrainingDurationPercent(totalSeconds) {
     return ((clamped - min) / (max - min)) * 100;
 }
 
+// Thumb is 28px (see the Apple slider in clay-liquid.css); its centre travels
+// between 14px and (track - 14px), so marks/fill must be inset by the radius
+// to line up with the handle instead of drifting toward the ends.
+const THUMB_RADIUS_PX = 14;
+
+function trackInsetPosition(totalSeconds) {
+    const frac = getTrainingDurationPercent(totalSeconds) / 100;
+    return `calc(${THUMB_RADIUS_PX}px + (100% - ${THUMB_RADIUS_PX * 2}px) * ${frac})`;
+}
+
 function renderTrainingScaleMark(label, totalSeconds) {
-    return `<span class="training-duration-mark" style="left:${getTrainingDurationPercent(totalSeconds)}%">${label}</span>`;
+    return `<span class="training-duration-mark" style="left:${trackInsetPosition(totalSeconds)}">${label}</span>`;
 }
 
 function updateTrainingSliderUI(slider, valueEl) {
     if (!slider) return;
     const nextValue = Number(slider.value || 180);
-    slider.style.setProperty('--training-progress', `${getTrainingDurationPercent(nextValue)}%`);
+    slider.style.setProperty('--training-progress', trackInsetPosition(nextValue));
     if (valueEl) {
         valueEl.textContent = formatTrainingDurationLabel(nextValue);
     }

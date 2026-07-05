@@ -108,6 +108,21 @@ function sanitizeQuestions(parsed) {
 }
 
 module.exports = async (req, res) => {
+    // Health check: GET /api/questions tells you whether the key is attached to
+    // THIS deployment's environment WITHOUT ever revealing the key value.
+    // Open the URL in a browser after deploying — expect { hasKey: true }.
+    if (req.method === 'GET') {
+        const key = process.env.DEEPSEEK_API_KEY || '';
+        res.status(200).json({
+            ok: true,
+            health: 'questions-proxy',
+            hasKey: key.length > 0,
+            keyLength: key.length, // length only, never the value
+            vercelEnv: process.env.VERCEL_ENV || 'unknown'
+        });
+        return;
+    }
+
     if (req.method !== 'POST') {
         res.status(405).json({ ok: false, reason: 'method-not-allowed' });
         return;

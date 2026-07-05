@@ -913,4 +913,6 @@ logic, or question logic.
 
 | 07-04 | 實測反饋修正批次 2（6 項） | ✅ 完成 | （見本 commit） | ①Auth 繼續→跳返步驟01 ②取消場景選擇：訓練=書房、挑戰=海洋自動綁定 ③書房洩漏修復（船/水/粒子逐幀強制隱藏、天空背景接管、鏡頭三軸釘死） ④Loading 文字兩主題都白色 ⑤HUD 玻璃兩主題統一深色+減透明 ⑥倒計時去卡 + setup 文案更新 + 書房開場提示語 |
 
-**用戶待辦**：① Supabase SQL Editor 行 `docs/supabase_schema.sql`；② Supabase 關 Confirm email；③ Vercel 加多一條 `DEEPSEEK_API_KEY` 俾 Preview 環境（Production 嗰條掂唔到就另加一條 scope 做 Preview）。
+| 07-05 | AI proxy 健康檢查 + 3 細修 + 書房完全重設計 | ✅ 完成 | （見本 commit） | ①/api/questions 加 GET 健康檢查（開網址睇 hasKey，決定性診斷 env）②訓練時長刻度補償 thumb 半徑（對齊拉桿）③countdown「開始」強制白字+描邊 ④pixelRatioCap 提升（抗鋸齒）⑤voxelStudy 重寫成封閉圖書館（四面書架+中央書桌+凳+桌上書+暖燈，鏡頭坐喺桌前，冇天空/海/粒子） |
+
+**用戶待辦**：① Supabase SQL Editor 行 `docs/supabase_schema.sql`；② Supabase 關 Confirm email；③ **AI 出題診斷（決定性）**：pull + 等 preview 建好後，喺瀏覽器直接開 `<preview網址>/api/questions`（GET），睇個 JSON：`hasKey:true` = key 已 attach（AI 應該 work）；`hasKey:false` = 呢個環境冇 key → 去 Vercel Settings → Environment Variables → 撳 `DEEPSEEK_API_KEY` 確認 Environments 欄包含「Preview」，冇就加，然後 Redeploy。
