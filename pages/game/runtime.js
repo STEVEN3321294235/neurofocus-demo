@@ -11,13 +11,6 @@ import { SMAAPass } from 'three/addons/postprocessing/SMAAPass.js';
 import { setState, getState } from '../../app/state.js';
 import { getCameraFocusScore, getCameraTrackingStatus, stopCameraPreview } from '../../services/focusInputService.js?v=2026-06-24-23';
 import { appendSessionSummary, getSessionHistory } from '../../services/storageService.js';
-import { initFocusGates, updateFocusGates, getGateStats, resetGateStats } from './focusGates.js';
-
-// Feature flag: focus gates are the discrete "did you hold focus at this
-// moment" checkpoints. Temporarily disabled (2026-07-04) — the rings read as
-// passing on the right rather than through the centre, so the X/Y score wasn't
-// legible. Module + integration kept; flip back to true after a redesign.
-const FOCUS_GATES_ENABLED = false;
 
 // DEMO_MODE shows the raw EEG channels (attention / meditation / signal) for
 // the competition booth. Flip to false in a future product build to hide the
@@ -95,15 +88,6 @@ function updateFpsMeter(deltaMs) {
         fpsAccumMs = 0;
         fpsFrames = 0;
     }
-}
-
-function updateGateCounterHUD() {
-    const el = document.getElementById('gate-counter');
-    const valueEl = document.getElementById('gate-counter-value');
-    if (!el || !valueEl) return;
-    const { cleared, total } = getGateStats();
-    el.style.display = total > 0 ? '' : 'none';
-    valueEl.textContent = `${cleared}/${total}`;
 }
 
 // Module handle to the bloom pass so the game loop can escalate it during
@@ -1548,20 +1532,6 @@ function updateGameLogic(delta) {
         // Move Boat
         boat.position.z -= moveDist;
 
-        // Focus Gates: evaluate crossings against the live focus level.
-        if (FOCUS_GATES_ENABLED && isGameActive && !CONFIG.isPaused) {
-            const gateEvent = updateFocusGates({
-                boatZ: boat.position.z,
-                focus: getEffectiveFocusLevel(),
-                threshold: FOCUS_TRAINING.stableThreshold,
-                elapsedMs: performance.now()
-            });
-            if (gateEvent) {
-                if (gateEvent === 'cleared') playCorrectSound();
-                updateGateCounterHUD();
-            }
-        }
-
         // Update wake / splash effects
         updateParticles(delta, speedMPS);
 
@@ -2131,8 +2101,6 @@ function initGameSession() {
     lastFetchTime = 0;
     fallbackQuestionCursor = loadFallbackQuestionCursor();
     trainingAnalytics = createTrainingAnalytics();
-    resetGateStats();
-    updateGateCounterHUD();
     // Teach the core mapping as play begins (after the entry countdown).
     setTimeout(showOnboardingCue, 3500);
     // Personalize thresholds from recent history (resolves within the first
@@ -2877,15 +2845,7 @@ function renderSessionDashboard() {
                     <span class="dash-half-value">${second.toFixed(1)}</span>
                 </div>
             </div>
-            <p class="dash-half-verdict ${verdictClass}">${verdictText} (${delta >= 0 ? '+' : ''}${delta.toFixed(1)})</p>
-            ${(() => {
-                const g = getGateStats();
-                if (!g.total) return '';
-                return `<p class="dash-gates-line">🎯 ${langText(
-                    `專注閘門：通過 ${g.cleared}/${g.total}`,
-                    `Focus gates cleared: ${g.cleared}/${g.total}`
-                )}</p>`;
-            })()}`;
+            <p class="dash-half-verdict ${verdictClass}">${verdictText} (${delta >= 0 ? '+' : ''}${delta.toFixed(1)})</p>`;
     }
 }
 
@@ -3832,11 +3792,6 @@ function init3DScene() {
     // createBalloons();         <-- Removed per request
     // setupSkySystem();         <-- DISABLED: Conflicts with HDRI
 
-    // Focus Gates: discrete, countable focus checkpoints along the rail.
-    if (FOCUS_GATES_ENABLED) {
-        initFocusGates(scene, THREE, boat ? boat.position.z : 0);
-    }
-    
     // Setup Rim Light for Night Mode
     setupRimLight();
     setupBoatParticles();

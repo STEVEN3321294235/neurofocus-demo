@@ -90,12 +90,6 @@ export default {
                             </div>
                         </div>
 
-                        <div id="gate-counter" style="display: none;">
-                            <div class="label">
-                                <span>🎯 <span data-i18n="gate_label">Gates</span></span>
-                                <span id="gate-counter-value">0/0</span>
-                            </div>
-                        </div>
                     </div>
 
                     <div id="onboarding-cue" style="display: none;">
