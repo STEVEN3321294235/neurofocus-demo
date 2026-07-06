@@ -118,7 +118,7 @@ graph LR
 | `services/runtimeLoader.js` | 版本號 query string + 動態 import runtime（降快取干擾） |
 | `services/focusInputService.js` | 相機專注偵測（MediaPipe FaceLandmarker） |
 | `pages/game/runtime.js` | **全專案核心引擎**（5000+ 行）：Three.js 場景、題目、focus 更新、呼吸介入、simulation profile、bridge reconnect、results、audio、performance profile、**自適應門檻**、**FPS meter** |
-| `pages/game/focusGates.js` | 專注閘門模組（目前 disable，計劃 G1 重啟） |
+| `pages/game/focusGates.js` | 專注閘門模組（目前 disable；去留由 gameplay 重新設計決定） |
 | `eeg_bridge.py` | 本地硬體橋：掃 COM port、揀 MindWave、解析 attention/meditation/signal、WebSocket 廣播 |
 | `styles/**` | UI 外觀、Liquid Glass、dark mode、各頁樣式 |
 | `*.bat` / `requirements-eeg-bridge.txt` | Windows 一鍵啟動（見 Part 8） |

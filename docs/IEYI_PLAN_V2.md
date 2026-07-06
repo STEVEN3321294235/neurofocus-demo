@@ -1,415 +1,349 @@
-# NeuroFocus IEYI 衝刺計劃 V2（2026-07-05 起・唯一有效版本）
+# NeuroFocus IEYI 計劃 V2（2026-07-06 更新・唯一有效版本）
 
-> 舊版 plan（`IEYI_SPRINT_PLAN.md`）已刪除，內容已整合入本檔。**由今日起一切以呢份為準，全 repo 得呢一份 plan。**
+> **全 repo 得呢一份 plan。** 展覽 / 答辯嘅參考大全喺另一份 [`docs/EXHIBITION_HANDBOOK.md`](./EXHIBITION_HANDBOOK.md)。
 >
-> 現況一句講晒：後端、登入、key 安全、Results 證據鏈、EEG 放大、UI reskin 已全部完成。
-> 剩低三條戰線：**① Gameplay（玩法真係練到專注）、② 畫質精細 + 運行流暢、③ EEG 穩定 + 比賽 rehearsal**。
+> **一句總覽**：後端 / 登入 / key 安全 / 證據鏈 / EEG 放大 / UI reskin / 書房移除 / repo 清潔 / 文件整合 —— 全部已完成並喺 `main`。
+> Repo 而家**只有一條 `main` branch**，Claude 同 TRAE 都直接喺 `main` 做嘢。
+>
+> **剩低嘅工作分兩階段：**
+> - **【階段一 · 重新設計】** D1 Results Dashboard 重新設計 → D2 Gameplay 重新設計（吸引到人 + 真係改善專注）
+> - **【階段二 · 收尾打磨】** P1 動態畫質 → P2 Web 加靚/現代化 → U1 文案人性化 + Footer → E1 EEG 韌性 → F1 審計（過期檔案/漏洞/風險）
+
+---
+
+## 🎯 核心設計原則（所有設計決定都要對齊呢個）
+
+1. **網頁 100% 目標 = 改善專注力。** 唔係普通遊戲，係神經回饋訓練工具。每一個設計決定都要問返：「呢樣嘢點幫用戶練到專注？」
+2. **80% 體驗重心放喺 EEG。** 真神經回饋閉環（腦→船→即時回饋）先係產品嘅靈魂同 wow factor。Gameplay、Dashboard、獎勵、進度——全部要令**戴住 EEG 嘅用戶**覺得最爽、最有成就感、最睇到自己進步。
+3. **20% effort 擺喺 Simulation。** 佢淨係一個 **fallback**：畀冇 EEG 裝置嘅用戶 / demo 保底用。要求只係「玩到、唔穿崩、唔穿煲（唔會令人以為係假 EEG）」，唔使喺佢身上落太多花巧。
+4. ⚠️ **注意分清兩件事**：以上係「**設計投放**」原則（狂谷 EEG 體驗）。但現場 demo 嘅「**可靠度保命符**」仍然係 Simulation（EEG 藍牙唔穩時即刻切）。兩者唔矛盾：設計時 EEG 做主角，現場穩定性 Simulation 做安全網。
 
 ---
 
 ## 0. 目錄
 
-1. 現狀 snapshot（乜嘢已完成）
-2. 2026-07-05 呢個 commit 做咗乜（T1 / T10 / T11）
-3. **發佈工作流程**：Claude branch → main → TRAE 同步（每次跟住做）
-4. **Vercel + DeepSeek API 驗證指南**（P0，發佈完即刻做）
-5. 三條戰線 roadmap + 每步嘅 TRAE Prompt
-6. 時間表（P0 → P3）+ 應急計劃
+1. 現狀 snapshot（已完成）
+2. 工作流程（已改：直接喺 main 做）
+3. **Claude vs TRAE 分工 + 點交接**
+4. Vercel + DeepSeek API 驗證
+5. Roadmap（階段一設計 → 階段二收尾）
+6. 時間表
 7. 比賽日 checklist
 
 ---
 
-## 1. 現狀 snapshot（截至 2026-07-05）
+## 1. 現狀 snapshot（截至 2026-07-06）
 
-| 已完成 | 證據（file / commit） |
-|--------|----------------------|
-| DeepSeek key 收埋喺 server（Vercel serverless proxy + GET 健康檢查） | `api/questions.js`；commit `bbec2301`、`06059cdf` |
-| 真 Supabase Auth（錯密碼入唔到；離線先 fallback 本地 session） | `services/authService.js`；commit `4e259748` |
-| Results Dashboard（session 內前後對比 + 專注曲線 + 跨 session trend） | `pages/game/runtime.js`（`showResultsDashboard` 區）；commit `31a27261` |
-| 跨 session 歷史（Supabase `session_history` + localStorage mirror） | `services/storageService.js`；commit `9f01445c` |
-| 自適應門檻（用歷史調 recovery/trigger，唔再死 45/55） | `resolveAdaptiveFocusTraining()`；commit `ded3f46c` |
-| 即時 FPS meter（DEMO_MODE 先顯示，顏色分級） | `updateFpsMeter()`；commit `1a03e356` |
-| EEG 雙軸心流 + 呼吸實時腦電回饋 + 訊號質素 chip | commit `a843f5ae`（Prompt M） |
-| 字體統一（Orbitron 只留 game HUD） | commit `5aab7ba2`；2026-07-05 已複驗通過 |
-| UI reskin（Clay/Glass、動畫） | commit `da6f888b` |
-| Stroop 互動題（hard challenge） | commit `785ef1f1` |
+| 已完成 | 證據 |
+|--------|------|
+| DeepSeek key 收埋喺 server（Vercel serverless proxy + GET 健康檢查） | `api/questions.js` |
+| 真 Supabase Auth（錯密碼入唔到；離線 fallback） | `services/authService.js` |
+| Results Dashboard 基礎（session 內前後對比 + 專注曲線 + 跨 session trend） | `runtime.js` `showResultsDashboard` 區 |
+| 跨 session 歷史（Supabase + localStorage mirror） | `services/storageService.js` |
+| 自適應門檻（用歷史調 recovery/trigger） | `resolveAdaptiveFocusTraining()` |
+| 即時 FPS meter（DEMO_MODE 後面） | `updateFpsMeter()` |
+| EEG 雙軸心流 + 呼吸實時腦電回饋 + 訊號質素 chip | commit `a843f5ae` |
+| 字體統一（Orbitron 只留 game HUD） | `styles/pages/game.css` |
+| 兩個模式統一海洋（書房已完全移除） | commit `daa57813` |
+| Repo 清潔（30MB zip、debug 遙測已清）+ 文件整合成手冊 | commit `71e327a6` |
 
-**未做 / 待做**：Focus Gates 重啟（而家 flag off）、訓練模式離散回饋、動態畫質、畫面加靚、文案 humanize + 隱私政策、EEG rehearsal、（人手）提醒 mentor 換 DeepSeek key（舊 key 仲喺 public git history）。
+**未做 / 待做**：見 §5 —— 階段一（Dashboard + Gameplay 重新設計）、階段二（P1 P2 U1 E1 F1）、人手任務（EEG rehearsal、Vercel 驗證、換 key）。
 
----
-
-## 2. 2026-07-05 呢個 commit 做咗乜
-
-- **T1　書房完全移除，兩個模式統一用海洋**：
-  - `pages/setup/index.js`：`environment` 恆等於 `'ocean'`（之前 training 會入書房）。
-  - `pages/game/runtime.js`：剷走成個 study 環境層（import、`maybeApplyStudyEnvironment`、環境切換、鏡頭分支、雙版本 onboarding 文案）。
-  - 刪檔：`pages/game/environments/voxelStudy.js`、`assets/models/`（manifest）。
-  - `app/i18n.js`：刪 `setup_env_*` 三條死字串（雙語）。
-  - **玩法零改動**——訓練／挑戰嘅規則、計分、呼吸介入全部照舊，唯一分別係訓練唔再入書房。
-- **T10　repo 執手尾**：刪 30MB `EEG_2026_Windows.zip`（`.gitignore` 加 `*.zip`，日後大 binary 用 GitHub Releases 派發）；剷清 7 個檔案共 45 個 `#region debug-point` 遙測 block（TRAE debug 時期留低嘅 fetch 上報），連埋孤兒 reference（3 個 texture fallback 改用 `console.warn`，`eeg_bridge.py` 刪埋唔再用嘅 `urllib` import 同 debug 常數）。
-- **T11　字體複驗**：`--font-tech`（Orbitron）確認只喺 `styles/pages/game.css`（10 處，全部 game HUD）；Setup/Results/Auth 用 EB Garamond + Inter。**唔使改。**
-- **Vercel**：`vercel.json` 加 `"functions": {"api/questions.js": {"maxDuration": 30}}`——DeepSeek 有時要 10 秒以上先答完，Vercel 預設 function 上限得 10 秒，唔加呢句就會出現「本地得、上到 Vercel 就 timeout」。
+> 註：`pages/game/focusGates.js`（專注閘門模組）目前 disable。**佢嘅去留由 D2 gameplay 重新設計決定**——本 plan 唔再事先規定點用佢。
 
 ---
 
-## 3. 發佈工作流程（Claude ↔ main ↔ TRAE，每次跟住做）
+## 2. 工作流程（已改：直接喺 main 做）
 
-而家嘅實況：**`main` 仲停留喺好舊嘅位（`4a4c699b`），成條 sprint 嘅 19 個 commit 全部只喺 `claude/eeg-ieyi-competition-plan-jjhder` 呢條 branch。** 所以第一步就係照下面做一次合併，之後 TRAE 同 Vercel 先會見到全部新嘢。
-
-### 3.1 一次過發佈上 main（喺 TRAE 個 terminal 度打，或者任何裝咗 git 嘅機）
+Repo 而家淨返 **`main` 一條 branch**，冇再分叉。無論 Claude 定 TRAE：
 
 ```bash
-# 1. 攞最新
-git fetch origin
-
-# 2. 去 main 並更新
-git checkout main
+# 開工前（每次）
 git pull origin main
 
-# 3. 合併 Claude 條 branch 入 main
-git merge origin/claude/eeg-ieyi-competition-plan-jjhder
-
-# 4. 推上 GitHub —— 呢一下就係「發佈」
+# 做完（每次）
+git add -A
+git commit -m "講清楚改咗乜"
 git push origin main
 ```
 
-如果你想用 GitHub 網頁做：去 repo → **Pull requests** → **New pull request** → base 揀 `main`、compare 揀 `claude/eeg-ieyi-competition-plan-jjhder` → **Create** → **Merge**。效果一樣。
-
-### 3.2 發佈完，令 TRAE 本地同步（每次都要）
-
-```bash
-git checkout main
-git pull origin main
-```
-
-### 3.3 點確認「兩邊真係同步咗」
-
-```bash
-git log -1 --oneline          # 本地最新 commit
-git log -1 --oneline origin/main   # GitHub 最新 commit（要先 git fetch）
-```
-
-兩行 hash 一樣 = 同步。唔一樣就 `git pull origin main`。
-
-### 3.4 之後嘅日常循環（記住呢個節奏）
-
-1. **Claude Code（呢邊）**做嘢 → push 上 `claude/...` branch。
-2. **你**照 3.1 合併上 `main`。
-3. **Vercel** 見到 `main` 有新 commit 會自動 deploy（去 Vercel dashboard 睇 Deployments 確認轉綠）。
-4. **TRAE** 開工前先 `git pull origin main`；TRAE 做完嘢 commit 之後 `git push origin main`。
-5. Claude 下次開工會自己 fetch 最新 `main`——你唔使幫我搬。
-
-⚠️ 唯一會撞車嘅情況：TRAE 同 Claude **同時**改同一個檔案。避免方法：同一時間只派一邊做嘢（尤其 `pages/game/runtime.js` 呢個 5000+ 行大檔案）。
+- Vercel 見到 `main` 有新 commit 會自動 deploy（去 Vercel dashboard → Deployments 睇轉綠）。
+- **確認同步**：`git fetch` 之後比較 `git log -1 --oneline` 同 `git log -1 --oneline origin/main`，兩個 hash 一樣 = 同步。
+- 🔴 **鐵律**：同一時間**只可以一邊**（Claude 或 TRAE）改嘢，尤其係 `pages/game/runtime.js`（5000+ 行大檔）。兩邊同時改必撞、必亂。
 
 ---
 
-## 4. Vercel + DeepSeek API 驗證指南（P0：發佈上 main 之後即刻做）
+## 3. Claude vs TRAE 分工 + 點交接
 
-你唔肯定 DeepSeek 喺 Vercel 上面行唔行——照以下四步就有決定性答案。**就算最後行唔通，遊戲有本地 fallback 題庫，照玩得，比賽現場唔會死**；但 AI 出題係賣點，值得整好。
+### 邊個做邊樣（按強項分）
 
-### 步驟 1：健康檢查（30 秒）
+| 任務 | 建議由邊個做 | 點解 |
+|------|:---:|------|
+| **D1 Dashboard 重新設計**（數據 + 版面邏輯） | **Claude** | 多檔案推理、資料流、i18n 一致性 |
+| **D2 Gameplay 重新設計**（分析 + 設計 + 核心邏輯） | **Claude**（設計+寫）＋ **你/TRAE**（試玩回饋） | runtime.js 大重構要小心；但「好唔好玩」要真人試 |
+| **P1 動態畫質**（FPS 邏輯） | **Claude** | 純邏輯、要細心改 runtime.js |
+| **P2 Web 加靚 / CSS 動畫** | **TRAE 為主**（你睇住即時效果調）＋ Claude 起底 | 「靚唔靚」要**即時睇住個 browser** 先判斷得到 |
+| **U1 文案人性化 + Footer** | **Claude 起草** → **你逐句 review** | 雙語一致、避免過度宣稱；但語氣你話事 |
+| **E1 EEG 韌性**（reconnect 邏輯） | **Claude 寫** → **你/TRAE 用真頭帶測** | 邏輯 Claude 寫得好；但一定要真 EEG 先試到斷線 |
+| **F1 審計**（過期檔案/漏洞/風險） | **Claude** | 掃全 repo、找 dead code / 風險係 Claude 強項 |
+| **T2 實機 rehearsal** | **你 + 隊友** | 純硬件實測，冇 code |
 
-瀏覽器開：
+**一句記法**：**「要動腦 / 改大檔 / 掃全 repo」畀 Claude；「要即時睇畫面 / 要真硬件」畀 TRAE 或你自己。**
 
-```
-https://<你嘅-app>.vercel.app/api/questions
-```
+### 點交接（每次切換都要做，唔可以懶）
 
-| 見到咩 | 意思 | 做咩 |
-|--------|------|------|
-| `{"ok":true,"hasKey":true,...}` | key 已駁通 | 去步驟 2 |
-| `{"ok":true,"hasKey":false,...}` | **Vercel 未set環境變數**（最常見死因） | Vercel dashboard → 你個 Project → **Settings → Environment Variables** → 加 `DEEPSEEK_API_KEY`（Production + Preview 都剔）→ **Deployments 度撳 Redeploy**（唔 redeploy 唔會生效！）→ 重做步驟 1 |
-| 404 / 空白 | function 冇 deploy 到 | 確認 `api/questions.js` 有喺 main、Vercel 項目 root 冇set錯（要係 repo root） |
+**Claude → TRAE**（我做完，輪到 TRAE）：
+1. 確認 Claude 已 `git push origin main`（我會同你講「已 push」）。
+2. TRAE 度打 `git pull origin main`。
+3. 先確認 TRAE 睇到最新（`git log -1 --oneline` 對得上）先開工。
 
-### 步驟 2：真打一炮（1 分鐘）
+**TRAE → Claude**（TRAE 做完，輪到我）：
+1. TRAE 度 `git add -A && git commit && git push origin main`。
+2. 開新 Claude 對話，第一句話：「**你先 `git pull origin main` 攞最新，我頭先用 TRAE 改咗嘢**」。
+3. 我會 pull latest 先做嘢。
 
-Terminal 度：
+**🔴 交接鐵律**：切換之前，上一邊一定要 **push 完 + 冇未存檔嘢**（`git status` 應該係 clean）。唔好 Claude 改到一半、又叫 TRAE 開工——兩份改動撞埋會好麻煩。**一次一邊，做完 push，先換手。**
 
+---
+
+## 4. Vercel + DeepSeek API 驗證（發佈後即刻做一次）
+
+你唔肯定 DeepSeek 喺 Vercel 行唔行——照四步就有決定性答案。**就算行唔通，遊戲有本地 fallback 題庫照玩，比賽唔會死**；但 AI 出題係賣點，值得整好。
+
+**步驟 1 — 健康檢查**：瀏覽器開 `https://<你嘅-app>.vercel.app/api/questions`
+
+| 見到 | 意思 | 做咩 |
+|------|------|------|
+| `{"ok":true,"hasKey":true}` | key 已駁通 | 去步驟 2 |
+| `{"ok":true,"hasKey":false}` | Vercel 未 set 環境變數（最常見） | Vercel → Project → Settings → Environment Variables → 加 `DEEPSEEK_API_KEY`（Production + Preview 都剔）→ Deployments 撳 **Redeploy** → 重做步驟 1 |
+| 404 / 空白 | function 冇 deploy | 確認 `api/questions.js` 喺 main、Vercel root 冇 set 錯 |
+
+**步驟 2 — 真打一炮**：
 ```bash
 curl -s -X POST "https://<你嘅-app>.vercel.app/api/questions" \
   -H "Content-Type: application/json" \
   -d '{"count":3,"difficulty":"easy","lang":"hk"}'
 ```
+`{"ok":true,"questions":[...]}` = 全通。`upstream-401` = key 錯/過期。`upstream-402` = DeepSeek 冇錢。`timeout` = 確認 `vercel.json` 有 `maxDuration: 30` 而且 redeploy 咗。
 
-| 結果 | 意思 |
-|------|------|
-| `{"ok":true,"questions":[...]}` | ✅ 全通，收工 |
-| `{"ok":false,"reason":"upstream-401"}` | key 錯／過期──搵 mentor 換 key，再重set環境變數 |
-| `{"ok":false,"reason":"upstream-402"}` | DeepSeek 戶口冇錢──搵 mentor 增值 |
-| `{"ok":false,"reason":"timeout"}` | DeepSeek 太慢──確認 main 上面 `vercel.json` 已有 `maxDuration: 30` 嗰句（今次 commit 已加）而且 redeploy 咗 |
+**步驟 3 — 遊戲入面驗**：開站 → 挑戰模式 → devtools Network → 見 `POST /api/questions` 回 200 + questions = AI 行緊。順便確認 Network **冇任何 request 見到 DeepSeek key**。
 
-### 步驟 3：遊戲入面驗（2 分鐘）
-
-開 deployed site → 揀挑戰模式 → 開 devtools **Network** tab → 開始遊戲 → 見到 `POST /api/questions` 回 `200` + questions = AI 題行緊；見到 fallback 都唔使慌，玩法唔受影響。順便確認 Network 度**冇任何 request 見到 DeepSeek key**（只應該見到自己個 domain 嘅 `/api/questions`）。
-
-### 步驟 4：提醒 mentor（人手，一句話）
-
-> 「舊 DeepSeek key 曾經 hardcode 喺 public repo 嘅 git history，任何人翻歷史都攞到。請考慮喺 DeepSeek 後台 revoke 舊 key、開新 key，新 key 只放入 Vercel 環境變數。」
+**步驟 4 — 提醒隊友（人手）**：舊 DeepSeek key 曾 hardcode 喺 public git history，任何人翻歷史都攞到 → 考慮喺 DeepSeek 後台 revoke 舊 key、開新 key，新 key 只放 Vercel 環境變數。
 
 ---
 
-## 5. 三條戰線 roadmap + TRAE Prompts
+## 5. Roadmap
 
-> **建議次序**：G1 → G2 → P1 → P2 → U1；E1 同 rehearsal（人手）並行做。
-> **每個 prompt 開工前**：確保 TRAE 已 `git pull origin main`。
-> **每個 prompt 做完**：`node server.js`（port 8000）行一次 Simulation 模式全流程先算數，然後 commit + push，先開下一個。
-> 一次只跑一個 prompt——runtime.js 係大檔案，兩個 prompt 同時改必撞。
-
-### 戰線一：Gameplay（訓練真係練到專注，而且睇得見）
-
-#### Prompt G1 — 重啟 Focus Gates（可數嘅專注閘門）
-
-**背景**：module 已寫好（`pages/game/focusGates.js`），之前因為光環讀落似喺船右邊掠過而唔係穿過正中，所以 flag 熄咗。呢個 prompt 係修好對齊 + 重開。
-
-```
-Context: NeuroFocus is a no-build vanilla-JS + Three.js focus-training game
-(brainwave attention drives a boat). Run locally with `node server.js`, open
-http://localhost:8000, choose Simulation as the signal source (no EEG needed).
-
-The file pages/game/focusGates.js already implements "focus gates" — glowing
-rings the boat sails through, each ring scoring whether the player held focus
-at that moment. It is currently DISABLED via the flag FOCUS_GATES_ENABLED in
-pages/game/runtime.js because of one visual bug: the rings appeared to pass to
-the RIGHT of the boat instead of the boat sailing through the ring centre, so
-the score didn't feel earned.
-
-Task:
-1. Fix the alignment so each gate spawns centred on the boat's sailing line
-   (the boat moves along the z-axis; gates must spawn at the boat's x position,
-   at deck height, facing the camera) and visibly passes AROUND the boat.
-2. On the frame the boat crosses a gate's z position, judge pass/fail:
-   pass = getEffectiveFocusLevel() >= FOCUS_TRAINING.stableThreshold (this is
-   the adaptive per-player threshold — do NOT hardcode 50).
-3. Pass: brief ring flash + soft chime (reuse the existing audio helpers in
-   runtime.js). Fail: ring fades out grey, no harsh feedback (this is a
-   training app for kids — failure must stay gentle).
-4. Enable in BOTH training and challenge modes. Space gates so roughly one
-   gate every 20-30 seconds of sailing.
-5. HUD: live "gates passed / total" counter (the element and
-   updateGateCounterHUD() already exist, as does the i18n key gate_label).
-6. At session end, write gates passed/total into the session summary object
-   passed to appendSessionSummary (services/storageService.js) and show
-   "You passed X/Y focus gates" on the Results dashboard, bilingual (add i18n
-   keys to app/i18n.js in BOTH the en and hk blocks).
-7. Flip FOCUS_GATES_ENABLED to true.
-
-Constraints:
-- Do not change boat physics, question flow, breathing intervention, or the
-  adaptive threshold logic.
-- Must work in Simulation mode (test by holding/releasing the focus you get
-  from the simulator and watching gates pass/fail accordingly).
-- Keep the per-frame cost tiny: no per-frame allocations in the gate update
-  path; reuse vectors. Verify with the on-screen FPS meter (visible because
-  DEMO_MODE is true) that FPS does not drop when a gate spawns or is judged.
-```
-
-**我點驗收**：Simulation 入面（a）船眼見穿過光環**正中**；（b）谷高專注過閘 = 亮 + 一聲；（c）遊魂過閘 = 灰 + 冇懲罰感；（d）HUD 有 X/Y 跳動；（e）Results 有雙語「你通過 X/Y 個專注閘門」；（f）FPS meter 冇跌。訓練＋挑戰各走一次。
-
-#### Prompt G2 — 訓練模式離散回饋（hold streak）+ 心流修正
-
-**背景**：訓練模式而家冇離散「贏緊」事件，淨係望住個 ratio；而且訓練模式**永遠入唔到心流**，因為 `isFlowState` 要 `CONFIG.streak >= 3`，但 streak 只有答啱題先加——訓練模式冇題答。
-
-```
-Context: same project as before (`node server.js`, port 8000, Simulation mode).
-In pages/game/runtime.js, training mode currently gives only continuous
-feedback (boat speed + a stability ratio). Two problems:
-(a) no discrete "win" moments, so training feels passive;
-(b) flow state (isFlowState) requires CONFIG.streak >= 3, but streak only
-    increments on correct quiz answers — training mode has no quiz, so
-    training can literally never reach flow. Find isFlowState by searching
-    for "Flow State Logic".
-
-Task:
-1. Add a "focus hold streak" to training mode: every continuous N seconds
-   (start with N=20) that getEffectiveFocusLevel() stays >=
-   FOCUS_TRAINING.stableThreshold earns one "hold" — a discrete counter tick
-   with a subtle chime and a small HUD pulse. Dropping below the threshold
-   resets the current N-second progress (but keeps holds already earned).
-2. Show a thin progress arc/bar toward the next hold so the player can see
-   the streak building.
-3. Fix flow for training mode: in training mode, let holds substitute for
-   quiz streak in the isFlowState condition (e.g. flow = focus > 80 AND
-   holds-equivalent condition AND meditationOk). Challenge mode keeps the
-   existing quiz-streak rule unchanged.
-4. Write holds earned into the session summary passed to
-   appendSessionSummary and surface it on the Results dashboard, bilingual
-   (i18n keys in BOTH en and hk blocks of app/i18n.js).
-
-Constraints:
-- Reuse updateStreakDisplay / existing HUD patterns; match the existing
-  Liquid Glass HUD look (styles/pages/game.css), no new fonts.
-- Calm by default: the celebration is a small pulse + soft sound, not a
-  screen takeover (kids' training app).
-- Must work in Simulation mode; verify training mode can now actually enter
-  flow state (body gets class flow-state-mode) by holding high focus.
-```
-
-**我點驗收**：訓練模式維持高專注 20 秒 → 粒數 +1 有聲有 pulse；中途跌落門檻 → 進度環歸零但粒數保留；焗住高專注一排 → 真係入到心流（畫面有 flow 效果）；Results 見到 holds 數；挑戰模式規則不變。
-
-### 戰線二：網頁 UI / 畫質（精細 + 流暢並存）
-
-#### Prompt P1 — 動態畫質 scaling（先做安全網，再加靚）
-
-```
-Context: same project. pages/game/runtime.js already has:
-- updateFpsMeter(deltaMs): a rolling FPS accumulator updating an on-screen
-  meter (search "updateFpsMeter");
-- PERFORMANCE_PROFILE (from getPerformanceProfile()): static per-device
-  quality knobs including waterResolution;
-- getAdaptiveRenderScale(): currently returns a mostly-static render scale;
-- setupPostProcessing(): builds the composer + bloom pass.
-
-Task: turn the static quality settings into a closed-loop dynamic quality
-system driven by measured FPS.
-1. Track a rolling average FPS (reuse the accumulator in updateFpsMeter — do
-   not add a second timer).
-2. If avg FPS stays below 45 for 3+ seconds, step quality DOWN one level;
-   if it stays above 55 for 10+ seconds, step quality UP one level. The
-   asymmetric windows are deliberate (fast down, slow up) to avoid
-   oscillation. Never change more than one level per 3 seconds.
-3. Quality ladder (level 0 = full):
-   L0 full: current settings.
-   L1: renderer pixel ratio capped ~25% lower (renderer.setPixelRatio).
-   L2: bloom/composer bypassed (render straight to canvas), pixel ratio as L1.
-   L3: water reflection texture at half PERFORMANCE_PROFILE.waterResolution
-       (rebuild or resize the water render target), everything above.
-4. Apply changes without visible hitching (never rebuild mid-frame; schedule
-   the switch for the next frame boundary).
-5. When DEMO_MODE is true, show the current quality level (L0-L3) next to the
-   FPS meter so we can watch it work.
-
-Constraints: no changes to gameplay logic; Simulation mode must run
-identically; test by artificially loading the GPU (e.g. temporarily set a
-huge pixel ratio via devtools) and watching the ladder step down then
-recover.
-```
-
-**我點驗收**：開 FPS meter 睇住個 L 字——人為加負荷 → 幾秒內 L0→L1→L2 逐級落、FPS 回穩；移走負荷 → 慢慢升返 L0；肉眼冇「跳一下」嘅感覺;比賽 Windows 機實測一次前後 FPS。
-
-#### Prompt P2 — 畫面加靚（P1 完成先開呢個）
-
-```
-Context: same project. Dynamic quality scaling (L0-L3 ladder) is now live, so
-richer visuals are safe: weak machines will auto-степ down. All new effects in
-this prompt must live at quality level L0/L1 only (skipped from L2 down), and
-respect PERFORMANCE_PROFILE.
-
-Task — refine the ocean scene, keeping the current art direction (calm,
-premium, not cartoonish):
-1. Water: slightly stronger sun glint and normal-map detail near the boat;
-   keep distortionScale modest so it stays calm.
-2. Lighting: warm-cool contrast — warm key light from the sky, cool fill from
-   the water; gentle god-ray-ish glow around the sun via the existing bloom
-   pass settings (do not add a new pass).
-3. Flow-state payoff: when body has class flow-state-mode, ease bloom
-   strength + exposure up ~15% over 2 seconds and widen the boat wake
-   particles slightly — the "reward moment" should be FELT. Ease back out
-   when flow ends. (Search for flow-state-mode in runtime.js.)
-4. Do not touch the Clay/Glass HUD styling.
-
-Constraints: every addition gated behind quality level checks; verify with
-the FPS meter + quality badge that L0 stays >= 55 FPS on this dev machine and
-that stepping to L2 visibly strips the new effects.
-```
-
-**我點驗收**：對比前後截圖（水面近船細節、日光、入 flow 嗰下嘅畫面回報）；FPS meter 企穩；手動迫落 L2 見到新效果自動熄。
-
-#### Prompt U1 — 文案 humanize + Footer 隱私政策 + 裝置講法收窄
-
-```
-Context: same project — bilingual copy lives in app/i18n.js (en block + hk
-block, keys must stay in sync). This is a student competition project (IEYI);
-judges will probe any overclaim.
-
-Task:
-1. Home page device claim: replace any copy claiming support for Muse /
-   Emotiv / multiple headsets with honest copy: built around NeuroSky
-   MindWave Mobile 2, architecture designed to extend to other headsets.
-2. Sweep ALL user-facing copy (home, auth, setup, game HUD tooltips, results)
-   in both languages: remove overclaims (e.g. "clinically proven", "medical"),
-   prefer concrete honest phrasing ("attention estimate from a consumer EEG
-   band" not "reads your mind"). Keep the warm, encouraging tone. Traditional
-   Chinese for hk, and keep 廣東話 phrasing where the existing copy already
-   uses it.
-3. Footer: remove dead links (Terms of Service / Tech Support if they go
-   nowhere). Add a real Privacy Policy page (route it like the existing
-   simple pages) stating honestly, bilingually: what we collect (EEG
-   attention/meditation values during a session, optional camera-based focus
-   score computed locally and never uploaded, account email, session summary
-   stats), where it goes (Supabase), what we never collect (raw video,
-   raw audio), and that data can be deleted on request. Link "Contact us" to
-   a real mailto:.
-4. Keep every i18n key present in BOTH language blocks; missing keys render
-   as raw key names, so double-check.
-
-Verification: click every footer link on every page; switch language and
-re-read every changed screen in both languages.
-```
-
-**我點驗收**：你（Steven）逐句過中英文文案先准 push——尤其 Home 裝置講法同隱私政策內容；我會核對雙語 key 有齊 + 冇死 link。
-
-### 戰線三：EEG 穩定 + 連接（比賽現場命脈）
-
-#### T2 — 實機 rehearsal（人手，唔係 code；本週就要開始）
-
-1. 實機（比賽用嗰部 Windows）戴 MindWave 行**完整流程 ≥5 次**：開 bridge → 連接 → 訓練一場 → 挑戰一場 → Results。
-2. 每次記低：連接用咗幾耐、有冇斷、斷咗喺邊一步、點救返（重啟 bridge？重新戴？換電？）。
-3. 寫成一頁「**斷線急救卡**」貼喺攤位後面：症狀 → 動作（例：訊號 chip 轉紅 → 幫參加者較正額頭 sensor + 夾實耳夾）。
-4. 試埋**極端情況**：長頭髮、出汗、行埋嚟圍觀嘅人多（藍牙干擾）、連續玩 30 分鐘。
-5. 練「**30 秒切 Simulation**」台詞：EEG 死咗當場點講點切，先唔會冷場（呢個係 demo 保命符）。
-
-#### Prompt E1 — EEG 連接韌性（做完 T2、知道實際斷法先做，對症下藥）
-
-```
-Context: same project. The EEG path is: NeuroSky MindWave -> eeg_bridge.py
-(local WebSocket bridge) -> browser WebSocket client in pages/game/runtime.js
-(search "bridge-connect" / activateEEGMode). A signal-quality chip already
-exists in the HUD. Real-world failure notes from our booth rehearsal:
-[PASTE THE FAILURE NOTES FROM T2 HERE — which step disconnects, how often,
-what recovered it]
-
-Task:
-1. Browser side: auto-reconnect with backoff (1s, 2s, 4s, max ~10s, keep
-   trying) when the bridge WebSocket drops mid-session, WITHOUT interrupting
-   gameplay — while disconnected, freeze the last focus value for up to 10s,
-   then ease into the simulation fallback, and show a small non-blocking
-   "reconnecting…" state on the signal chip (bilingual, add i18n keys to both
-   blocks).
-2. If the headset reconnects, ease back from fallback to real EEG smoothly
-   (no sudden boat speed jump — lerp the focus source over ~2s).
-3. Bridge side (eeg_bridge.py): on serial read failure, retry the port scan
-   loop instead of requiring a manual restart; keep the existing status
-   messages flowing to the client.
-4. Results honesty: if any part of the session ran on fallback, note it in
-   the session summary ("signal dropped for Xs") — judges may ask.
-
-Constraints: never crash gameplay on disconnect; Simulation-only sessions
-must behave exactly as before; test by killing/restarting eeg_bridge.py
-mid-session with the game running.
-```
-
-**我點驗收**：遊戲中途 kill bridge → 船唔跳崖、chip 顯示 reconnecting、10 秒後順滑轉 fallback;重啟 bridge → 自動接返、速度冇突變;Results 誠實標注斷咗幾耐。
+> **每步開工前**：`git pull origin main`。
+> **每步做完**：`node server.js`（port 8000）行一次 Simulation 全流程 + 開 FPS meter 確認唔掉幀 → commit + push → 先開下一步。
+> **一次只做一步。** runtime.js 係大檔，兩件事同時改必撞。
 
 ---
 
-## 6. 時間表 + 應急計劃
+### 🎨 階段一 — 重新設計（交畀下一個對話由零設計）
+
+> 呢兩件係**設計任務**，唔係填色。下一個對話要先**分析、提案、同你對齊**，先至寫 code。所以下面寫嘅係**目標 + 約束 + 要回答嘅設計問題**，唔係一步步指令——等 Claude 自己諗個好設計出嚟畀你揀。
+
+#### D1 — Results Dashboard 重新設計
+
+**現狀**：Results 已有 session 內前後對比、專注曲線 SVG、跨 session trend（`runtime.js` 內 `showResultsDashboard` 區）。功能夠，但版面 / 說服力 / 靚度仲有大進步空間。
+
+**目標**：打開 Results 嗰一刻，用戶（同評判）**3 秒內睇到「我今次專注得唔得？有冇進步？」**。呢一頁係「**點證明真係改善咗專注**」嘅核心證據，要靚、要清、要有說服力。
+
+**約束**：
+- **EEG 為主角**：EEG session 要展示最豐富嘅數據（雙軸專注+放鬆、恢復速度、跨 session 進步曲線）；Simulation session 版面簡化即可。
+- 雙語（`app/i18n.js` hk/en 兩個 block 都要有 key）。
+- 保留現有數據來源，唔好搞亂 `appendSessionSummary` / `session_history` 結構（除非 D1 明確要加欄位，要同你講清楚）。
+- 手機 / iPad / desktop 都要睇得靚。
+
+**要回答嘅設計問題**（下個對話要提案）：
+- 邊 3 個指標最能講「改善專注」嘅故事？點樣一眼睇到 vs 上次？
+- 跨 session 進步點視覺化先最有說服力（曲線？進度環？「你比上次快 X 秒回復專注」）？
+- 評判追問「證據」時，呢一頁點樣自己講故事？
+
+#### D2 — Gameplay 重新設計（吸引到人 + 真係改善專注）
+
+**現狀痛點**：訓練模式冇離散「贏緊」嘅事件，玩家淨望住一個 ratio，被動又悶；成個 gameplay 嘅「吸引力」同「訓練效果」都未拉到滿。（舊 plan 試過用 Focus Gates / hold streak 解決，但依家決定**由零重新諗**，唔受舊設計綁死。）
+
+**目標**：設計一套 gameplay，**同時做到兩件事**——
+1. **吸引到人**（攤位上有人行過會想試、試完想再玩、旁邊人想睇）。
+2. **真係改善專注**（有明確目標、有維持專注嘅獎勵、有溫柔嘅分心恢復、有進步感）。
+
+**約束（對齊核心設計原則）**：
+- **EEG 體驗做主角**：隻船 = 你個腦。設計要令「我專注 → 船有反應」嘅閉環**又快又爽又睇得到**；雙軸（專注 AND 放鬆）、呼吸介入（分心→救返嘅一幕）要係 gameplay 嘅高光位。
+- **Simulation 只求玩到**：唔使為 Simulation 度身設計花巧嘢。
+- **溫柔**：呢個係俾學生 / 小朋友嘅訓練工具，失敗要溫柔（唔好懲罰感）、唔好過度刺激（唔係街機）。
+- 唔好破壞現有：船物理、題目流程、呼吸介入邏輯、自適應門檻（除非設計明確要改，要同你講）。
+- `pages/game/focusGates.js` 可以**重用 / 重新設計 / 刪走**——由呢個設計決定。
+
+**要回答嘅設計問題**（下個對話要先提案，你揀咗先寫 code）：
+- 「贏」嘅結構係咩？訓練模式點樣有可數、可追求嘅目標（而唔淨係一條 ratio）？
+- 點樣獎勵「**持續維持專注**」而唔係「一刻高專注」？
+- 分心之後點樣溫柔咁 pull 返用戶（呼吸介入之外仲有冇）？
+- 點樣令旁觀者一睇就明「佢而家好專注 / 佢分咗心」？（攤位吸引力）
+- 訓練模式 vs 挑戰模式喺新設計入面點分工？
+
+> **交付方式**：下個對話應該**先出一份 gameplay 設計提案（2–3 個方向 + 推薦）畀你揀**，對齊咗方向先開始寫 code、拆成細步實作。
+
+---
+
+### 🛠️ 階段二 — 收尾打磨
+
+#### P1 — 動態畫質 scaling（流暢度安全網，要最先做）
+
+```
+Context: NeuroFocus, no-build vanilla-JS + Three.js. Run `node server.js`,
+open http://localhost:8000, Simulation mode (no EEG needed).
+pages/game/runtime.js already has:
+- updateFpsMeter(deltaMs): rolling FPS accumulator + on-screen meter;
+- PERFORMANCE_PROFILE (getPerformanceProfile()): static quality knobs incl. waterResolution;
+- getAdaptiveRenderScale(): currently mostly-static;
+- setupPostProcessing(): builds composer + bloom.
+
+Task: turn static quality into a closed-loop dynamic system driven by measured FPS.
+1. Reuse the FPS accumulator in updateFpsMeter (do NOT add a second timer).
+2. avg FPS < 45 for 3s+ → step quality DOWN one level; > 55 for 10s+ → step UP.
+   Asymmetric windows (fast down, slow up) to avoid oscillation. Max one step / 3s.
+3. Quality ladder (L0 = full):
+   L0: current settings.
+   L1: renderer pixel ratio ~25% lower (renderer.setPixelRatio).
+   L2: bloom/composer bypassed, pixel ratio as L1.
+   L3: water reflection texture at half PERFORMANCE_PROFILE.waterResolution, + above.
+4. No mid-frame rebuilds; switch at next frame boundary (no visible hitch).
+5. When DEMO_MODE, show current level (L0-L3) next to the FPS meter.
+
+Constraints: no gameplay logic changes; Simulation must run identically;
+test by forcing a huge pixel ratio via devtools and watching it step down then recover.
+```
+**驗收**：開 FPS meter 睇個 L 字——人為加負荷 → 幾秒內逐級落、FPS 回穩；移走負荷 → 慢慢升返 L0；肉眼冇跳格。Windows 機實測前後 FPS。
+
+#### P2 — Web 加靚 / 現代化 / CSS 動畫 redesign（P1 做完先開；建議 TRAE 主力）
+
+**目標**：令成個網站（尤其 Home + Setup + Results）睇落**現代、精緻、吸引到人行過想試**。呢步好睇「即時視覺效果」，所以**建議喺 TRAE 度做**（你可以即刻喺 browser 睇住調）。
+
+```
+Context: same project. Dynamic quality scaling (P1's L0-L3 ladder) is live, so
+richer visuals are safe on weak machines. In-game 3D effects must gate behind
+L0/L1 only and respect PERFORMANCE_PROFILE.
+
+Task — modernise the look, keep it calm/premium (not cartoonish, not a street arcade):
+1. Home / Setup / Results：refresh layout、spacing、typography hierarchy、
+   卡片質感（Clay/Glass 已有，加強一致性）；加細膩 CSS 過場動畫（hover、
+   進場 fade/slide、按鈕微互動）。目標：睇落似一個 2026 年嘅產品，唔似 demo。
+2. 尊重 Windows 效能保護（html[data-platform="windows"] 已關重 blur/動畫）——
+   新動畫喺 Windows 要有 reduced 版本 / prefers-reduced-motion fallback。
+3. In-game：水面近船 sun glint + normal-map 細節、warm-cool 光影對比、
+   flow-state 一刻（body class flow-state-mode）bloom+曝光升 ~15% 兩秒 + wake 粒子擴大，
+   令「入心流」嘅獎勵感覺得到。用返現有 bloom pass，唔好加新 pass。
+4. 唔好搞亂 game HUD 嘅 Liquid Glass 風格同 Orbitron 字體。
+
+Constraints: 全部 in-game 新效果 gate 喺 quality level 後面；用 FPS meter + 
+quality badge 確認 L0 >= 55 FPS、迫落 L2 見到新效果自動熄。
+```
+**驗收**：前後截圖對比（Home / Setup / Results 現代化程度、in-game flow 一刻）；FPS meter 企穩；Windows 機唔掉幀；開 prefers-reduced-motion 有 fallback。
+
+#### U1 — 文案人性化 + 符合進度 + Homepage Footer（Claude 起草 → 你逐句 review）
+
+```
+Context: same project — bilingual copy in app/i18n.js (en + hk blocks, keys must match).
+Student competition (IEYI); judges probe overclaims. Product state has advanced:
+real Supabase auth, cross-session dashboard, dual-axis EEG flow — copy must MATCH current reality.
+
+Task:
+1. 全站文案人性化 + 符合目前進度：sweep home / auth / setup / game HUD tooltips /
+   results 雙語文案。語氣要溫暖、鼓勵、似真人講嘢；同時**誠實**——
+   - 移除過度宣稱（"clinically proven"、"醫療"、"讀你個腦"）。
+   - Home 裝置講法：由「支援 Muse/Emotiv」改做「以 NeuroSky MindWave 為主，架構可擴展」。
+   - 講返而家真係做到嘅（真登入、跨 session 進步對比、雙軸專注+放鬆）。
+2. Homepage 底部欄（Footer）：現時有「服務條款 / 技術支援 / 隱私政策 / 聯絡我們」等
+   按鈕但多數係死連結。逐個處理：
+   - 死連結（無內容嗰啲）→ 移除，或者填返有需要嘅文案 / 頁面。
+   - 「隱私政策」→ 做一頁誠實 policy（route 法跟現有簡單頁），雙語講清：
+     收咩（session 期間 EEG attention/meditation、選用嘅本地相機專注分且從不上傳、
+     帳戶 email、session 摘要）、去邊（Supabase）、永不收咩（原始影片/音訊）、可要求刪除。
+   - 「聯絡我們」→ 真 mailto:。
+3. 每個 i18n key 喺 hk 同 en 兩個 block 都要有（缺 key 會顯示做原始 key 名）。
+
+Verification: 逐頁撳晒 footer 每個 link；切語言逐頁重讀所有改過嘅文案。
+```
+**驗收**：你（Steven）逐句過中英文先准 push——尤其 Home 裝置講法、Footer 每個按鈕、隱私政策內容；Claude 核對雙語 key 有齊 + 冇死 link。
+
+#### E1 — EEG 韌性 + 作用（要先做完 T2 rehearsal，有真實斷線筆記先入 prompt；Claude 寫、真頭帶測）
+
+```
+Context: same project. EEG path: NeuroSky MindWave -> eeg_bridge.py (local WebSocket)
+-> browser WS client in pages/game/runtime.js (search "bridge-connect" / activateEEGMode).
+A signal-quality chip exists in the HUD. Real booth-rehearsal failure notes:
+[貼 T2 嘅實測筆記：邊一步斷、幾密、點救返]
+
+Task:
+1. Browser: auto-reconnect with backoff (1s,2s,4s, max ~10s, keep trying) when the
+   bridge WS drops mid-session, WITHOUT interrupting gameplay — freeze last focus value
+   up to 10s, then ease into simulation fallback, show non-blocking "reconnecting…" on
+   the signal chip (bilingual, i18n keys in both blocks).
+2. On headset reconnect, ease back from fallback to real EEG (lerp focus source ~2s, no boat jump).
+3. eeg_bridge.py: on serial read failure, retry the port-scan loop instead of needing a
+   manual restart; keep status messages flowing to the client.
+4. Results honesty: if any part ran on fallback, note "signal dropped for Xs" in the summary.
+
+Constraints: never crash gameplay on disconnect; Simulation-only sessions behave exactly
+as before; test by killing/restarting eeg_bridge.py mid-session with the game running.
+```
+**驗收**：遊戲中途 kill bridge → 船唔跳崖、chip 顯示 reconnecting、10 秒後順滑轉 fallback；重啟 bridge → 自動接返、速度冇突變；Results 誠實標注斷咗幾耐。**呢個一定要用真頭帶再實測一次。**
+
+#### F1 — 審計：過期檔案 / 漏洞 / 風險（最後掃底；Claude 做）
+
+```
+Context: same project, everything on main. Before code freeze, do a full audit and
+report (fix the safe ones, list the rest for me to decide).
+
+Task — check and report:
+1. 過期 / 死檔案 / dead code：搵無人 import 嘅檔、無人叫嘅 function、註解掉嘅舊 code、
+   重複邏輯、剩低嘅 debug flag（DEMO_MODE 等——列出邊啲 demo-only、比賽前要唔要關）。
+2. 安全 / 漏洞：
+   - devtools Network 確認**零** DeepSeek key 外露（只應見自己 domain /api/questions）。
+   - Supabase anon key 係設計上 public（靠 RLS）——**核實 Supabase RLS policy 真係開咗**，
+     唔係靠隱藏 key。
+   - 舊 DeepSeek key 仲喺 git history（已知）——喺報告重申，提你搵隊友 revoke。
+   - 掃有冇其他 hardcode 嘅 secret / token / 私人 email 誤入 code。
+3. 穩定性風險：CDN 依賴（three / mediapipe / supabase 靠 unpkg/jsdelivr/esm）——
+   會場網絡差會點？列出單點故障 + 有冇本地 fallback。
+   錯誤處理有冇缺口（未 catch 嘅 async、會 crash 成頁嘅位）。
+4. 出一份 report：分「已修 / 要你決定 / 已知風險（可接受）」三類。
+
+Constraints: 只改明確安全嘅嘢（刪死 code、修錯處理）；有風險 / 要判斷嘅唔好自己拆，列出嚟等我決定。
+```
+**驗收**：Claude 交一份分三類嘅 report；`node server.js` 全流程仍然行到；比賽前 demo-only flag 清單清楚。
+
+---
+
+### 👤 人手任務（非 code，同 code 並行做）
+
+- **T2 — EEG 實機 rehearsal**（越早越好）：比賽用嗰部 Windows 戴 MindWave 行完整流程 ≥5 次，記低每次連接用幾耐、幾時斷、斷喺邊步、點救返。試埋極端情況（長頭髮、出汗、圍觀人多藍牙干擾、連玩 30 分鐘）。寫成一頁「斷線急救卡」。**呢啲筆記係 E1 prompt 嘅輸入。**
+- **Vercel + DeepSeek 驗證**：見 §4。
+- **提醒隊友換 DeepSeek key**：見 §4 步驟 4。
+- **練「30 秒切 Simulation」台詞**：EEG 死咗當場點講點切（demo 保命符，見手冊 Part 5/6）。
+
+---
+
+## 6. 時間表（到 7 月尾）
 
 | 時段 | 做乜 |
 |------|------|
-| **P0（今日→07-11）** | §3 發佈上 main → §4 Vercel/DeepSeek 四步驗證 → T2 EEG rehearsal 開跑（人手，同 code 並行）→ Prompt G1 |
-| **P1（07-12→07-18）** | Prompt G2 → Prompt P1；T2 持續，寫好斷線急救卡 |
-| **P2（07-19→07-25）** | Prompt P2 → Prompt U1 → Prompt E1（用 T2 嘅實測筆記填入去） |
-| **P3（07-26→07-31）** | 唔加新功能。完整 rehearsal ×2（台詞+demo+互考 Q&A）、比賽實機跨裝置 QA、故障演練（EEG 斷→Simulation、無網→local fallback）、code freeze |
+| **依家 → 07-13** | 開新對話做**階段一設計**：D1 Dashboard + D2 Gameplay（先提案對齊、再實作）。並行：T2 rehearsal 開跑、Vercel/DeepSeek 驗證。 |
+| **07-14 → 07-20** | P1 動態畫質 → P2 Web 加靚（TRAE 主力）。 |
+| **07-21 → 07-26** | U1 文案 + Footer（你逐句 review）→ E1 EEG 韌性（用 T2 筆記）。 |
+| **07-27 → 07-31** | F1 審計 → code freeze。完整 rehearsal ×2、跨裝置 QA、故障演練（EEG 斷→Simulation、無網→local fallback）。唔加新功能。 |
 
-**時間唔夠就只做三件**：T2（最大現場風險）→ G1（最大玩法弱點）→ P1（最大效能風險）。其他全部可以割。
+**時間唔夠就保呢啲**：T2（現場風險）+ D2 gameplay（吸引力+訓練效果）+ P1（流暢度）+ E1（EEG 韌性）。P2 加靚同 F1 可以壓縮。
 
 ---
 
-## 7. 比賽日 checklist（P3 時再展開）
+## 7. 比賽日 checklist（P3 展開）
 
 - [ ] 比賽機裝好：Chrome、bridge、電池 ×2、後備 MindWave（如有）
 - [ ] 斷線急救卡（T2 產出）貼喺攤位
 - [ ] 30 秒切 Simulation 台詞人人識背
-- [ ] devtools Network 最後檢查：零 key 外露
+- [ ] devtools Network 最後檢查：零 key 外露（F1 已驗）
 - [ ] 離線 fallback 實測：拔網線照玩到
 - [ ] Results 頁截圖印出嚟（評判追問「證據」時直接畀睇）
