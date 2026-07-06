@@ -3235,13 +3235,13 @@ async function fetchBatchQuestions(count = 10, isInitial = true) {
             language: CONFIG.currentLang,
             reason: error?.message || String(error)
         });
-        if (lowerMessage.includes('401') || lowerMessage.includes('unauthorized') || lowerMessage.includes('missing api key')) {
-            updateLoadingStatus(langText('AI 金鑰無效或缺失，已切換本地題庫。', 'AI key missing or invalid. Switching to local question bank.'));
+        if (lowerMessage.includes('401') || lowerMessage.includes('unauthorized') || lowerMessage.includes('missing deepseek_api_key') || lowerMessage.includes('server misconfiguration')) {
+            updateLoadingStatus(langText('AI 服務設定缺失或金鑰無效，已切換本地題庫。', 'AI service misconfigured or key invalid. Switching to local question bank.'));
         } else if (lowerMessage.includes('429')) {
             updateLoadingStatus(langText('AI 題庫請求過多，稍後重試並先使用本地題庫。', 'AI rate limit reached. Retrying later and using local fallback now.'));
         } else if (lowerMessage.includes('abort')) {
             updateLoadingStatus(langText('AI 題庫回應逾時，先使用本地題庫。', 'AI request timed out. Using local fallback now.'));
-        } else if (lowerMessage.includes('empty question list') || lowerMessage.includes('missing content') || lowerMessage.includes('invalid json')) {
+        } else if (lowerMessage.includes('empty question list') || lowerMessage.includes('missing questions') || lowerMessage.includes('invalid json')) {
             updateLoadingStatus(langText('AI 回傳格式異常，已切換本地題庫。', 'AI returned an invalid format. Switching to local fallback.'));
         }
         
