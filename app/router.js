@@ -11,17 +11,6 @@ const pageModulePaths = {
 
 const pageCache = new Map();
 
-// #region debug-point B:router-report
-const DEBUG_SERVER_URL = window.__TRAE_DEBUG_SERVER_URL__ || null;
-const reportRouterDebug = (hypothesisId, msg, data = {}) => {
-    if (!DEBUG_SERVER_URL) return Promise.resolve();
-    return fetch(DEBUG_SERVER_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sessionId: 'stitch-layout-game-render', runId: 'post-fix', hypothesisId, location: 'app/router.js', msg: `[DEBUG] ${msg}`, data, ts: Date.now() })
-    }).catch(() => {});
-};
-// #endregion
 
 let rootNode = null;
 let currentPage = null;
@@ -51,14 +40,6 @@ async function renderRoute() {
     try {
         const route = normalizeRoute(window.location.hash);
         setState({ route });
-        // #region debug-point B:route-render
-        reportRouterDebug('B', 'router render route', {
-            hash: window.location.hash,
-            route,
-            hasCurrentPage: Boolean(currentPage),
-            rootChildCount: rootNode?.childElementCount || 0
-        });
-        // #endregion
 
         if (currentPage?.unmount) {
             await currentPage.unmount();
@@ -67,14 +48,6 @@ async function renderRoute() {
         const page = await loadPage(route);
         rootNode.innerHTML = page.render();
         currentPage = page;
-        // #region debug-point B:route-html-applied
-        reportRouterDebug('B', 'router applied page html', {
-            route,
-            pageName: route,
-            hasHomeShell: Boolean(rootNode.querySelector('.home-shell')),
-            hasCanvasContainer: Boolean(rootNode.querySelector('#canvas-container'))
-        });
-        // #endregion
 
         if (page.mount) {
             await page.mount({ root: rootNode, router: routerApi });

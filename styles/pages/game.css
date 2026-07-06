@@ -610,7 +610,13 @@
 #countdown-text {
     font-family: var(--font-tech);
     font-size: clamp(4rem, 16vw, 8rem);
-    text-shadow: 0 0 24px rgba(56, 189, 248, 0.36);
+    /* Always white with a dark outline so it reads on the bright study/sky
+       scene in BOTH light and dark mode. */
+    color: #ffffff;
+    text-shadow:
+        0 0 24px rgba(56, 189, 248, 0.5),
+        0 2px 8px rgba(2, 8, 23, 0.7),
+        0 0 2px rgba(2, 8, 23, 0.9);
     transform: scale(0.92);
     opacity: 1;
     transition: transform 0.22s ease, opacity 0.22s ease, filter 0.22s ease;
@@ -1237,3 +1243,198 @@ html[data-platform='windows'] .breathing-prompt-pill {
         display: none !important;
     }
 }
+
+/* --- Stroop stimulus (hard difficulty) --- */
+
+#question-text.stroop-word {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.stroop-instruction {
+    font-size: 0.9em;
+    color: var(--text-muted, #94a3b8);
+}
+
+.stroop-stimulus {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-family: var(--font-tech);
+    font-size: clamp(2rem, 5vw, 3rem);
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-shadow: 0 0 18px currentColor;
+}
+
+.stroop-swatch {
+    width: 0.9em;
+    height: 0.9em;
+    border-radius: 50%;
+    border: 2px solid rgba(255, 255, 255, 0.75);
+    display: inline-block;
+}
+
+#question-timer.stroop-active {
+    font-family: var(--font-tech);
+    font-size: 1.1rem;
+    color: #7dd3fc;
+}
+
+#question-timer.stroop-active.is-urgent {
+    color: #f87171;
+    animation: stroop-timer-pulse 0.5s ease-in-out infinite alternate;
+}
+
+@keyframes stroop-timer-pulse {
+    from { opacity: 1; }
+    to { opacity: 0.45; }
+}
+
+/* --- Focus zone band / gate counter / onboarding cue / boost celebration --- */
+
+#focus-zone-chip {
+    padding: 0.1rem 0.55rem;
+    border-radius: 999px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    margin-right: 0.4rem;
+}
+
+#focus-zone-chip.zone-low { background: rgba(245, 158, 11, 0.18); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.5); }
+#focus-zone-chip.zone-stable { background: rgba(56, 189, 248, 0.15); color: #7dd3fc; border: 1px solid rgba(56, 189, 248, 0.45); }
+#focus-zone-chip.zone-flow { background: rgba(34, 197, 94, 0.18); color: #4ade80; border: 1px solid rgba(34, 197, 94, 0.55); box-shadow: 0 0 10px rgba(34, 197, 94, 0.35); }
+
+#gate-counter .label {
+    color: #7dd3fc;
+    font-family: var(--font-tech);
+}
+
+#onboarding-cue {
+    position: fixed;
+    top: 16%;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 60;
+    padding: 0.75rem 1.4rem;
+    border-radius: 999px;
+    background: rgba(8, 15, 30, 0.82);
+    border: 1px solid rgba(125, 211, 252, 0.5);
+    color: #e2f4ff;
+    font-size: 1rem;
+    font-weight: 600;
+    opacity: 0;
+    transition: opacity 0.6s ease;
+    pointer-events: none;
+    max-width: min(90vw, 560px);
+    text-align: center;
+}
+
+#onboarding-cue.is-in { opacity: 1; }
+
+#boost-flash {
+    position: fixed;
+    top: 30%;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 70;
+    pointer-events: none;
+    color: #fbbf24;
+    font-family: var(--font-tech);
+    font-size: clamp(1.4rem, 4vw, 2.2rem);
+    font-weight: 700;
+    text-shadow: 0 0 24px rgba(251, 191, 36, 0.8);
+}
+
+#boost-flash.is-in {
+    animation: boost-flash-pop 1.6s ease-out forwards;
+}
+
+@keyframes boost-flash-pop {
+    0% { opacity: 0; transform: translateX(-50%) scale(0.6); }
+    18% { opacity: 1; transform: translateX(-50%) scale(1.12); }
+    30% { transform: translateX(-50%) scale(1); }
+    75% { opacity: 1; }
+    100% { opacity: 0; transform: translateX(-50%) scale(1); }
+}
+
+body.boost-celebrate #focus-indicator {
+    box-shadow: 0 0 26px rgba(251, 191, 36, 0.45);
+    transition: box-shadow 0.4s ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    #boost-flash.is-in { animation: none; opacity: 1; }
+    #onboarding-cue { transition: none; }
+}
+
+/* --- EEG dual-axis + signal chip (Prompt M, DEMO_MODE) --- */
+
+.eeg-signal-chip {
+    padding: 0.12rem 0.5rem;
+    border-radius: 999px;
+    font-size: 0.68rem;
+    font-weight: 700;
+}
+.eeg-signal-chip.sig-good { background: rgba(34, 197, 94, 0.18); color: #4ade80; border: 1px solid rgba(34, 197, 94, 0.5); }
+.eeg-signal-chip.sig-weak { background: rgba(245, 158, 11, 0.18); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.5); }
+.eeg-signal-chip.sig-bad  { background: rgba(239, 68, 68, 0.18); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.5); }
+
+#eeg-dual-axis {
+    margin-top: 0.6rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+}
+.eeg-axis-row { display: flex; align-items: center; gap: 0.5rem; }
+.eeg-axis-label { width: 2.6rem; font-size: 0.72rem; color: var(--text-muted, #94a3b8); }
+.eeg-axis-track { flex: 1; height: 7px; border-radius: 999px; background: rgba(255,255,255,0.12); overflow: hidden; }
+.eeg-axis-fill { height: 100%; width: 0%; border-radius: 999px; transition: width 0.3s ease; }
+.eeg-axis-fill.focus { background: linear-gradient(90deg, #38bdf8, #22d3ee); }
+.eeg-axis-fill.relax { background: linear-gradient(90deg, #a78bfa, #34d399); }
+
+.breathing-eeg-feedback { margin-top: 0.9rem; width: min(320px, 70vw); }
+.breathing-meditation-track {
+    height: 8px;
+    border-radius: 999px;
+    background: rgba(255,255,255,0.18);
+    overflow: hidden;
+}
+#breathing-meditation-bar {
+    height: 100%;
+    width: 0%;
+    border-radius: 999px;
+    background: linear-gradient(90deg, #a78bfa, #34d399);
+    transition: width 0.5s ease;
+}
+.breathing-meditation-label {
+    margin-top: 0.4rem;
+    font-size: 0.82rem;
+    color: rgba(255,255,255,0.85);
+    text-align: center;
+}
+
+/* --- FPS meter (DEMO_MODE perf readout) --- */
+#fps-meter {
+    position: fixed;
+    top: 0.6rem;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 80;
+    padding: 0.15rem 0.6rem;
+    border-radius: 999px;
+    font-family: var(--font-tech);
+    font-size: 0.8rem;
+    font-weight: 700;
+    background: rgba(2, 8, 23, 0.6);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    color: #94a3b8;
+    pointer-events: none;
+}
+#fps-meter[data-tier="good"] { color: #4ade80; }
+#fps-meter[data-tier="ok"] { color: #fbbf24; }
+#fps-meter[data-tier="low"] { color: #f87171; }

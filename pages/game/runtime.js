@@ -8,13 +8,115 @@ import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { SMAAPass } from 'three/addons/postprocessing/SMAAPass.js';
-import { setState } from '../../app/state.js';
+import { setState, getState } from '../../app/state.js';
 import { getCameraFocusScore, getCameraTrackingStatus, stopCameraPreview } from '../../services/focusInputService.js?v=2026-06-24-23';
+import { appendSessionSummary, getSessionHistory } from '../../services/storageService.js';
+import { initFocusGates, updateFocusGates, getGateStats, resetGateStats } from './focusGates.js';
+
+// Feature flag: focus gates are the discrete "did you hold focus at this
+// moment" checkpoints. Temporarily disabled (2026-07-04) — the rings read as
+// passing on the right rather than through the centre, so the X/Y score wasn't
+// legible. Module + integration kept; flip back to true after a redesign.
+const FOCUS_GATES_ENABLED = false;
+
+// DEMO_MODE shows the raw EEG channels (attention / meditation / signal) for
+// the competition booth. Flip to false in a future product build to hide the
+// raw numbers while keeping the state-level behaviour (dual-axis flow, live
+// breathing feedback) intact.
+const DEMO_MODE = true;
+const MEDITATION_FLOW_THRESHOLD = 50;
+
+// Latest live EEG channels (Real EEG mode only). meditation/signal stay null
+// in Simulation/camera modes so nothing is ever faked.
+let latestEEG = { attention: 0, meditation: null, signal: null };
+
+function renderEegDualAxis() {
+    const host = document.getElementById('eeg-dual-axis');
+    if (!host) return;
+    const inEEG = selectedInputMode === 'eeg' && latestEEG.meditation !== null;
+    host.style.display = (DEMO_MODE && inEEG) ? '' : 'none';
+    if (!inEEG) return;
+    const focusBar = document.getElementById('eeg-attention-bar');
+    const relaxBar = document.getElementById('eeg-meditation-bar');
+    if (focusBar) focusBar.style.width = `${Math.max(0, Math.min(100, latestEEG.attention))}%`;
+    if (relaxBar) relaxBar.style.width = `${Math.max(0, Math.min(100, latestEEG.meditation))}%`;
+}
+
+function renderSignalChip() {
+    const chip = document.getElementById('eeg-signal-chip');
+    if (!chip) return;
+    if (selectedInputMode !== 'eeg' || latestEEG.signal === null) {
+        chip.style.display = 'none';
+        return;
+    }
+    chip.style.display = '';
+    const s = latestEEG.signal;
+    // MindWave signal_quality: 0 = perfect contact, 100+ = no contact.
+    let label = langText('訊號良好', 'Good signal');
+    let cls = 'sig-good';
+    if (s >= 50) { label = langText('冇接觸', 'No contact'); cls = 'sig-bad'; }
+    else if (s >= 20) { label = langText('訊號弱', 'Weak signal'); cls = 'sig-weak'; }
+    if (chip.className !== `eeg-signal-chip ${cls}`) chip.className = `eeg-signal-chip ${cls}`;
+    chip.textContent = `📶 ${label}`;
+}
+
+// Live meditation readout inside the breathing overlay (Real EEG mode only) —
+// "the headset can see your brain calming down."
+function renderBreathingEegFeedback() {
+    const host = document.getElementById('breathing-eeg-feedback');
+    if (!host) return;
+    const show = selectedInputMode === 'eeg' && latestEEG.meditation !== null;
+    host.style.display = show ? '' : 'none';
+    if (!show) return;
+    const bar = document.getElementById('breathing-meditation-bar');
+    const label = document.getElementById('breathing-meditation-label');
+    if (bar) bar.style.width = `${Math.max(0, Math.min(100, latestEEG.meditation))}%`;
+    if (label) label.textContent = langText(
+        `部機見到你個腦冷靜緊落嚟（放鬆 ${Math.round(latestEEG.meditation)}）`,
+        `The headset sees your brain calming down (relax ${Math.round(latestEEG.meditation)})`
+    );
+}
+
+// Live FPS readout (behind DEMO_MODE) so performance is judged by numbers,
+// not by feel. Averaged over ~0.5s windows.
+let fpsAccumMs = 0;
+let fpsFrames = 0;
+function updateFpsMeter(deltaMs) {
+    const el = document.getElementById('fps-meter');
+    if (!el) return;
+    if (!DEMO_MODE) { if (el.style.display !== 'none') el.style.display = 'none'; return; }
+    if (el.style.display === 'none') el.style.display = '';
+    fpsFrames += 1;
+    fpsAccumMs += deltaMs;
+    if (fpsAccumMs >= 500) {
+        const fps = Math.round((fpsFrames * 1000) / fpsAccumMs);
+        el.textContent = `${fps} FPS`;
+        el.dataset.tier = fps >= 55 ? 'good' : fps >= 35 ? 'ok' : 'low';
+        fpsAccumMs = 0;
+        fpsFrames = 0;
+    }
+}
+
+function updateGateCounterHUD() {
+    const el = document.getElementById('gate-counter');
+    const valueEl = document.getElementById('gate-counter-value');
+    if (!el || !valueEl) return;
+    const { cleared, total } = getGateStats();
+    el.style.display = total > 0 ? '' : 'none';
+    valueEl.textContent = `${cleared}/${total}`;
+}
+
+// Module handle to the bloom pass so the game loop can escalate it during
+// flow state (it is created inside the post-processing setup function).
+let bloomPassRef = null;
+const BLOOM_BASE_STRENGTH = 0.35;
+const BLOOM_FLOW_STRENGTH = 0.7;
 
 // --- Configuration & State ---
 const CONFIG = {
-    // SECURITY NOTE: Browser code must not contain secrets.
-    // AI question generation is routed through the serverless `/api/questions` proxy.
+    // Questions come from our own serverless proxy (/api/questions.js), which
+    // holds the DeepSeek key server-side. No API key is ever read or stored on
+    // the client.
     apiUrl: "/api/questions",
     currentLang: "hk",
     currentUser: null,
@@ -38,6 +140,10 @@ const CONFIG = {
 const DEFAULT_TRAINING_DURATION_SEC = 180;
 
 let runtimeResultsHandler = null;
+
+// Snapshot of the just-finished session, set by renderResults() and read by
+// the results-dashboard renderers.
+let lastSessionSummary = null;
 
 function isTrainingMode() {
     return CONFIG.testMode === 'training';
@@ -82,8 +188,8 @@ function getPerformanceProfile() {
         antialias: !(isMobile || lowPowerDevice),
         usePostProcessing: !(isWindows || lowPowerDevice),
         enableShadows: !lowPowerDevice,
-        shadowMapSize: ultraLowProfile ? 512 : compactViewport ? 768 : 1536,
-        waterResolution: ultraLowProfile ? 256 : 384,
+        shadowMapSize: ultraLowProfile ? 512 : compactViewport ? 768 : 1024,
+        waterResolution: ultraLowProfile ? 192 : lowPowerDevice ? 256 : 320,
         textureAnisotropy: ultraLowProfile ? 2 : lowPowerDevice ? 4 : 8,
         particleMultiplier: ultraLowProfile ? 0.45 : lowPowerDevice ? 0.65 : 1.0
     };
@@ -139,6 +245,66 @@ const HUD_GRADIENTS = {
         { max: 100, gradient: 'linear-gradient(90deg, #050608 0%, #3c1114 36%, #ff5a36 100%)', glow: '0 0 18px rgba(255, 90, 54, 0.32)', tone: '#fdba74' }
     ]
 };
+
+// --- Stroop stimulus (hard difficulty only) ---
+// A real color/word-conflict task: the WORD names one color, the FONT shows
+// another; the player must answer the font color under time pressure.
+const STROOP_COLORS = [
+    { hk: '紅色', en: 'RED', hex: '#ef4444' },
+    { hk: '藍色', en: 'BLUE', hex: '#3b82f6' },
+    { hk: '綠色', en: 'GREEN', hex: '#22c55e' },
+    { hk: '黃色', en: 'YELLOW', hex: '#eab308' },
+    { hk: '紫色', en: 'PURPLE', hex: '#a855f7' },
+    { hk: '橙色', en: 'ORANGE', hex: '#f97316' }
+];
+
+const STROOP_TIME_LIMIT_MS = 9000;
+let stroopTimerId = null;
+
+function clearStroopTimer() {
+    if (stroopTimerId) {
+        clearInterval(stroopTimerId);
+        stroopTimerId = null;
+    }
+    const timerEl = document.getElementById('question-timer');
+    if (timerEl) {
+        timerEl.textContent = '';
+        timerEl.classList.remove('stroop-active', 'is-urgent');
+    }
+}
+
+function generateStroopPuzzle(index = 0) {
+    const isHk = CONFIG.currentLang === 'hk';
+    const n = STROOP_COLORS.length;
+    const wordIdx = index % n;
+    const displayIdx = (wordIdx + 1 + (index % (n - 1))) % n; // guaranteed !== wordIdx
+    const word = STROOP_COLORS[wordIdx];
+    const display = STROOP_COLORS[displayIdx];
+
+    // Options always include the correct font color AND the trap word meaning.
+    const others = STROOP_COLORS.filter((c) => c !== word && c !== display);
+    const extra1 = others[index % others.length];
+    const extra2 = others[(index + 1) % others.length];
+    const pool = [display, word, extra1, extra2];
+    const rot = index % 4;
+    const rotated = pool.slice(rot).concat(pool.slice(0, rot));
+    const label = (c) => (isHk ? c.hk : c.en);
+
+    return normalizeQuestionItem({
+        type: 'stroop',
+        word: label(word),
+        displayColor: display.hex,
+        question: isHk ? '呢個字係用咩顏色顯示？' : 'What COLOR is this word displayed in?',
+        options: rotated.map(label),
+        answer: rotated.indexOf(display),
+        explanation: isHk ? '要答字體顯示嘅顏色，唔好被字嘅意思誤導。' : 'Answer the display color, not what the word says.',
+        skill: isHk ? 'Stroop 陷阱' : 'Stroop Trap',
+        ageBand: getAgeBandLabel(),
+        validation: isHk ? '字體顏色先係答案' : 'The font color is the answer',
+        source: 'fallback',
+        isMock: true
+    });
+}
 
 function getFallbackQuestions(count = 10) {
     const fallback = [];
@@ -346,7 +512,7 @@ const INITIAL_AI_TIMEOUT_MS = 8000;
 const BACKGROUND_AI_TIMEOUT_MS = 15000;
 const INITIAL_PLAYABLE_QUESTIONS = 4;
 const SIMULATION_STABLE_SEGMENT_PROBABILITY = 0.8;
-const FOCUS_TRAINING = {
+const DEFAULT_FOCUS_TRAINING = {
     stableThreshold: 50,
     lowThreshold: 45,
     recoveryThreshold: 55,
@@ -356,7 +522,55 @@ const FOCUS_TRAINING = {
     interventionCooldownMs: 10000,
     boostDurationMs: 5000
 };
+
+// Per-session copy: adaptive personalization reassigns this at session start;
+// the shared defaults above are never mutated.
+let FOCUS_TRAINING = { ...DEFAULT_FOCUS_TRAINING };
+
+// Adapt the recovery bar to the player's own recent history (simple clamped
+// rules, deliberately not ML — easy to explain to judges):
+// - recoveryThreshold rises from 55 toward 65 as average focus stability
+//   across the last sessions improves.
+// - triggerDurationMs tightens from 5000ms toward a 3500ms floor as the
+//   player's average recovery gets faster.
+// Fewer than 3 past sessions -> pure defaults (first-timers never face a
+// harder bar).
+async function resolveAdaptiveFocusTraining() {
+    FOCUS_TRAINING = { ...DEFAULT_FOCUS_TRAINING };
+    try {
+        const history = await getSessionHistory(5);
+        if (!Array.isArray(history) || history.length < 3) {
+            console.info('[Adaptive] Using default thresholds (history:', history?.length || 0, 'sessions)');
+            return FOCUS_TRAINING;
+        }
+        const avg = (arr) => arr.reduce((s, v) => s + v, 0) / arr.length;
+        const avgFocusedRatio = avg(history.map((s) => Math.max(0, Math.min(100, s.focusedRatio || 0))));
+        const avgRecoveryMs = avg(history.map((s) => Math.max(0, s.avgRecoveryMs || 0)));
+
+        const recoveryThreshold = Math.round(
+            Math.min(65, Math.max(55, 55 + (avgFocusedRatio - 50) * 0.2))
+        );
+        const triggerDurationMs = Math.round(
+            Math.min(5000, Math.max(3500, 3500 + avgRecoveryMs * 0.15))
+        );
+
+        FOCUS_TRAINING = { ...DEFAULT_FOCUS_TRAINING, recoveryThreshold, triggerDurationMs };
+        console.info('[Adaptive] Personalized thresholds for this session:', {
+            sessions: history.length,
+            avgFocusedRatio: Math.round(avgFocusedRatio * 10) / 10,
+            avgRecoverySec: Math.round(avgRecoveryMs / 100) / 10,
+            recoveryThreshold,
+            triggerDurationMs
+        });
+    } catch (e) {
+        console.warn('[Adaptive] Falling back to default thresholds.', e);
+    }
+    return FOCUS_TRAINING;
+}
 let isWaitingForQuestions = false;
+
+const FOCUS_SAMPLE_INTERVAL_MS = 2000;
+const FOCUS_SAMPLE_CAP = 1800; // 1 hour at 2s per sample
 
 function createTrainingAnalytics() {
     return {
@@ -372,7 +586,10 @@ function createTrainingAnalytics() {
         interventionEndsAt: 0,
         interventionCooldownUntil: 0,
         boostActive: false,
-        boostEndsAt: 0
+        boostEndsAt: 0,
+        // Silent focus timeline for the results dashboard (one value per ~2s).
+        focusSamples: [],
+        sampleAccumulatorMs: 0
     };
 }
 
@@ -639,6 +856,8 @@ function renderBreathingIntervention(now = performance.now()) {
     if (titleEl) titleEl.textContent = phaseTitle;
     if (phaseEl) phaseEl.textContent = phaseText;
     if (helperEl) helperEl.textContent = helperText;
+
+    renderBreathingEegFeedback();
 }
 
 function startBreathingIntervention(now = performance.now()) {
@@ -669,6 +888,46 @@ function stopBreathingIntervention() {
     trainingAnalytics.boostActive = true;
     trainingAnalytics.boostEndsAt = performance.now() + FOCUS_TRAINING.boostDurationMs;
     hideBreathingIntervention();
+    celebrateBoost();
+}
+
+// Make the post-breathing 100% boost FELT — it used to happen silently.
+function celebrateBoost() {
+    playCorrectSound();
+    document.body.classList.add('boost-celebrate');
+    const flash = document.getElementById('boost-flash');
+    const flashText = document.getElementById('boost-flash-text');
+    if (flash && flashText) {
+        flashText.textContent = langText('🔥 專注全滿 5 秒！', '🔥 Full focus for 5s!');
+        flash.style.display = '';
+        flash.classList.remove('is-in');
+        void flash.offsetWidth; // restart CSS animation
+        flash.classList.add('is-in');
+    }
+    setTimeout(() => {
+        document.body.classList.remove('boost-celebrate');
+        if (flash) flash.style.display = 'none';
+    }, FOCUS_TRAINING.boostDurationMs);
+}
+
+// Wordless-first onboarding beat: one line that explains the core mapping,
+// shown as gameplay begins, auto-dismissed.
+function showOnboardingCue() {
+    const cue = document.getElementById('onboarding-cue');
+    const cueText = document.getElementById('onboarding-cue-text');
+    if (!cue || !cueText) return;
+    cueText.textContent = langText(
+        '🚤 隻船就係你個腦嘅倒影——集中精神，佢就會平穩加速',
+        '🚤 The boat mirrors your mind — focus, and it speeds up smoothly'
+    );
+    cue.style.display = '';
+    cue.classList.remove('is-in');
+    void cue.offsetWidth;
+    cue.classList.add('is-in');
+    setTimeout(() => {
+        cue.classList.remove('is-in');
+        setTimeout(() => { cue.style.display = 'none'; }, 600);
+    }, 8000);
 }
 
 function updateTrainingAnalytics(deltaMs, effectiveFocus = focusLevel) {
@@ -692,6 +951,15 @@ function updateTrainingAnalytics(deltaMs, effectiveFocus = focusLevel) {
         trainingAnalytics.lowFocusStreakMs += deltaMs;
     } else {
         trainingAnalytics.lowFocusStreakMs = 0;
+    }
+
+    // Silent sampling for the results dashboard (focus curve + halves compare).
+    trainingAnalytics.sampleAccumulatorMs += deltaMs;
+    if (trainingAnalytics.sampleAccumulatorMs >= FOCUS_SAMPLE_INTERVAL_MS) {
+        trainingAnalytics.sampleAccumulatorMs = 0;
+        if (trainingAnalytics.focusSamples.length < FOCUS_SAMPLE_CAP) {
+            trainingAnalytics.focusSamples.push(Math.round(effectiveFocus));
+        }
     }
 }
 
@@ -902,17 +1170,6 @@ let suppressBridgeAutoReconnect = false;
 const MAX_BRIDGE_RECONNECT_ATTEMPTS = 12;
 const LIVE_EEG_WAIT_TIMEOUT_MS = 18000;
 
-// #region debug-point C:runtime-report
-const DEBUG_SERVER_URL = window.__TRAE_DEBUG_SERVER_URL__ || null;
-const reportRuntimeDebug = (hypothesisId, msg, data = {}) => {
-    if (!DEBUG_SERVER_URL || DEBUG_SERVER_URL.includes('127.0.0.1:7777')) return Promise.resolve();
-    return fetch(DEBUG_SERVER_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sessionId: 'eeg-mac-bridge', runId: 'pre-fix', hypothesisId, location: 'pages/game/runtime.js', msg: `[DEBUG] ${msg}`, data, ts: Date.now() })
-    }).catch(() => {});
-};
-// #endregion
 
 let scene, camera, renderer, controls;
 let mixer; // Animation Mixer
@@ -964,12 +1221,14 @@ const gameLoop = new PrecisionLoop((deltaMs, totalTimeMs) => {
     // Allow loop to run even if game not active (for idle animations/water)
     // if (!isGameActive) return;
 
+    updateFpsMeter(deltaMs);
+
     // 1. Calculate Delta in Seconds (High Precision)
     const deltaSec = deltaMs / 1000;
 
     // 2. Logic Update
     updateGameLogic(deltaSec);
-    
+
     // 2.1 Environment Transition Lerp
     if (envState.isTransitioning) {
         const now = performance.now();
@@ -1173,7 +1432,12 @@ function updateGameLogic(delta) {
     }
 
     // 0. Flow State Logic
-    const isFlowState = (focusLevel > 80 && CONFIG.streak >= 3);
+    // Dual-axis flow (Real EEG only): "focused AND relaxed". In Simulation/
+    // camera modes there is no meditation signal, so the single-axis rule
+    // stays unchanged.
+    const meditationOk = !(selectedInputMode === 'eeg' && latestEEG.meditation !== null)
+        || latestEEG.meditation >= MEDITATION_FLOW_THRESHOLD;
+    const isFlowState = (focusLevel > 80 && CONFIG.streak >= 3 && meditationOk);
     if (isFlowState) {
         document.body.classList.add('flow-state-mode');
     } else {
@@ -1200,12 +1464,22 @@ function updateGameLogic(delta) {
 
     // Flow State Boost
     if (isFlowState) {
-        speedMPS *= 1.2; 
+        speedMPS *= 1.2;
         camera.fov = THREE.MathUtils.lerp(camera.fov, 65, 0.05);
     } else {
         camera.fov = THREE.MathUtils.lerp(camera.fov, 55, 0.05);
     }
     camera.updateProjectionMatrix();
+
+    // Flow-state visual payoff: bloom swells while in flow, settles smoothly
+    // after. Only runs when post-processing exists (perf profile permitting).
+    if (bloomPassRef) {
+        bloomPassRef.strength = THREE.MathUtils.lerp(
+            bloomPassRef.strength,
+            isFlowState ? BLOOM_FLOW_STRENGTH : BLOOM_BASE_STRENGTH,
+            0.04
+        );
+    }
 
     const moveDist = speedMPS * delta; 
     
@@ -1273,7 +1547,21 @@ function updateGameLogic(delta) {
     if (boat) {
         // Move Boat
         boat.position.z -= moveDist;
-        
+
+        // Focus Gates: evaluate crossings against the live focus level.
+        if (FOCUS_GATES_ENABLED && isGameActive && !CONFIG.isPaused) {
+            const gateEvent = updateFocusGates({
+                boatZ: boat.position.z,
+                focus: getEffectiveFocusLevel(),
+                threshold: FOCUS_TRAINING.stableThreshold,
+                elapsedMs: performance.now()
+            });
+            if (gateEvent) {
+                if (gateEvent === 'cleared') playCorrectSound();
+                updateGateCounterHUD();
+            }
+        }
+
         // Update wake / splash effects
         updateParticles(delta, speedMPS);
 
@@ -1285,10 +1573,10 @@ function updateGameLogic(delta) {
         if (controls) {
             camera.position.z -= moveDist;
             controls.target.z -= moveDist;
-            
+
             // Clamp Camera Y (Seabed Collision Protection)
             if (camera.position.y < 1.0) camera.position.y = 1.0;
-            
+
             controls.update();
         }
     }
@@ -1830,15 +2118,6 @@ function attachRendererToCanvasHost() {
 function initGameSession() {
     console.log("Starting Game Session...");
     const sessionId = ++activeGameSessionId;
-    // #region debug-point C:init-game-session
-    reportRuntimeDebug('C', 'initGameSession called', {
-        selectedInputMode,
-        hasExistingScene: Boolean(scene),
-        hasBoat: Boolean(boat),
-        hasRenderer: Boolean(renderer),
-        currentQuestionBankSize: questionBank.length
-    });
-    // #endregion
     CONFIG.score = 0;
     CONFIG.streak = 0;
     CONFIG.wrongAnswers = [];
@@ -1852,6 +2131,13 @@ function initGameSession() {
     lastFetchTime = 0;
     fallbackQuestionCursor = loadFallbackQuestionCursor();
     trainingAnalytics = createTrainingAnalytics();
+    resetGateStats();
+    updateGateCounterHUD();
+    // Teach the core mapping as play begins (after the entry countdown).
+    setTimeout(showOnboardingCue, 3500);
+    // Personalize thresholds from recent history (resolves within the first
+    // moments of play; defaults apply until then and for new players).
+    resolveAdaptiveFocusTraining().catch(() => {});
     hideBreathingPrompt();
     hideBreathingIntervention();
     updateLoadingStatus(
@@ -1952,15 +2238,6 @@ function initGameSession() {
 
     Promise.allSettled([coreAssetPromise, initialQuestionPromise]).then(() => {
         if (sessionId !== activeGameSessionId) return;
-        // #region debug-point D:game-start-ready
-        reportRuntimeDebug('D', 'game start promise settled', {
-            hasBoat: Boolean(boat),
-            questionBankSize: questionBank.length,
-            hasScene: Boolean(scene),
-            hasRendererDom: Boolean(renderer?.domElement),
-            canvasChildren: document.getElementById('canvas-container')?.childElementCount || 0
-        });
-        // #endregion
         // 1. Ensure boat exists if it failed
         if (!boat) {
             console.warn("Boat missing after timeout. Creating fallback.");
@@ -2155,6 +2432,23 @@ function renderFocusTelemetry(level = 0) {
     if (focusValEl) {
         focusValEl.textContent = `${safeLevel}%`;
         focusValEl.dataset.boost = String(safeLevel >= 100);
+    }
+
+    // Focus-zone band: read the STATE, not just the number.
+    const zoneChip = document.getElementById('focus-zone-chip');
+    if (zoneChip) {
+        zoneChip.style.display = '';
+        let zoneClass = 'zone-stable';
+        let zoneText = langText('穩定', 'Stable');
+        if (safeLevel < FOCUS_TRAINING.lowThreshold) {
+            zoneClass = 'zone-low';
+            zoneText = langText('分心', 'Distracted');
+        } else if (safeLevel > 80) {
+            zoneClass = 'zone-flow';
+            zoneText = langText('心流', 'Flow');
+        }
+        if (zoneChip.className !== zoneClass) zoneChip.className = zoneClass;
+        if (zoneChip.textContent !== zoneText) zoneChip.textContent = zoneText;
     }
     const focusIndicatorEl = document.getElementById('focus-indicator');
     if (focusIndicatorEl) {
@@ -2449,6 +2743,31 @@ function renderResults() {
     const scoreMetric = isTrainingMode() ? focusedRatio : accuracy;
     const { isNewDist, isNewAcc, isNewTime } = GAME_STATS.saveBest(CONFIG.totalDistance, scoreMetric, totalTimeMs);
     const bests = GAME_STATS.getBest();
+
+    // Within-session before/after: first half vs second half of the focus timeline.
+    const samples = trainingAnalytics.focusSamples;
+    const mid = Math.floor(samples.length / 2);
+    const avgOf = (arr) => (arr.length ? arr.reduce((s, v) => s + v, 0) / arr.length : 0);
+    const firstHalfFocus = avgOf(samples.slice(0, mid));
+    const secondHalfFocus = avgOf(samples.slice(mid));
+
+    // Persist this session into cross-session history (cloud when signed in,
+    // localStorage otherwise). Fire-and-forget: results must render even if
+    // storage fails.
+    lastSessionSummary = {
+        testMode: isTrainingMode() ? 'training' : 'challenge',
+        difficulty: CONFIG.difficulty,
+        focusedRatio: Math.round(focusedRatio * 10) / 10,
+        avgRecoveryMs: Math.round(averageRecoveryMs),
+        accuracy: isTrainingMode() ? null : Math.round(accuracy * 10) / 10,
+        distance: Math.round(CONFIG.totalDistance * 10) / 10,
+        durationMs: Math.round(totalTimeMs),
+        firstHalfFocus: Math.round(firstHalfFocus * 10) / 10,
+        secondHalfFocus: Math.round(secondHalfFocus * 10) / 10,
+        breathingCount: trainingAnalytics.interventionCount,
+        adaptiveThresholdUsed: FOCUS_TRAINING.recoveryThreshold
+    };
+    appendSessionSummary(lastSessionSummary).catch(() => {});
     
     // Update UI
     document.getElementById('res-distance').textContent = CONFIG.totalDistance.toFixed(1) + " m";
@@ -2497,6 +2816,153 @@ function renderResults() {
             list.appendChild(div);
         });
     }
+}
+
+// --- Results Dashboard renderers (focus curve, halves compare, trend) ---
+
+function svgEscapeNumber(value) {
+    return Number.isFinite(value) ? Math.round(value * 100) / 100 : 0;
+}
+
+// Inline SVG focus curve for this session (no chart library, theme-aware via
+// currentColor + CSS classes).
+function renderSessionDashboard() {
+    const curveHost = document.getElementById('dash-focus-curve');
+    const halvesHost = document.getElementById('dash-halves');
+    const summary = lastSessionSummary;
+    const samples = trainingAnalytics.focusSamples;
+
+    if (curveHost) {
+        if (samples.length < 5) {
+            curveHost.innerHTML = `<p class="dash-empty">${langText('本局時間太短，未足以繪製專注曲線。', 'This session was too short to draw a focus curve.')}</p>`;
+        } else {
+            const w = 600;
+            const h = 160;
+            const pad = 8;
+            const stepX = (w - pad * 2) / Math.max(1, samples.length - 1);
+            const points = samples
+                .map((v, i) => `${svgEscapeNumber(pad + i * stepX)},${svgEscapeNumber(h - pad - (Math.max(0, Math.min(100, v)) / 100) * (h - pad * 2))}`)
+                .join(' ');
+            const stableY = svgEscapeNumber(h - pad - (FOCUS_TRAINING.stableThreshold / 100) * (h - pad * 2));
+            curveHost.innerHTML = `
+                <svg viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" class="dash-curve-svg" role="img" aria-label="focus curve">
+                    <line x1="${pad}" y1="${stableY}" x2="${w - pad}" y2="${stableY}" class="dash-curve-threshold" />
+                    <polyline points="${points}" class="dash-curve-line" fill="none" />
+                </svg>
+                <div class="dash-curve-legend">
+                    <span class="dash-legend-line"></span>${langText('專注值', 'Focus')}
+                    <span class="dash-legend-threshold"></span>${langText('穩定線', 'Stable line')} (${FOCUS_TRAINING.stableThreshold})
+                </div>`;
+        }
+    }
+
+    if (halvesHost && summary) {
+        const first = summary.firstHalfFocus || 0;
+        const second = summary.secondHalfFocus || 0;
+        const delta = second - first;
+        let verdictText = langText('局內保持平穩', 'Held steady during the session');
+        let verdictClass = 'is-flat';
+        if (delta >= 3) { verdictText = langText('局內有進步', 'Improved during the session'); verdictClass = 'is-up'; }
+        else if (delta <= -3) { verdictText = langText('局內有回落', 'Dropped during the session'); verdictClass = 'is-down'; }
+        const arrow = delta >= 3 ? '↑' : delta <= -3 ? '↓' : '→';
+        halvesHost.innerHTML = `
+            <div class="dash-halves-grid">
+                <div class="dash-half-card">
+                    <span class="dash-half-label">${langText('前半段', 'First Half')}</span>
+                    <span class="dash-half-value">${first.toFixed(1)}</span>
+                </div>
+                <div class="dash-half-arrow ${verdictClass}">${arrow}</div>
+                <div class="dash-half-card">
+                    <span class="dash-half-label">${langText('後半段', 'Second Half')}</span>
+                    <span class="dash-half-value">${second.toFixed(1)}</span>
+                </div>
+            </div>
+            <p class="dash-half-verdict ${verdictClass}">${verdictText} (${delta >= 0 ? '+' : ''}${delta.toFixed(1)})</p>
+            ${(() => {
+                const g = getGateStats();
+                if (!g.total) return '';
+                return `<p class="dash-gates-line">🎯 ${langText(
+                    `專注閘門：通過 ${g.cleared}/${g.total}`,
+                    `Focus gates cleared: ${g.cleared}/${g.total}`
+                )}</p>`;
+            })()}`;
+    }
+}
+
+// Trend across recent sessions: focus-stability bars + recovery-time bars.
+async function renderHistoryTrend() {
+    const host = document.getElementById('dash-history-trend');
+    if (!host) return;
+
+    let history = [];
+    try {
+        history = await getSessionHistory(10);
+    } catch (e) {
+        history = [];
+    }
+
+    if (!Array.isArray(history) || history.length < 2) {
+        host.innerHTML = `<p class="dash-empty">${langText('多玩幾局就會解鎖你嘅進度趨勢圖。', 'Play a few more sessions to unlock your trend chart.')}</p>`;
+        return;
+    }
+
+    const bars = (values, formatter, invert = false) => {
+        const max = Math.max(...values, 1);
+        return values.map((v, i) => {
+            const ratio = Math.max(0.06, v / max);
+            const isLatest = i === values.length - 1;
+            // invert=true means lower is better (recovery time)
+            const goodness = invert ? 1 - ratio : ratio;
+            return `<div class="dash-bar-wrap" title="${formatter(v)}">
+                <div class="dash-bar ${isLatest ? 'is-latest' : ''} ${goodness > 0.66 ? 'is-good' : goodness < 0.33 ? 'is-weak' : ''}" style="height:${Math.round(ratio * 100)}%"></div>
+            </div>`;
+        }).join('');
+    };
+
+    const focusValues = history.map((s) => Math.max(0, Math.min(100, s.focusedRatio || 0)));
+    const recoveryValues = history.map((s) => Math.max(0, (s.avgRecoveryMs || 0) / 1000));
+
+    // Headline: is the player recovering faster than their own recent average?
+    let headline = '';
+    const withRecovery = recoveryValues.filter((v) => v > 0);
+    if (withRecovery.length >= 2) {
+        const latest = recoveryValues[recoveryValues.length - 1];
+        const previous = recoveryValues.slice(0, -1).filter((v) => v > 0);
+        const prevAvg = previous.length ? previous.reduce((s, v) => s + v, 0) / previous.length : 0;
+        if (latest > 0 && prevAvg > 0) {
+            const diffPct = ((prevAvg - latest) / prevAvg) * 100;
+            if (diffPct >= 5) {
+                headline = `<p class="dash-recovery-headline is-up">▲ ${langText(
+                    `分心後拉返專注快咗 ${diffPct.toFixed(0)}%（對比你之前幾局平均）`,
+                    `You recover from distraction ${diffPct.toFixed(0)}% faster than your recent average`
+                )}</p>`;
+            } else if (diffPct <= -5) {
+                headline = `<p class="dash-recovery-headline is-down">▼ ${langText(
+                    `今局恢復速度慢過你之前平均 ${Math.abs(diffPct).toFixed(0)}%，好正常，繼續練`,
+                    `Recovery was ${Math.abs(diffPct).toFixed(0)}% slower than your recent average — keep training`
+                )}</p>`;
+            } else {
+                headline = `<p class="dash-recovery-headline is-flat">▶ ${langText(
+                    '恢復速度同你最近平均相若',
+                    'Recovery speed is in line with your recent average'
+                )}</p>`;
+            }
+        }
+    }
+
+    host.innerHTML = `
+        ${headline}
+        <div class="dash-trend-grid">
+            <div class="dash-trend-block">
+                <h4>${langText('專注穩定度 %', 'Focus Stability %')}</h4>
+                <div class="dash-bars">${bars(focusValues, (v) => `${v.toFixed(0)}%`)}</div>
+            </div>
+            <div class="dash-trend-block">
+                <h4>${langText('恢復時間（秒）', 'Recovery Time (s)')}</h4>
+                <div class="dash-bars">${bars(recoveryValues, (v) => `${v.toFixed(1)}s`, true)}</div>
+            </div>
+        </div>
+        <p class="dash-trend-note">${langText(`最近 ${history.length} 局，最右邊係今次。`, `Last ${history.length} sessions; rightmost is this one.`)}</p>`;
 }
 
 // Alias for compatibility if needed, but we should use ROUTER
@@ -2596,6 +3062,9 @@ function getAgeBandLabel(profile = getDifficultyProfile()) {
 }
 
 function questionSignature(item = {}) {
+    if (item.type === 'stroop') {
+        return `stroop::${String(item.word || '').toLowerCase()}::${String(item.displayColor || '').toLowerCase()}`;
+    }
     const question = String(item.question || '').toLowerCase().replace(/\s+/g, ' ').trim();
     const options = Array.isArray(item.options)
         ? item.options.map((option) => String(option || '').toLowerCase().replace(/\s+/g, ' ').trim()).join('|')
@@ -2608,6 +3077,18 @@ function validateQuestionItem(item, seenSignatures = new Set()) {
     const normalizedOptions = Array.isArray(item.options)
         ? item.options.map((option) => String(option || '').trim()).filter(Boolean)
         : [];
+
+    // Stroop items validate on word/displayColor instead of question text length.
+    if (item.type === 'stroop') {
+        if (!item.word || String(item.word).trim().length === 0) reasons.push('stroop-missing-word');
+        if (!/^#[0-9a-fA-F]{6}$/.test(String(item.displayColor || ''))) reasons.push('stroop-bad-color');
+        if (normalizedOptions.length !== 4) reasons.push('option-count');
+        if (new Set(normalizedOptions.map((option) => option.toLowerCase())).size !== 4) reasons.push('duplicate-options');
+        if (!Number.isInteger(item.answer) || item.answer < 0 || item.answer > 3) reasons.push('answer-range');
+        const stroopSignature = questionSignature(item);
+        if (!stroopSignature || seenSignatures.has(stroopSignature)) reasons.push('duplicate-question');
+        return { ok: reasons.length === 0, reasons, signature: stroopSignature };
+    }
 
     if (!item.question || item.question.length < 6) reasons.push('question-too-short');
     if (normalizedOptions.length !== 4) reasons.push('option-count');
@@ -2667,23 +3148,22 @@ async function fetchBatchQuestions(count = 10, isInitial = true) {
     updateLoadingStatus(I18N[CONFIG.currentLang].loading_ai_connect);
 
     try {
-        console.info('[AI] Starting question fetch', {
+        console.info('[AI] Starting question fetch via proxy', {
             requestedCount: count,
             isInitial,
             difficulty: CONFIG.difficulty,
-            language: CONFIG.currentLang,
-            apiUrl: CONFIG.apiUrl
+            language: CONFIG.currentLang
         });
 
         const controller = new AbortController();
         const timeoutMs = isInitial ? INITIAL_AI_TIMEOUT_MS : BACKGROUND_AI_TIMEOUT_MS;
         const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
+        // The prompt is built server-side by /api/questions.js; the browser only
+        // sends the parameters and never sees the DeepSeek key.
         const response = await fetch(CONFIG.apiUrl, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 count,
                 difficulty: CONFIG.difficulty,
@@ -2693,23 +3173,24 @@ async function fetchBatchQuestions(count = 10, isInitial = true) {
         });
         clearTimeout(timeoutId);
 
-        let data;
-        try {
-            data = await response.json();
-        } catch (parseError) {
-            throw new Error("Invalid JSON from AI service");
-        }
-
         if (!response.ok) {
-            throw new Error(data?.reason || `API Error ${response.status}`);
+            const errText = await response.text();
+            throw new Error(`API Error ${response.status}: ${errText}`);
         }
 
         updateLoadingStatus(I18N[CONFIG.currentLang].loading_ai_parse);
-        if (!data?.ok || !Array.isArray(data.questions)) {
-            console.warn('[AI] Response missing questions array', data);
-            throw new Error(data?.reason || "AI response missing questions");
+        const data = await response.json();
+        if (!data || data.ok === false) {
+            throw new Error(data && data.reason ? `Proxy error: ${data.reason}` : "Proxy returned no questions");
         }
-        const newQuestions = finalizeQuestionBatch(data.questions, count);
+
+        const rawQuestions = Array.isArray(data.questions) ? data.questions : [];
+        if (rawQuestions.length === 0) {
+            throw new Error("AI returned empty question list");
+        }
+
+        // Client-side authoritative validation + fallback merge (defense in depth).
+        const newQuestions = finalizeQuestionBatch(rawQuestions, count);
 
         if (requestSessionId !== activeGameSessionId) return;
         
@@ -2788,6 +3269,10 @@ async function fetchBatchQuestions(count = 10, isInitial = true) {
 }
 
 function generateMockPuzzle(index = 0) {
+    // Hard mode: every third fallback item is a real interactive Stroop task.
+    if (CONFIG.difficulty === 'hard' && index % 3 === 2) {
+        return generateStroopPuzzle(Math.floor(index / 3));
+    }
     const localBank = {
         easy: {
             hk: [
@@ -2903,7 +3388,7 @@ function normalizeQuestionItem(item = {}) {
     const explanationLimit = isHk ? 60 : 140;
     const profile = getDifficultyProfile();
 
-    return {
+    const normalized = {
         question: compactText(item.question),
         options: Array.isArray(item.options)
             ? item.options.slice(0, 4).map((option) => compactText(option))
@@ -2915,6 +3400,15 @@ function normalizeQuestionItem(item = {}) {
         validation: compactText(item.validation || item.explanation || '', explanationLimit),
         source: item.source || 'ai'
     };
+
+    // Stroop items carry the stimulus word and its display color through.
+    if (item.type === 'stroop') {
+        normalized.type = 'stroop';
+        normalized.word = compactText(item.word, 12);
+        normalized.displayColor = String(item.displayColor || '').trim();
+    }
+
+    return normalized;
 }
 
 function renderPuzzle(data) {
@@ -2930,7 +3424,34 @@ function renderPuzzle(data) {
 
     if (qSkill) qSkill.textContent = data.skill || langText('邏輯推理', 'Logic');
     if (qBand) qBand.textContent = data.ageBand || getAgeBandLabel();
-    qText.textContent = data.question;
+
+    clearStroopTimer();
+    const isStroop = data.type === 'stroop';
+
+    if (isStroop) {
+        // Show the conflicting word in its display color, plus a small swatch
+        // so the hue stays identifiable for color-blind players.
+        qText.textContent = '';
+        qText.classList.add('stroop-word');
+        const instruction = document.createElement('span');
+        instruction.className = 'stroop-instruction';
+        instruction.textContent = data.question;
+        const wordEl = document.createElement('span');
+        wordEl.className = 'stroop-stimulus';
+        wordEl.textContent = data.word;
+        wordEl.style.color = data.displayColor;
+        const swatch = document.createElement('span');
+        swatch.className = 'stroop-swatch';
+        swatch.style.background = data.displayColor;
+        wordEl.appendChild(swatch);
+        qText.appendChild(instruction);
+        qText.appendChild(wordEl);
+    } else {
+        qText.classList.remove('stroop-word');
+        qText.style.color = '';
+        qText.textContent = data.question;
+    }
+
     qOptions.innerHTML = '';
 
     data.options.forEach((opt, index) => {
@@ -2938,9 +3459,65 @@ function renderPuzzle(data) {
         btn.className = 'option-btn';
         btn.textContent = opt;
         // Pass all buttons to checkAnswer so we can highlight correct one
-        btn.onclick = () => checkAnswer(index, data.answer, btn, qOptions.children);
+        btn.onclick = () => {
+            clearStroopTimer();
+            checkAnswer(index, data.answer, btn, qOptions.children);
+        };
         qOptions.appendChild(btn);
     });
+
+    if (isStroop) {
+        startStroopCountdown(data);
+    }
+}
+
+// Time pressure is what makes Stroop a focus task: run a visible countdown
+// and treat expiry as a wrong answer.
+function startStroopCountdown(data) {
+    const timerEl = document.getElementById('question-timer');
+    const deadline = performance.now() + STROOP_TIME_LIMIT_MS;
+    if (timerEl) timerEl.classList.add('stroop-active');
+
+    const tick = () => {
+        const remainingMs = deadline - performance.now();
+        if (remainingMs <= 0) {
+            clearStroopTimer();
+            handleStroopTimeout(data);
+            return;
+        }
+        if (timerEl) {
+            timerEl.textContent = `⏱ ${Math.ceil(remainingMs / 1000)}s`;
+            timerEl.classList.toggle('is-urgent', remainingMs <= 3000);
+        }
+    };
+    tick();
+    stroopTimerId = setInterval(tick, 200);
+}
+
+function handleStroopTimeout(data) {
+    const options = document.querySelectorAll('.option-btn');
+    options.forEach((opt) => (opt.disabled = true));
+
+    playWrongSound();
+    CONFIG.streak = 0;
+    updateStreakDisplay();
+
+    if (options[data.answer]) {
+        options[data.answer].style.background = '#4eff4e';
+        options[data.answer].style.color = 'black';
+    }
+
+    CONFIG.wrongAnswers.push({
+        question: `${data.question} [${data.word}]`,
+        userChoice: langText('（超時未答）', '(time out)'),
+        correctChoice: data.options[data.answer],
+        explanation: data.explanation
+    });
+
+    setTimeout(() => {
+        currentQuestionIndex++;
+        loadQuestionFromBank();
+    }, 2000);
 }
 
 function checkAnswer(selectedIndex, correctIndex, btn) {
@@ -3037,13 +3614,6 @@ const assetsLoadedPromise = new Promise(resolve => assetsLoadedResolve = resolve
 
 function init3DScene() {
     const sceneSessionId = activeGameSessionId;
-    // #region debug-point C:init-scene-entry
-    reportRuntimeDebug('C', 'init3DScene entry', {
-        hasCanvasContainer: Boolean(document.getElementById('canvas-container')),
-        windowWidth: window.innerWidth,
-        windowHeight: window.innerHeight
-    });
-    // #endregion
     // 0. Initialize Loading Manager
     loadingManager = new THREE.LoadingManager();
     loadingManager.onLoad = () => {
@@ -3055,9 +3625,6 @@ function init3DScene() {
     };
     loadingManager.onError = (url) => {
         console.error('[Loading] There was an error loading ' + url);
-        // #region debug-point E:loading-manager-error
-        reportRuntimeDebug('E', 'loading manager asset error', { url });
-        // #endregion
     };
 
     // 1. Scene Setup
@@ -3089,13 +3656,6 @@ function init3DScene() {
     renderer.shadowMap.enabled = PERFORMANCE_PROFILE.enableShadows;
     renderer.shadowMap.type = PERFORMANCE_PROFILE.enableShadows ? THREE.PCFSoftShadowMap : THREE.BasicShadowMap;
     document.getElementById('canvas-container').appendChild(renderer.domElement);
-    // #region debug-point C:renderer-appended
-    reportRuntimeDebug('C', 'renderer appended', {
-        hasScene: Boolean(scene),
-        hasRenderer: Boolean(renderer),
-        canvasChildren: document.getElementById('canvas-container')?.childElementCount || 0
-    });
-    // #endregion
 
     // Setup Post-Processing (Bloom + SMAA)
     setupPostProcessing();
@@ -3144,13 +3704,6 @@ function init3DScene() {
     Promise.all([texturesPromise, boatLoadedPromise, envPromise])
         .then(() => {
              console.log("Promise.all complete: Textures, Boat, and HDRI loaded.");
-             // #region debug-point D:asset-promise-all-success
-             reportRuntimeDebug('D', 'all core assets resolved', {
-                 hasBoat: Boolean(boat),
-                 hasWaterNormalTexture: Boolean(waterNormalTexture),
-                 hasSceneEnvironment: Boolean(scene?.environment)
-             });
-             // #endregion
              if (assetsLoadedResolve) assetsLoadedResolve();
         })
         .catch(err => {
@@ -3170,12 +3723,6 @@ function init3DScene() {
         ASSET_URLS.boat,
         function (gltf) {
             if (sceneSessionId !== activeGameSessionId) return;
-            // #region debug-point E:boat-load-success
-            reportRuntimeDebug('E', 'boat model load success callback', {
-                hasScene: Boolean(gltf?.scene),
-                childCount: gltf?.scene?.children?.length || 0
-            });
-            // #endregion
             const loadTime = performance.now() - modelLoadStart;
             console.log(`[Performance] Model loaded in ${loadTime.toFixed(2)}ms`);
 
@@ -3266,21 +3813,10 @@ function init3DScene() {
             });
             scene.add(boat);
             console.log("Model added to scene with scale (3,3,3) and Y-offset -0.5");
-            // #region debug-point E:boat-added-scene
-            reportRuntimeDebug('E', 'boat added to scene', {
-                boatType: boat?.type,
-                sceneChildren: scene?.children?.length || 0
-            });
-            // #endregion
         },
         undefined,
         function (error) {
             if (sceneSessionId !== activeGameSessionId) return;
-            // #region debug-point E:boat-load-error
-            reportRuntimeDebug('E', 'boat model load error callback', {
-                message: String(error?.message || error)
-            });
-            // #endregion
             console.error('Error loading boat model:', error);
             boat = createFallbackBoat();
             boat.position.y = -0.35;
@@ -3295,6 +3831,11 @@ function init3DScene() {
     // createFloatingIslands();  <-- Removed per request
     // createBalloons();         <-- Removed per request
     // setupSkySystem();         <-- DISABLED: Conflicts with HDRI
+
+    // Focus Gates: discrete, countable focus checkpoints along the rail.
+    if (FOCUS_GATES_ENABLED) {
+        initFocusGates(scene, THREE, boat ? boat.position.z : 0);
+    }
     
     // Setup Rim Light for Night Mode
     setupRimLight();
@@ -3381,9 +3922,10 @@ function setupPostProcessing() {
     const renderScene = new RenderPass(scene, camera);
 
     const bloomPass = new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 1.5, 0.4, 0.85);
-    bloomPass.threshold = 0.8;  // Only very bright things bloom
-    bloomPass.strength = 0.6;   // Moderate bloom intensity
-    bloomPass.radius = 0.5;     // Blur radius
+    bloomPass.threshold = 0.82; // Only very bright things bloom
+    bloomPass.strength = BLOOM_BASE_STRENGTH;   // Lighter bloom (perf)
+    bloomPass.radius = 0.4;     // Blur radius
+    bloomPassRef = bloomPass;   // expose to the game loop for flow-state boost
 
     // SMAA Pass for superior Anti-Aliasing
     const smaaPass = new SMAAPass(window.innerWidth * renderer.getPixelRatio(), window.innerHeight * renderer.getPixelRatio());
@@ -3412,15 +3954,9 @@ function loadTextures() {
             tex.minFilter = THREE.LinearMipmapLinearFilter;
             tex.magFilter = THREE.LinearFilter;
             tex.anisotropy = Math.min(renderer?.capabilities?.getMaxAnisotropy?.() || 1, isCompactViewport() ? 4 : 12);
-            // #region debug-point D:texture-water-normal
-            reportRuntimeDebug('D', 'water normal texture loaded', {
-                imageWidth: tex.image?.width || null,
-                imageHeight: tex.image?.height || null
-            });
-            // #endregion
             resolve(tex);
         }, undefined, () => {
-            reportRuntimeDebug('E', 'water normal texture failed, using generated placeholder', {});
+            console.warn('[assets] water normal texture failed, using generated placeholder');
             const fallback = new THREE.Texture();
             waterNormalTexture = fallback;
             resolve(fallback);
@@ -3433,16 +3969,9 @@ function loadTextures() {
             tex.minFilter = THREE.LinearMipmapLinearFilter;
             tex.magFilter = THREE.LinearFilter;
             tex.anisotropy = Math.min(renderer?.capabilities?.getMaxAnisotropy?.() || 1, isCompactViewport() ? 4 : 8);
-            // #region debug-point D:texture-foam
-            reportRuntimeDebug('D', 'foam fallback texture loaded', {
-                imageWidth: tex.image?.width || null,
-                imageHeight: tex.image?.height || null,
-                source: ASSET_URLS.splash
-            });
-            // #endregion
             resolve(tex);
         }, undefined, () => {
-            reportRuntimeDebug('E', 'foam fallback texture failed, reusing water normal texture', {});
+            console.warn('[assets] foam texture failed, reusing water normal texture');
             foamTexture = waterNormalTexture || new THREE.Texture();
             resolve(foamTexture);
         });
@@ -3453,15 +3982,9 @@ function loadTextures() {
             tex.minFilter = THREE.LinearMipmapLinearFilter;
             tex.magFilter = THREE.LinearFilter;
             tex.anisotropy = Math.min(renderer?.capabilities?.getMaxAnisotropy?.() || 1, isCompactViewport() ? 4 : 8);
-            // #region debug-point D:texture-splash
-            reportRuntimeDebug('D', 'splash texture loaded', {
-                imageWidth: tex.image?.width || null,
-                imageHeight: tex.image?.height || null
-            });
-            // #endregion
             resolve(tex);
         }, undefined, () => {
-            reportRuntimeDebug('E', 'splash texture failed, using foam fallback texture', {});
+            console.warn('[assets] splash texture failed, using foam fallback texture');
             splashTexture = foamTexture || waterNormalTexture || new THREE.Texture();
             resolve(splashTexture);
         });
@@ -4288,14 +4811,6 @@ function animate() {
         updateConnectBtn("Connecting EEG Bridge...", true, false);
         const url = bridgeUrls[bridgeUrlIndex % bridgeUrls.length];
         bridgeUrlIndex++;
-        // #region debug-point B:bridge-connect-attempt
-        reportRuntimeDebug('B', 'browser starting bridge connection attempt', {
-            url,
-            selectedInputMode,
-            eegModeActive,
-            bridgeConnected
-        });
-        // #endregion
 
         return new Promise((resolve) => {
             let settled = false;
@@ -4324,29 +4839,10 @@ function animate() {
                 bridgeConnected = true;
                 isConnected = true;
                 setEEGConnectionState('searching', 'Bridge connected. Opening your paired MindWave serial device...');
-                // #region debug-point B:bridge-open
-                reportRuntimeDebug('B', 'browser websocket opened', {
-                    url,
-                    selectedInputMode,
-                    eegModeActive
-                });
-                // #endregion
                 try {
                     bridgeSocket.send(JSON.stringify({ action: "start_eeg" }));
-                    // #region debug-point B:start-eeg-sent
-                    reportRuntimeDebug('B', 'browser sent start_eeg command', {
-                        url,
-                        selectedInputMode,
-                        eegModeActive
-                    });
-                    // #endregion
                 } catch (e) {
                     console.error("Failed to request EEG start", e);
-                    // #region debug-point E:start-eeg-send-failed
-                    reportRuntimeDebug('E', 'browser failed to send start_eeg command', {
-                        message: e?.message || String(e)
-                    });
-                    // #endregion
                 }
                 updateConnectBtn("Bridge Connected", false, true);
                 startConnectionWatchdog();
@@ -4364,6 +4860,10 @@ function animate() {
                         const meditation = Number(msg.meditation || 0);
                         const signal = Number(msg.signal_quality ?? 0);
                         const hasValidSignal = signal > 0 && attention >= 0 && attention <= 100;
+
+                        latestEEG = { attention, meditation, signal };
+                        renderSignalChip();
+                        renderEegDualAxis();
 
                         if (hasValidSignal) {
                             isHeadsetConnected = true;
@@ -4389,13 +4889,6 @@ function animate() {
                         console.log("[Bridge Status]", msg.message);
                         const statusText = String(msg.message || "");
                         const statusLower = statusText.toLowerCase();
-                        // #region debug-point B:bridge-status-message
-                        reportRuntimeDebug('B', 'browser received bridge status', {
-                            statusText,
-                            selectedInputMode,
-                            eegModeActive
-                        });
-                        // #endregion
                         if (
                             statusLower.includes("failed") ||
                             statusLower.includes("error") ||
@@ -4855,6 +5348,7 @@ function disposeGameSession() {
     activeGameSessionId += 1;
     isGameActive = false;
     stopBGM();
+    clearStroopTimer();
 
     if (startupTimeoutId) {
         clearTimeout(startupTimeoutId);
@@ -4908,15 +5402,6 @@ async function activateEEGMode() {
     selectedInputMode = 'eeg';
     eegModeActive = true;
     isSimulationMode = false;
-    // #region debug-point A:activate-eeg-mode
-    reportRuntimeDebug('A', 'activateEEGMode invoked from setup', {
-        selectedInputMode,
-        eegModeActive,
-        isSimulationMode,
-        bridgeHosts,
-        bridgeUrls
-    });
-    // #endregion
 
     if (focusInterval) {
         clearInterval(focusInterval);
@@ -5131,6 +5616,8 @@ export {
     initGameSession,
     leaveEEGMode,
     renderResults,
+    renderSessionDashboard,
+    renderHistoryTrend,
     setEEGConnectionState,
     showResults,
     startGameSession,

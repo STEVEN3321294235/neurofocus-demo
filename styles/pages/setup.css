@@ -129,7 +129,7 @@ body.light-mode .page-setup {
 .mode-helper-title {
     margin-bottom: 0.4rem;
     color: var(--setup-title-color);
-    font-family: var(--font-tech);
+    font-family: var(--font-display);
     font-size: 0.82rem;
     letter-spacing: 0.08em;
     text-transform: uppercase;
@@ -141,7 +141,7 @@ body.light-mode .page-setup {
 
 .difficulty-btn {
     text-align: center;
-    font-family: var(--font-tech);
+    font-family: var(--font-display);
     font-size: 1.05rem;
     min-height: 4rem;
 }
@@ -163,7 +163,7 @@ body.light-mode .page-setup {
 }
 
 .training-duration-value {
-    font-family: var(--font-tech);
+    font-family: var(--font-display);
     font-size: clamp(1.5rem, 1.2rem + 0.9vw, 2.1rem);
     color: var(--setup-title-color);
     line-height: 1;
@@ -239,7 +239,7 @@ body.light-mode .page-setup {
     height: 1.25rem;
     color: var(--setup-subtle-color);
     font-size: 0.82rem;
-    font-family: var(--font-tech);
+    font-family: var(--font-display);
 }
 
 .training-duration-mark {
@@ -247,14 +247,6 @@ body.light-mode .page-setup {
     top: 0;
     transform: translateX(-50%);
     white-space: nowrap;
-}
-
-.training-duration-mark:first-child {
-    transform: translateX(0);
-}
-
-.training-duration-mark:last-child {
-    transform: translateX(-100%);
 }
 
 .camera-consent-shell {
@@ -297,7 +289,7 @@ body.light-mode .page-setup {
     background: var(--setup-pill-bg);
     color: var(--setup-pill-color);
     font-size: 0.78rem;
-    font-family: var(--font-tech);
+    font-family: var(--font-display);
     letter-spacing: 0.05em;
 }
 
@@ -385,7 +377,7 @@ body.light-mode .page-setup {
 .camera-consent-caption {
     color: var(--setup-title-color);
     font-size: 0.84rem;
-    font-family: var(--font-tech);
+    font-family: var(--font-display);
     letter-spacing: 0.05em;
     text-transform: uppercase;
 }
@@ -429,4 +421,35 @@ body.light-mode .page-setup {
     .camera-actions .secondary-btn {
         width: 100%;
     }
+}
+
+/* --- Environment picker (ocean / study) --- */
+.setup-env-picker {
+    margin-top: 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+.setup-env-label {
+    color: var(--text-muted);
+    font-weight: 600;
+}
+.setup-env-options { display: flex; gap: 0.6rem; }
+.env-chip {
+    padding: 0.5rem 1rem;
+    border-radius: 999px;
+    border: 1px solid var(--field-border);
+    background: var(--field-bg);
+    color: var(--text-color);
+    cursor: pointer;
+    font-weight: 600;
+    transition: transform 0.2s ease, border-color 0.2s ease, background 0.2s ease;
+}
+.env-chip:hover { transform: translateY(-1px); }
+.env-chip.is-active {
+    border-color: var(--primary-color);
+    background: color-mix(in srgb, var(--primary-color) 22%, transparent);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary-color) 14%, transparent);
 }

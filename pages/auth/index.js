@@ -12,9 +12,9 @@ function renderAuthForm(state) {
             <h2>${isLogin ? t('auth_login_title') : t('auth_register_title')}</h2>
             <p>${isLogin ? t('auth_login_desc') : t('auth_register_desc')}</p>
             <div class="auth-form">
-                <input id="auth-username" type="text" placeholder="${t('auth_username_placeholder')}" value="${state.currentUser || ''}">
+                ${isLogin ? '' : `<input id="auth-username" type="text" placeholder="${t('auth_username_placeholder')}" value="${state.currentUser || ''}">`}
+                <input id="auth-email" type="email" placeholder="${t('auth_email_placeholder')}">
                 <input id="auth-password" type="password" placeholder="${t('auth_password_placeholder')}">
-                ${isLogin ? '' : `<input id="auth-email" type="email" placeholder="${t('auth_email_placeholder')}">`}
                 <button type="button" class="primary-btn" data-submit-auth>${isLogin ? t('auth_submit_login') : t('auth_submit_register')}</button>
             </div>
             <div class="auth-inline-actions">
@@ -74,7 +74,8 @@ export default {
         const continueButton = root.querySelector('[data-continue-setup]');
         if (continueButton) {
             continueButton.addEventListener('click', () => {
-                setState({ setupStep: 'mode' });
+                // Setup must start at step 01 (session goal), not input mode.
+                setState({ setupStep: 'test' });
                 router.navigate('setup');
             });
         }
@@ -102,13 +103,27 @@ export default {
             submitButton.addEventListener('click', async () => {
                 const state = getState();
                 const username = root.querySelector('#auth-username')?.value;
+                const email = root.querySelector('#auth-email')?.value;
+                const password = root.querySelector('#auth-password')?.value;
                 const message = root.querySelector('#auth-message');
 
+                submitButton.disabled = true;
                 try {
-                    const session = state.authView === 'register' ? register({ username }) : login({ username });
+                    const session = state.authView === 'register'
+                        ? await register({ username, email, password })
+                        : await login({ email, password });
+
+                    if (session.needsEmailConfirm) {
+                        // Account created but the Supabase project requires email
+                        // confirmation before login — tell the user and stay here.
+                        if (message) message.textContent = t('auth_confirm_email_sent');
+                        setState({ authView: 'login' });
+                        return;
+                    }
+
                     setState({
                         currentUser: session.username,
-                        setupStep: 'mode',
+                        setupStep: 'test',
                         inputMode: 'idle',
                         cameraConsent: 'unknown',
                         focusSource: 'simulation-fallback'
@@ -124,8 +139,12 @@ export default {
                     router.navigate('setup');
                 } catch (error) {
                     if (message) {
-                        message.textContent = error.message;
+                        const key = error?.code ? `auth_error_${error.code}` : '';
+                        const translated = key ? t(key) : '';
+                        message.textContent = translated && translated !== key ? translated : (error.message || 'Error');
                     }
+                } finally {
+                    submitButton.disabled = false;
                 }
             });
         }

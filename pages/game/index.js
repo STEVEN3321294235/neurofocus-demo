@@ -8,17 +8,6 @@ async function getRuntime() {
     return importGameRuntime('/pages/game/runtime.js');
 }
 
-// #region debug-point C:game-page-report
-const DEBUG_SERVER_URL = window.__TRAE_DEBUG_SERVER_URL__ || null;
-const reportGamePageDebug = (hypothesisId, msg, data = {}) => {
-    if (!DEBUG_SERVER_URL || DEBUG_SERVER_URL.includes('127.0.0.1:7777')) return Promise.resolve();
-    return fetch(DEBUG_SERVER_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sessionId: 'stitch-layout-game-render', runId: 'post-fix', hypothesisId, location: 'pages/game/index.js', msg: `[DEBUG] ${msg}`, data, ts: Date.now() })
-    }).catch(() => {});
-};
-// #endregion
 
 export default {
     render() {
@@ -41,6 +30,7 @@ export default {
                     </div>
 
                     <div id="manual-debug-panel" style="display: none;"></div>
+                    <div id="fps-meter" style="display: none;">-- FPS</div>
                     <div id="user-info">${t('game_player')}：<span id="display-username">${state.currentUser || '-'}</span></div>
 
                     <div id="top-bar">
@@ -55,13 +45,26 @@ export default {
                             <div class="status-chip-row">
                                 <span id="mode-badge" class="status-chip neutral">Idle</span>
                                 <span id="device-badge" class="status-chip neutral">Waiting</span>
+                                <span id="eeg-signal-chip" class="eeg-signal-chip" style="display: none;"></span>
                             </div>
                             <div id="mode-status-title">Choose mode</div>
                             <div id="mode-status-detail">Real or simulation</div>
                         </div>
 
+                        <div id="eeg-dual-axis" style="display: none;">
+                            <div class="eeg-axis-row">
+                                <span class="eeg-axis-label">${t('eeg_focus_axis')}</span>
+                                <div class="eeg-axis-track"><div id="eeg-attention-bar" class="eeg-axis-fill focus"></div></div>
+                            </div>
+                            <div class="eeg-axis-row">
+                                <span class="eeg-axis-label">${t('eeg_relax_axis')}</span>
+                                <div class="eeg-axis-track"><div id="eeg-meditation-bar" class="eeg-axis-fill relax"></div></div>
+                            </div>
+                        </div>
+
                         <div class="label">
                                 <span data-i18n="focus_level">Focus</span>
+                            <span id="focus-zone-chip" class="zone-stable" style="display: none;"></span>
                             <span id="focus-value">--</span>
                         </div>
                         <div class="bar-container">
@@ -86,6 +89,21 @@ export default {
                                 <span id="distance-value">0.0 m</span>
                             </div>
                         </div>
+
+                        <div id="gate-counter" style="display: none;">
+                            <div class="label">
+                                <span>🎯 <span data-i18n="gate_label">Gates</span></span>
+                                <span id="gate-counter-value">0/0</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="onboarding-cue" style="display: none;">
+                        <span id="onboarding-cue-text"></span>
+                    </div>
+
+                    <div id="boost-flash" style="display: none;">
+                        <span id="boost-flash-text"></span>
                     </div>
 
                     <div id="play-time-display">
@@ -124,15 +142,6 @@ export default {
 
     async mount({ root, router }) {
         const state = getState();
-        // #region debug-point C:game-mount-entry
-        reportGamePageDebug('C', 'game page mount entry', {
-            currentUser: state.currentUser,
-            difficulty: state.difficulty,
-            hasCanvasContainer: Boolean(root.querySelector('#canvas-container')),
-            hasUiContainer: Boolean(root.querySelector('#ui-container')),
-            canvasContainerRect: root.querySelector('#canvas-container')?.getBoundingClientRect?.() || null
-        });
-        // #endregion
         if (!state.currentUser || !state.difficulty) {
             router.navigate('setup');
             return;
@@ -151,13 +160,6 @@ export default {
             onResults: () => router.navigate('results')
         });
         runtime.switchLanguage(state.lang);
-        // #region debug-point C:game-runtime-ready
-        reportGamePageDebug('C', 'game runtime imported and configured', {
-            selectedRoute: state.route,
-            lang: state.lang,
-            canvasChildrenBeforeStart: root.querySelector('#canvas-container')?.childElementCount || 0
-        });
-        // #endregion
         runtime.startGameSession();
 
         const homeButton = root.querySelector('#btn-back-home-game');
@@ -189,9 +191,6 @@ export default {
 
     async unmount() {
         try {
-            // #region debug-point D:game-unmount
-            reportGamePageDebug('D', 'game page unmount', {});
-            // #endregion
             const runtime = await getRuntime();
             runtime.disposeGameSession();
         } catch (error) {

@@ -1,8 +1,13 @@
+import { getSupabase } from './supabaseClient.js';
+
 const STORAGE_KEYS = {
     lang: 'game_lang',
     theme: 'theme',
-    user: 'current_user'
+    user: 'current_user',
+    history: 'session_history'
 };
+
+const HISTORY_LIMIT = 10;
 
 export function getLang() {
     return localStorage.getItem(STORAGE_KEYS.lang) || 'hk';
@@ -30,4 +35,110 @@ export function setCurrentUser(username) {
 
 export function clearCurrentUser() {
     localStorage.removeItem(STORAGE_KEYS.user);
+}
+
+// --- Cross-session history (Supabase when signed in, localStorage fallback) ---
+//
+// Summary shape (camelCase in JS, snake_case in the DB):
+// { ts, testMode, difficulty, focusedRatio, avgRecoveryMs, accuracy, distance,
+//   durationMs, firstHalfFocus, secondHalfFocus, breathingCount,
+//   adaptiveThresholdUsed }
+
+async function getCloudSession() {
+    try {
+        const supabase = await getSupabase();
+        if (!supabase) return { supabase: null, userId: null };
+        const { data } = await supabase.auth.getSession();
+        return { supabase, userId: data?.session?.user?.id || null };
+    } catch (e) {
+        return { supabase: null, userId: null };
+    }
+}
+
+function readLocalHistory() {
+    try {
+        const raw = localStorage.getItem(STORAGE_KEYS.history);
+        const parsed = raw ? JSON.parse(raw) : [];
+        return Array.isArray(parsed) ? parsed : [];
+    } catch (e) {
+        return [];
+    }
+}
+
+function writeLocalHistory(entries) {
+    try {
+        localStorage.setItem(STORAGE_KEYS.history, JSON.stringify(entries.slice(-HISTORY_LIMIT)));
+    } catch (e) {
+        /* storage full/blocked: history is best-effort */
+    }
+}
+
+function rowToSummary(row) {
+    return {
+        ts: row.ts,
+        testMode: row.test_mode,
+        difficulty: row.difficulty,
+        focusedRatio: Number(row.focused_ratio ?? 0),
+        avgRecoveryMs: Number(row.avg_recovery_ms ?? 0),
+        accuracy: Number(row.accuracy ?? 0),
+        distance: Number(row.distance ?? 0),
+        durationMs: Number(row.duration_ms ?? 0),
+        firstHalfFocus: Number(row.first_half_focus ?? 0),
+        secondHalfFocus: Number(row.second_half_focus ?? 0),
+        breathingCount: Number(row.breathing_count ?? 0),
+        adaptiveThresholdUsed: row.adaptive_threshold_used == null ? null : Number(row.adaptive_threshold_used)
+    };
+}
+
+// Returns the most recent sessions, oldest first (ready for trend charts).
+export async function getSessionHistory(limit = HISTORY_LIMIT) {
+    const { supabase, userId } = await getCloudSession();
+    if (supabase && userId) {
+        try {
+            const { data, error } = await supabase
+                .from('session_history')
+                .select('*')
+                .order('ts', { ascending: false })
+                .limit(limit);
+            if (!error && Array.isArray(data)) {
+                return data.map(rowToSummary).reverse();
+            }
+        } catch (e) {
+            /* fall through to local */
+        }
+    }
+    return readLocalHistory().slice(-limit);
+}
+
+export async function appendSessionSummary(summary) {
+    const entry = { ...summary, ts: summary.ts || new Date().toISOString() };
+
+    // Always mirror locally so the trend still shows offline / logged-out.
+    const local = readLocalHistory();
+    local.push(entry);
+    writeLocalHistory(local);
+
+    const { supabase, userId } = await getCloudSession();
+    if (!supabase || !userId) return { stored: 'local' };
+
+    try {
+        const { error } = await supabase.from('session_history').insert({
+            user_id: userId,
+            ts: entry.ts,
+            test_mode: entry.testMode,
+            difficulty: entry.difficulty ?? null,
+            focused_ratio: entry.focusedRatio ?? null,
+            avg_recovery_ms: entry.avgRecoveryMs ?? null,
+            accuracy: entry.accuracy ?? null,
+            distance: entry.distance ?? null,
+            duration_ms: entry.durationMs ?? null,
+            first_half_focus: entry.firstHalfFocus ?? null,
+            second_half_focus: entry.secondHalfFocus ?? null,
+            breathing_count: entry.breathingCount ?? null,
+            adaptive_threshold_used: entry.adaptiveThresholdUsed ?? null
+        });
+        return { stored: error ? 'local' : 'cloud' };
+    } catch (e) {
+        return { stored: 'local' };
+    }
 }
