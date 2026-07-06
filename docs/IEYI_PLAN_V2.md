@@ -1,6 +1,6 @@
 # NeuroFocus IEYI 衝刺計劃 V2（2026-07-05 起・唯一有效版本）
 
-> 舊版 `docs/IEYI_SPRINT_PLAN.md` 已封存，只作歷史紀錄。**由今日起一切以呢份為準。**
+> 舊版 plan（`IEYI_SPRINT_PLAN.md`）已刪除，內容已整合入本檔。**由今日起一切以呢份為準，全 repo 得呢一份 plan。**
 >
 > 現況一句講晒：後端、登入、key 安全、Results 證據鏈、EEG 放大、UI reskin 已全部完成。
 > 剩低三條戰線：**① Gameplay（玩法真係練到專注）、② 畫質精細 + 運行流暢、③ EEG 穩定 + 比賽 rehearsal**。
