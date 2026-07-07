@@ -540,6 +540,21 @@ const WEATHER_MIST_FOG_COLOR = new THREE.Color(0x93a4b5);
 const WEATHER_MIST_WATER_COLOR = new THREE.Color(0x33474a);
 const WEATHER_MIST_FOG_DENSITY = 0.0155;
 
+// --- Golden moment (Real EEG exclusive) ---
+// When attention AND meditation are both high for a few seconds, the scene
+// shifts into a warm golden hour: the dual-axis payoff only a real headset
+// can unlock. Simulation/camera sessions never see it (no meditation signal).
+let goldenLevel = 0;
+let goldenTarget = 0;
+let goldenHoldMs = 0;
+let goldenHold = null; // debug/booth override
+let goldenAnnouncedSessionId = -1;
+const GOLDEN_ATTENTION_MIN = 70;
+const GOLDEN_SUSTAIN_MS = 4000;
+const GOLDEN_SUN_COLOR = new THREE.Color(0xffc981);
+const GOLDEN_FOG_COLOR = new THREE.Color(0xffe2bd);
+const GOLDEN_WATER_COLOR = new THREE.Color(0x0e5f6b);
+
 function updateWeatherTarget(effectiveFocus) {
     if (weatherGloomHold !== null) {
         weatherGloomTarget = weatherGloomHold;
@@ -558,28 +573,33 @@ function updateWeatherTarget(effectiveFocus) {
     }
 }
 
-// Called once per frame, after the environment transition lerp, so weather
-// always has the final word on fog/light/water for this frame.
+// Called once per frame, after the environment transition lerp, so the mood
+// grading (mist + golden hour) always has the final word on fog/light/water.
 function applyWeatherMood(deltaSec) {
     if (!scene || !scene.fog) return;
 
     // Mist rolls in slowly (~7s feel) and clears a little faster (~5s).
     const lambda = weatherGloomTarget > weatherGloom ? 0.33 : 0.5;
     weatherGloom = THREE.MathUtils.damp(weatherGloom, weatherGloomTarget, lambda, deltaSec);
+    // Golden hour fades in/out over a similar timescale.
+    goldenLevel = THREE.MathUtils.damp(goldenLevel, goldenTarget, 0.45, deltaSec);
 
     const g = weatherGloom;
-    if (g < 0.004) {
+    const k = goldenLevel;
+    if (g < 0.004 && k < 0.004) {
         if (!weatherWasActive) return;
         weatherWasActive = false; // settle exactly on the canonical look once
     } else {
         weatherWasActive = true;
     }
 
-    // Ease actual values toward the gloom-mixed goal (also keeps day/night
-    // theme switches smooth while weather is active).
+    // Ease actual values toward the mood-mixed goal (also keeps day/night
+    // theme switches smooth while a mood is active).
     const ease = Math.min(1, deltaSec * 2.5);
     scene.fog.color.lerp(
-        _weatherFogColor.copy(envState.targetFogColor).lerp(WEATHER_MIST_FOG_COLOR, g),
+        _weatherFogColor.copy(envState.targetFogColor)
+            .lerp(WEATHER_MIST_FOG_COLOR, g)
+            .lerp(GOLDEN_FOG_COLOR, k * 0.6),
         ease
     );
     scene.fog.density = THREE.MathUtils.lerp(
@@ -589,31 +609,97 @@ function applyWeatherMood(deltaSec) {
     );
     if (directionalLight) {
         directionalLight.intensity = THREE.MathUtils.lerp(
-            directionalLight.intensity, envState.targetSunIntensity * (1 - 0.45 * g), ease
+            directionalLight.intensity,
+            envState.targetSunIntensity * (1 - 0.45 * g) * (1 + 0.18 * k),
+            ease
+        );
+        directionalLight.color.lerp(
+            _weatherSunColor.copy(envState.targetSunColor).lerp(GOLDEN_SUN_COLOR, k),
+            ease
         );
     }
     if (ambientLight) {
         ambientLight.intensity = THREE.MathUtils.lerp(
-            ambientLight.intensity, envState.targetAmbientIntensity * (1 - 0.22 * g), ease
+            ambientLight.intensity,
+            envState.targetAmbientIntensity * (1 - 0.22 * g) * (1 + 0.08 * k),
+            ease
         );
     }
     if (renderer) {
         renderer.toneMappingExposure = THREE.MathUtils.lerp(
-            renderer.toneMappingExposure, envState.targetExposure * (1 - 0.12 * g), ease
+            renderer.toneMappingExposure,
+            envState.targetExposure * (1 - 0.12 * g) * (1 + 0.08 * k),
+            ease
         );
     }
     if (water?.material?.uniforms?.waterColor) {
         water.material.uniforms.waterColor.value.lerp(
-            _weatherWaterColor.copy(envState.targetWaterColor).lerp(WEATHER_MIST_WATER_COLOR, g),
+            _weatherWaterColor.copy(envState.targetWaterColor)
+                .lerp(WEATHER_MIST_WATER_COLOR, g)
+                .lerp(GOLDEN_WATER_COLOR, k * 0.7),
             ease
         );
     }
-    // Dim + blur the HDR sky with the mist (fog does not touch the skybox).
-    scene.backgroundIntensity = THREE.MathUtils.lerp(scene.backgroundIntensity ?? 1, 1 - 0.5 * g, ease);
+    if (water?.material?.uniforms?.sunColor) {
+        water.material.uniforms.sunColor.value.lerp(
+            _weatherWaterSun.copy(envState.targetSunColor).lerp(GOLDEN_SUN_COLOR, k),
+            ease
+        );
+    }
+    // Dim + blur the HDR sky with the mist; warm it slightly in golden hour.
+    scene.backgroundIntensity = THREE.MathUtils.lerp(
+        scene.backgroundIntensity ?? 1, (1 - 0.5 * g) * (1 + 0.1 * k), ease
+    );
     scene.backgroundBlurriness = THREE.MathUtils.lerp(scene.backgroundBlurriness ?? 0, 0.3 * g, ease);
 }
 const _weatherFogColor = new THREE.Color();
 const _weatherWaterColor = new THREE.Color();
+const _weatherSunColor = new THREE.Color();
+const _weatherWaterSun = new THREE.Color();
+
+// Golden-moment state machine, ticked from the game loop. Real EEG only.
+function updateGoldenMoment(deltaMs) {
+    if (goldenHold !== null) {
+        goldenTarget = goldenHold ? 1 : 0;
+    } else {
+        const dualAxisLive = selectedInputMode === 'eeg' && latestEEG.meditation !== null;
+        const qualifies = dualAxisLive && isGameActive && !CONFIG.isPaused
+            && focusLevel >= GOLDEN_ATTENTION_MIN
+            && latestEEG.meditation >= MEDITATION_FLOW_THRESHOLD;
+        if (qualifies) {
+            goldenHoldMs += deltaMs;
+            if (goldenHoldMs >= GOLDEN_SUSTAIN_MS) goldenTarget = 1;
+        } else {
+            goldenHoldMs = 0;
+            goldenTarget = 0;
+        }
+    }
+
+    // Track time spent in the golden state for the results dashboard, and
+    // announce the first entry of the session (gentle, once only).
+    if (goldenLevel > 0.6 && isGameActive && !CONFIG.isPaused) {
+        trainingAnalytics.goldenTimeMs += deltaMs;
+        if (goldenAnnouncedSessionId !== activeGameSessionId) {
+            goldenAnnouncedSessionId = activeGameSessionId;
+            const banner = document.getElementById('star-banner');
+            const bannerText = document.getElementById('star-banner-text');
+            if (banner && bannerText) {
+                bannerText.textContent = langText(
+                    '🌅 黃金時刻——你嘅腦同時做到專注＋放鬆',
+                    '🌅 Golden hour — your brain is focused AND relaxed'
+                );
+                banner.style.display = '';
+                banner.classList.remove('is-in');
+                void banner.offsetWidth;
+                banner.classList.add('is-in');
+                setTimeout(() => {
+                    banner.classList.remove('is-in');
+                    setTimeout(() => { banner.style.display = 'none'; }, 500);
+                }, 2600);
+            }
+        }
+    }
+}
 
 // Adapt the recovery bar to the player's own recent history (simple clamped
 // rules, deliberately not ML — easy to explain to judges):
@@ -680,6 +766,8 @@ function createTrainingAnalytics() {
         flowStars: 0,
         chargeBoostUntil: 0,
         starGlideUntil: 0,
+        // Time spent in the dual-axis golden state (Real EEG only).
+        goldenTimeMs: 0,
         // Silent focus timeline for the results dashboard (one value per ~2s).
         focusSamples: [],
         sampleAccumulatorMs: 0
@@ -1577,8 +1665,10 @@ function updateGameLogic(delta) {
         }
     }
 
-    // Weather follows the mind every frame (handles hold/idle states itself).
+    // Weather + golden hour follow the mind every frame (both handle their
+    // own hold/idle states internally).
     updateWeatherTarget(effectiveFocusLevel);
+    updateGoldenMoment(delta * 1000);
 
     if (isGameActive && !externalPause && !trainingAnalytics.interventionActive) {
         updateTrainingAnalytics(delta * 1000, effectiveFocusLevel);
@@ -4039,7 +4129,13 @@ function init3DScene() {
                 if (isGameActive && !trainingAnalytics.interventionActive) {
                     startBreathingIntervention(performance.now());
                 }
-            }
+            },
+            // Pin the golden moment on/off without a headset (booth demo /
+            // testing); pass null to hand control back to the live EEG signal.
+            setGolden: (value) => {
+                goldenHold = value === null ? null : Boolean(value);
+            },
+            getGolden: () => ({ level: goldenLevel, target: goldenTarget, hold: goldenHold, timeMs: trainingAnalytics.goldenTimeMs })
         };
     }
 }
