@@ -11,6 +11,7 @@ import { SMAAPass } from 'three/addons/postprocessing/SMAAPass.js';
 import { setState, getState } from '../../app/state.js';
 import { getCameraFocusScore, getCameraTrackingStatus, stopCameraPreview } from '../../services/focusInputService.js?v=2026-06-24-23';
 import { appendSessionSummary, getSessionHistory } from '../../services/storageService.js';
+import { initVoyage, resetVoyage, updateVoyage, getVoyageStats, CHECKPOINT_SPACING } from './voyage.js';
 
 // DEMO_MODE shows the raw EEG channels (attention / meditation / signal) for
 // the competition booth. Flip to false in a future product build to hide the
@@ -768,6 +769,8 @@ function createTrainingAnalytics() {
         starGlideUntil: 0,
         // Time spent in the dual-axis golden state (Real EEG only).
         goldenTimeMs: 0,
+        // Lighthouses passed this session.
+        checkpointCount: 0,
         // Silent focus timeline for the results dashboard (one value per ~2s).
         focusSamples: [],
         sampleAccumulatorMs: 0
@@ -1170,6 +1173,35 @@ function playStarSound() {
     // Gentle two-note chime (E5 -> A5), softer than the answer sounds.
     playTone(659.25, 'sine', 0.35);
     setTimeout(() => playTone(880, 'sine', 0.5), 130);
+}
+
+// Lighthouse checkpoint: soft harbour-bell + teal banner. Works in both
+// modes (the route belongs to the world, stars belong to training).
+function onCheckpointReached(event) {
+    trainingAnalytics.checkpointCount = event.passed;
+    playCheckpointBell();
+    const banner = document.getElementById('checkpoint-banner');
+    const bannerText = document.getElementById('checkpoint-banner-text');
+    if (banner && bannerText) {
+        bannerText.textContent = langText(
+            `⚓ 到達第 ${event.index} 座燈塔`,
+            `⚓ Lighthouse ${event.index} reached`
+        );
+        banner.style.display = '';
+        banner.classList.remove('is-in');
+        void banner.offsetWidth;
+        banner.classList.add('is-in');
+        setTimeout(() => {
+            banner.classList.remove('is-in');
+            setTimeout(() => { banner.style.display = 'none'; }, 500);
+        }, 2000);
+    }
+}
+
+function playCheckpointBell() {
+    // Two mellow triangle tones ~ a distant harbour bell.
+    playTone(523.25, 'triangle', 0.5);
+    setTimeout(() => playTone(783.99, 'triangle', 0.7), 170);
 }
 
 // Wordless-first onboarding beat: one line that explains the core mapping,
@@ -1833,6 +1865,15 @@ function updateGameLogic(delta) {
     if (boat) {
         // Move Boat
         boat.position.z -= moveDist;
+
+        // Voyage route: lane follow, beacon/bird animation, checkpoint pass.
+        const checkpointEvent = updateVoyage({
+            boatZ: boat.position.z,
+            elapsedMs: now,
+            deltaSec: delta,
+            active: isGameActive && !CONFIG.isPaused
+        });
+        if (checkpointEvent) onCheckpointReached(checkpointEvent);
 
         // Update wake / splash effects
         updateParticles(delta, speedMPS);
@@ -2515,6 +2556,9 @@ function initGameSession() {
             boat.position.y = -0.35;
             scene.add(boat);
         }
+
+        // Lay the route out ahead of wherever the boat is starting from.
+        resetVoyage(boat.position.z);
 
         attachRendererToCanvasHost();
         const canvasHost = document.getElementById('canvas-container');
@@ -4097,7 +4141,10 @@ function init3DScene() {
     // Setup Rim Light for Night Mode
     setupRimLight();
     setupBoatParticles();
-    
+
+    // Voyage route: glowing lane + lighthouse checkpoint islands.
+    initVoyage(scene, THREE, PERFORMANCE_PROFILE);
+
     // 9. Resize Handler
     window.addEventListener('resize', onWindowResize);
 
@@ -4135,7 +4182,12 @@ function init3DScene() {
             setGolden: (value) => {
                 goldenHold = value === null ? null : Boolean(value);
             },
-            getGolden: () => ({ level: goldenLevel, target: goldenTarget, hold: goldenHold, timeMs: trainingAnalytics.goldenTimeMs })
+            getGolden: () => ({ level: goldenLevel, target: goldenTarget, hold: goldenHold, timeMs: trainingAnalytics.goldenTimeMs }),
+            // Jump the boat forward (metres) to reach route landmarks quickly.
+            teleport: (metres) => {
+                if (boat) boat.position.z -= Math.max(0, Number(metres) || 0);
+            },
+            getVoyage: () => getVoyageStats(boat ? boat.position.z : 0)
         };
     }
 }
