@@ -11,7 +11,7 @@ import { SMAAPass } from 'three/addons/postprocessing/SMAAPass.js';
 import { setState, getState } from '../../app/state.js';
 import { getCameraFocusScore, getCameraTrackingStatus, stopCameraPreview } from '../../services/focusInputService.js?v=2026-06-24-23';
 import { appendSessionSummary, getSessionHistory, getLocalVoyageLog, appendVoyageLog, getCumulativeCloudDistance } from '../../services/storageService.js';
-import { initVoyage, resetVoyage, updateVoyage, getVoyageStats, CHECKPOINT_SPACING } from './voyage.js';
+import { initVoyage, resetVoyage, updateVoyage, getVoyageStats, getBuoysInWindow, routeXAt, routeYawAt, CHECKPOINT_SPACING } from './voyage.js';
 
 // DEMO_MODE shows the raw EEG channels (attention / meditation / signal) for
 // the competition booth. Flip to false in a future product build to hide the
@@ -1175,24 +1175,22 @@ function playStarSound() {
     setTimeout(() => playTone(880, 'sine', 0.5), 130);
 }
 
-// --- Voyage card (stylized minimap) ---
-// One "leg" of the journey at a time: previous lighthouse -> next lighthouse,
-// boat dot travelling along a curved route. Redraws only when the rounded
-// progress or the indices change, so per-frame cost is a cheap comparison.
-const voyageCardState = { pct: -1, nextIndex: -1, passed: -1 };
-let voyageRouteLength = 0;
-const VOYAGE_T_PREV = 0.06;
-const VOYAGE_T_NEXT = 0.62;
-const VOYAGE_T_AFTER = 0.97;
+// --- Voyage card (live local chart) ---
+// Draws the ACTUAL route curve in a window around the boat (left = behind,
+// right = ahead), the boat at its true lateral position — so drifting
+// off-course is visible on the chart — and the beacon buoys in view.
+// Redrawn at ~4Hz; each redraw is ~20 trig samples and a few DOM writes.
+const VOYAGE_WINDOW_BEHIND = 80;
+const VOYAGE_WINDOW_AHEAD = 740;
+const VOYAGE_SAMPLES = 20;
+let voyageCardLastDraw = 0;
 
-function placeVoyageDot(id, t, label) {
-    const dot = document.getElementById(id);
-    const route = document.getElementById('voyage-route');
-    if (!dot || !route || !voyageRouteLength) return;
-    const p = route.getPointAtLength(voyageRouteLength * t);
-    dot.setAttribute('transform', `translate(${p.x.toFixed(1)}, ${p.y.toFixed(1)})`);
-    const text = dot.querySelector('text');
-    if (text && text.textContent !== label) text.textContent = label;
+function voyageCardU(z, boatZ) {
+    return 10 + ((boatZ + VOYAGE_WINDOW_BEHIND - z) / (VOYAGE_WINDOW_BEHIND + VOYAGE_WINDOW_AHEAD)) * 200;
+}
+
+function voyageCardV(x, centreX) {
+    return THREE.MathUtils.clamp(42 + (x - centreX) * 0.3, 8, 76);
 }
 
 function renderVoyageCard(force = false) {
@@ -1201,53 +1199,59 @@ function renderVoyageCard(force = false) {
     const show = isGameActive;
     const displayValue = show ? '' : 'none';
     if (card.style.display !== displayValue) card.style.display = displayValue;
-    if (!show) return;
+    if (!show || !boat) return;
 
-    const stats = getVoyageStats(boat ? boat.position.z : 0);
-    const progress = THREE.MathUtils.clamp(1 - stats.distanceToNextM / stats.spacing, 0, 1);
-    const pct = Math.round(progress * 100);
-    if (!force && voyageCardState.pct === pct
-        && voyageCardState.nextIndex === stats.nextIndex
-        && voyageCardState.passed === stats.passed) return;
+    const nowMs = performance.now();
+    if (!force && nowMs - voyageCardLastDraw < 250) return;
+    voyageCardLastDraw = nowMs;
+
+    const boatZ = boat.position.z;
+    // Centre the chart's lateral axis on the route a little ahead.
+    const centreX = routeXAt(boatZ - 250);
 
     const route = document.getElementById('voyage-route');
-    const done = document.getElementById('voyage-route-done');
-    const boatDot = document.getElementById('voyage-boat');
-    if (!route || !done || !boatDot) return;
-    if (!voyageRouteLength) {
-        voyageRouteLength = route.getTotalLength();
-        done.style.strokeDasharray = String(voyageRouteLength);
-    }
-
-    // New leg: quick fade so the dot "jump" reads as turning the page.
-    if (voyageCardState.nextIndex !== -1 && voyageCardState.nextIndex !== stats.nextIndex) {
-        const map = document.getElementById('voyage-map');
-        if (map) {
-            map.classList.remove('leg-flip');
-            void map.getBoundingClientRect();
-            map.classList.add('leg-flip');
+    if (route) {
+        let d = '';
+        for (let i = 0; i <= VOYAGE_SAMPLES; i++) {
+            const z = boatZ + VOYAGE_WINDOW_BEHIND - (i / VOYAGE_SAMPLES) * (VOYAGE_WINDOW_BEHIND + VOYAGE_WINDOW_AHEAD);
+            d += (i === 0 ? 'M' : 'L')
+                + voyageCardU(z, boatZ).toFixed(1) + ','
+                + voyageCardV(routeXAt(z), centreX).toFixed(1);
         }
+        route.setAttribute('d', d);
     }
-    voyageCardState.pct = pct;
-    voyageCardState.nextIndex = stats.nextIndex;
-    voyageCardState.passed = stats.passed;
 
-    const boatT = VOYAGE_T_PREV + (VOYAGE_T_NEXT - VOYAGE_T_PREV) * progress;
-    const boatPoint = route.getPointAtLength(voyageRouteLength * boatT);
-    boatDot.setAttribute('cx', boatPoint.x.toFixed(1));
-    boatDot.setAttribute('cy', boatPoint.y.toFixed(1));
-    done.style.strokeDashoffset = String(voyageRouteLength * (1 - boatT));
+    // Boat marker at its TRUE position: gap to the line = how far off-course.
+    const boatDot = document.getElementById('voyage-boat');
+    if (boatDot) {
+        boatDot.setAttribute('cx', voyageCardU(boatZ, boatZ).toFixed(1));
+        boatDot.setAttribute('cy', voyageCardV(boat.position.x, centreX).toFixed(1));
+    }
 
-    const prevIndex = stats.nextIndex - 1;
-    placeVoyageDot('voyage-dot-prev', VOYAGE_T_PREV, prevIndex <= 0 ? '⚓' : String(prevIndex));
-    placeVoyageDot('voyage-dot-next', VOYAGE_T_NEXT, String(stats.nextIndex));
-    placeVoyageDot('voyage-dot-after', VOYAGE_T_AFTER, String(stats.nextIndex + 1));
+    const stats = getVoyageStats(boatZ);
+    const buoysInView = getBuoysInWindow(boatZ, VOYAGE_WINDOW_BEHIND, VOYAGE_WINDOW_AHEAD);
+    const dotIds = ['voyage-dot-prev', 'voyage-dot-next', 'voyage-dot-after'];
+    for (let i = 0; i < dotIds.length; i++) {
+        const el = document.getElementById(dotIds[i]);
+        if (!el) continue;
+        const b = buoysInView[i];
+        if (!b) {
+            if (el.style.display !== 'none') el.style.display = 'none';
+            continue;
+        }
+        if (el.style.display !== '') el.style.display = '';
+        el.setAttribute('transform', `translate(${voyageCardU(b.z, boatZ).toFixed(1)}, ${voyageCardV(b.x, centreX).toFixed(1)})`);
+        el.classList.toggle('is-next', b.state === 'idle' && b.index === stats.nextIndex);
+        el.classList.toggle('is-after', b.state !== 'idle');
+        const text = el.querySelector('text');
+        if (text && text.textContent !== String(b.index)) text.textContent = String(b.index);
+    }
 
     const nextLine = document.getElementById('voyage-next');
     if (nextLine) {
         nextLine.textContent = langText(
-            `下一座燈塔仲有 ${Math.max(0, Math.round(stats.distanceToNextM))}m`,
-            `Next lighthouse in ${Math.max(0, Math.round(stats.distanceToNextM))}m`
+            `下一個航標仲有 ${Math.max(0, Math.round(stats.distanceToNextM))}m`,
+            `Next beacon in ${Math.max(0, Math.round(stats.distanceToNextM))}m`
         );
     }
     const count = document.getElementById('voyage-count');
@@ -1274,10 +1278,10 @@ async function loadVoyageTotals() {
 function formatVoyageTotals() {
     if (!voyageTotals) return '';
     const km = voyageTotals.distanceM / 1000;
-    const lighthouses = Math.floor(voyageTotals.distanceM / CHECKPOINT_SPACING);
+    const beacons = Math.floor(voyageTotals.distanceM / CHECKPOINT_SPACING);
     return langText(
-        `累積 ${km.toFixed(1)} km · ${lighthouses} 座燈塔`,
-        `Total ${km.toFixed(1)} km · ${lighthouses} lighthouses`
+        `累積 ${km.toFixed(1)} km · ${beacons} 個航標`,
+        `Total ${km.toFixed(1)} km · ${beacons} beacons`
     );
 }
 
@@ -1318,8 +1322,8 @@ function onCheckpointReached(event) {
     const bannerText = document.getElementById('checkpoint-banner-text');
     if (banner && bannerText) {
         bannerText.textContent = langText(
-            `⚓ 到達第 ${event.index} 座燈塔`,
-            `⚓ Lighthouse ${event.index} reached`
+            `⚓ 通過第 ${event.index} 個航標`,
+            `⚓ Beacon ${event.index} passed`
         );
         banner.style.display = '';
         banner.classList.remove('is-in');
@@ -1624,6 +1628,19 @@ let balloons = [];
 let focusLevel = 50;
 let boatSpeed = 0; // km/h
 let boatDistance = 0; // Virtual distance traveled
+
+// --- Helm state (heading physics) ---
+// The boat holds a real heading. Focus = steering authority: a focused helm
+// tracks the winding route; a distracted one wanders off on its own bearing.
+let boatYaw = 0;             // radians; 0 = straight down -Z
+let smoothedHelmFocus = 55;  // eased focus signal for speed/steering inertia
+let wanderYawTarget = 0;     // the random bearing a distracted boat drifts to
+let wanderTimerMs = 0;
+let lastAppliedYawRate = 0;  // rad/s, for banking into turns
+const _camOffset = new THREE.Vector3();
+const _camTargetPos = new THREE.Vector3();
+const _lookTarget = new THREE.Vector3();
+const _upAxis = new THREE.Vector3(0, 1, 0);
 // const clock = new THREE.Clock(); // REPLACED BY PRECISION LOOP
 let isGameActive = false;
 let questionBank = []; // Store batch of questions
@@ -1894,7 +1911,7 @@ function updateGameLogic(delta) {
     }
 
     // 1. Update Speed Logic
-    updateSpeedVisuals();
+    updateSpeedVisuals(delta);
     
     // 2. Boat Movement (Forward along -Z)
     // 1 unit = 1 meter approx. 110 km/h ~= 30 m/s.
@@ -1998,8 +2015,48 @@ function updateGameLogic(delta) {
     }
     
     if (boat) {
-        // Move Boat
-        boat.position.z -= moveDist;
+        // --- Helm: heading physics ---
+        // Steering authority comes from focus. Focused: the helm answers and
+        // the boat tracks the winding route. Distracted: the helm goes light
+        // and the boat wanders off on a random bearing of its own (softly
+        // walled so it never sails to the horizon). Turn rate is limited —
+        // boats lean into turns, they do not snap.
+        let dx = 0;
+        let dz = -moveDist;
+        if (moveDist > 0.0001) {
+            const routeAheadZ = boat.position.z - 60;
+            const desiredYaw = Math.atan2(routeXAt(routeAheadZ) - boat.position.x, 60);
+
+            wanderTimerMs -= delta * 1000;
+            if (wanderTimerMs <= 0) {
+                wanderTimerMs = 2600 + Math.random() * 2200;
+                wanderYawTarget = (Math.random() * 2 - 1) * 0.5;
+            }
+            const offTrack = boat.position.x - routeXAt(boat.position.z);
+            const wallPull = THREE.MathUtils.clamp(-offTrack / 70, -1, 1) * 0.5;
+            const wanderYaw = THREE.MathUtils.clamp(wanderYawTarget + wallPull, -0.65, 0.65);
+
+            const steerAuthority = THREE.MathUtils.clamp(
+                (smoothedHelmFocus - FOCUS_TRAINING.lowThreshold) /
+                Math.max(1, FOCUS_TRAINING.stableThreshold + 15 - FOCUS_TRAINING.lowThreshold),
+                0, 1
+            );
+            const goalYaw = THREE.MathUtils.lerp(wanderYaw, desiredYaw, steerAuthority);
+
+            const maxTurn = (0.22 + 0.33 * steerAuthority) * delta;
+            const yawStep = THREE.MathUtils.clamp(goalYaw - boatYaw, -maxTurn, maxTurn);
+            boatYaw += yawStep;
+            lastAppliedYawRate = delta > 0 ? yawStep / delta : 0;
+
+            dx = Math.sin(boatYaw) * moveDist;
+            dz = -Math.cos(boatYaw) * moveDist;
+            boat.position.x += dx;
+            boat.position.z += dz;
+        } else {
+            dx = 0;
+            dz = 0;
+            lastAppliedYawRate = 0;
+        }
 
         // Voyage route: lane follow, beacon/bird animation, checkpoint pass.
         const checkpointEvent = updateVoyage({
@@ -2013,14 +2070,17 @@ function updateGameLogic(delta) {
         // Update wake / splash effects
         updateParticles(delta, speedMPS);
 
-        
+
         // Update Water Position
         if (water) water.position.z = boat.position.z;
-        
-        // Camera Follow Logic (Free View)
+
+        // Camera keeps pace with the hull's displacement; the chase lerp in
+        // the physics section below does the framing.
         if (controls) {
-            camera.position.z -= moveDist;
-            controls.target.z -= moveDist;
+            camera.position.x += dx;
+            camera.position.z += dz;
+            controls.target.x += dx;
+            controls.target.z += dz;
 
             // Clamp Camera Y (Seabed Collision Protection)
             if (camera.position.y < 1.0) camera.position.y = 1.0;
@@ -2028,9 +2088,10 @@ function updateGameLogic(delta) {
             controls.update();
         }
     }
-        
+
     // 3. Water Logic
-    const inverseFocus = 100 - focusLevel;
+    // Smoothed focus keeps the sea state from stepping with the raw signal.
+    const inverseFocus = 100 - smoothedHelmFocus;
     const waveIntensity = THREE.MathUtils.clamp(inverseFocus / 100, 0, 1);
     
     // Update Water Uniforms - RESTORED: Wave Undulation
@@ -2072,37 +2133,41 @@ function updateGameLogic(delta) {
         const targetY = THREE.MathUtils.clamp(targetLift + bobbing + secondaryHeave, 0.88, 1.78);
         boat.position.y = THREE.MathUtils.lerp(boat.position.y, targetY, 0.1);
 
+        // --- Yaw ---
+        // The hull faces its true heading (rotation.y = -yaw by convention).
+        boat.rotation.y = THREE.MathUtils.lerp(boat.rotation.y, -boatYaw, 0.12);
+
         // --- Roll ---
+        // Wave wobble + banking into turns (lean follows the applied yaw rate).
         const rollAmp = 0.02 + waveIntensity * 0.085 + (1.0 - speedFactor) * 0.025;
         const rollWobble =
             Math.sin(timeVal * 0.92) * rollAmp +
             Math.sin(timeVal * 1.9 + 0.8) * rollAmp * 0.32;
-        
-        boat.rotation.z = THREE.MathUtils.lerp(boat.rotation.z, rollWobble, 0.05);
-        
+        const bank = THREE.MathUtils.clamp(-lastAppliedYawRate * 1.8, -0.13, 0.13) * speedFactor;
+
+        boat.rotation.z = THREE.MathUtils.lerp(boat.rotation.z, rollWobble + bank, 0.05);
+
         // --- Pitch ---
-        // Faster speed keeps a mild bow-up posture, rough low-speed water increases pitch swing.
-        const pitchCurve = Math.sin(speedFactor * Math.PI / 2) * 0.105 - waveIntensity * 0.012;
+        // Mild bow-up posture at speed, extra lift while actively accelerating
+        // (throttle squat), rough low-focus water increases pitch swing.
+        const accelPitch = THREE.MathUtils.clamp((targetSpeed - boatSpeed) / 40, -1, 1) * 0.045;
+        const pitchCurve = Math.sin(speedFactor * Math.PI / 2) * 0.105 + accelPitch - waveIntensity * 0.012;
         const wavePitch = Math.cos(timeVal * bobFreq) * (0.014 + waveIntensity * 0.02);
         boat.rotation.x = THREE.MathUtils.lerp(boat.rotation.x, pitchCurve + wavePitch, 0.05);
-        
-        // 5. Camera Follow (Starboard rear quarter view)
-        let screenOffsetX = 0;
-        if (window.innerWidth < 1024) screenOffsetX = -4;
-        if (window.innerWidth < 720) screenOffsetX = -8;
 
-        const targetOffset = new THREE.Vector3(20 + screenOffsetX, 11, 36);
-        const targetPos = boat.position.clone().add(targetOffset);
-        camera.position.lerp(targetPos, 0.06); 
-        
-        // Keep the full hull inside frame while showing its right-rear side.
-        const lookAtTarget = new THREE.Vector3(
-            boat.position.x + 0.6 + screenOffsetX,
-            boat.position.y + 2.8,
-            boat.position.z - 1.2
-        );
-        controls.target.lerp(lookAtTarget, 0.06);
-        controls.update(); 
+        // 5. Chase camera: aims at the hull and partially follows its heading
+        // so upcoming bends stay readable. Distance auto-scales with viewport
+        // aspect so the boat holds a consistent ~65% of the frame everywhere.
+        const aspect = window.innerWidth / Math.max(1, window.innerHeight);
+        const frameScale = THREE.MathUtils.clamp(1.78 / aspect, 0.95, 1.6);
+        _camOffset.set(17, 11.5, 38).multiplyScalar(frameScale);
+        _camOffset.applyAxisAngle(_upAxis, -boatYaw * 0.8);
+        _camTargetPos.copy(boat.position).add(_camOffset);
+        camera.position.lerp(_camTargetPos, 0.06);
+
+        _lookTarget.set(boat.position.x, boat.position.y + 3.4, boat.position.z - 2);
+        controls.target.lerp(_lookTarget, 0.08);
+        controls.update();
         
         // 6. Rim Light Follow (Night Mode)
         if (rimLight) {
@@ -2695,8 +2760,11 @@ function initGameSession() {
             scene.add(boat);
         }
 
-        // Lay the route out ahead of wherever the boat is starting from.
+        // Lay the route out ahead + snap the hull onto it, facing along it.
         resetVoyage(boat.position.z);
+        boat.position.x = routeXAt(boat.position.z);
+        boatYaw = routeYawAt(boat.position.z);
+        boat.rotation.y = -boatYaw;
 
         attachRendererToCanvasHost();
         const canvasHost = document.getElementById('canvas-container');
@@ -3113,11 +3181,10 @@ function startFocusSimulation() {
 let targetSpeed = 0; 
 let speedUpdateInterval;
 
-function updateSpeedVisuals() {
-    // Logic updated to match user requirements:
-    // 1. If Connected or Manual Mode: Map Focus 0-100 to Speed 0-MAX
-    // 2. If Not Connected: Speed = 0
-    
+function updateSpeedVisuals(delta = 0.016) {
+    // Focus 0-100 maps to speed 0-MAX, but through a hull with mass: the raw
+    // signal steps once a second, so it is eased first, then the speed chases
+    // it under an acceleration limit (throttle slower than drag).
     if (CONFIG.isPaused) {
         targetSpeed = 0;
         boatSpeed = 0;
@@ -3125,21 +3192,21 @@ function updateSpeedVisuals() {
         return;
     }
 
+    smoothedHelmFocus = THREE.MathUtils.damp(smoothedHelmFocus, getEffectiveFocusLevel(), 0.9, delta);
+
     const canDriveWithEEG = selectedInputMode === 'eeg' && isHeadsetConnected && hasLiveEEGData;
     if (canDriveWithEEG || isSimulationMode) {
-        // Connected: Speed 0 - MAX based on focus
-        // Focus 0-100 -> Speed 0-MAX
-        // Req: 0% = 0.
         const maxSpeed = CONFIG.MAX_SHIP_SPEED;
-        const normalizedFocus = THREE.MathUtils.clamp(getEffectiveFocusLevel() / 100, 0, 1);
+        const normalizedFocus = THREE.MathUtils.clamp(smoothedHelmFocus / 100, 0, 1);
         targetSpeed = Math.pow(normalizedFocus, 1.18) * maxSpeed;
-        boatSpeed = THREE.MathUtils.lerp(boatSpeed, targetSpeed, isSimulationMode ? 0.085 : 0.07);
     } else {
-        // Not Connected: Decelerate to 0
+        // Not connected: drift to a stop.
         targetSpeed = 0;
-        boatSpeed = THREE.MathUtils.lerp(boatSpeed, targetSpeed, 0.045);
     }
-    
+
+    const rate = targetSpeed > boatSpeed ? 22 : 30; // km/h per second
+    boatSpeed += THREE.MathUtils.clamp(targetSpeed - boatSpeed, -rate * delta, rate * delta);
+
     // Update UI Text/Bar
     renderSpeedTelemetry(boatSpeed);
 }

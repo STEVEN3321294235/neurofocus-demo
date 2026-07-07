@@ -1377,30 +1377,12 @@ body.challenge-session #voyage-card {
     height: auto;
 }
 
-#voyage-map.leg-flip {
-    animation: voyage-leg-flip 0.45s ease;
-}
-
-@keyframes voyage-leg-flip {
-    0% { opacity: 1; }
-    40% { opacity: 0.15; }
-    100% { opacity: 1; }
-}
-
 #voyage-route {
     fill: none;
-    stroke: rgba(125, 211, 252, 0.28);
+    stroke: rgba(125, 211, 252, 0.45);
     stroke-width: 2.4;
     stroke-dasharray: 5 6;
     stroke-linecap: round;
-}
-
-#voyage-route-done {
-    fill: none;
-    stroke: #35f0df;
-    stroke-width: 2.6;
-    stroke-linecap: round;
-    filter: drop-shadow(0 0 3px rgba(53, 240, 223, 0.55));
 }
 
 .voyage-dot circle {
