@@ -100,6 +100,10 @@ export default {
                         <span id="boost-flash-text"></span>
                     </div>
 
+                    <div id="star-banner" style="display: none;">
+                        <span id="star-banner-text"></span>
+                    </div>
+
                     <div id="flow-ring" style="display: none;" aria-label="flow charge">
                         <svg viewBox="0 0 64 64" class="flow-ring-svg" aria-hidden="true">
                             <circle class="flow-ring-track" cx="32" cy="32" r="26"></circle>

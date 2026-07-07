@@ -591,6 +591,7 @@ function createTrainingAnalytics() {
         flowCharge: 0,
         flowStars: 0,
         chargeBoostUntil: 0,
+        starGlideUntil: 0,
         // Silent focus timeline for the results dashboard (one value per ~2s).
         focusSamples: [],
         sampleAccumulatorMs: 0
@@ -925,6 +926,26 @@ function earnFlowStar() {
         ring.classList.remove('star-pop');
         void ring.offsetWidth; // restart CSS animation
         ring.classList.add('star-pop');
+    }
+
+    // The payoff moment: a short glide (speed + FOV + bloom swell handled in
+    // the game loop) plus a floating gold banner.
+    trainingAnalytics.starGlideUntil = performance.now() + 2600;
+    const banner = document.getElementById('star-banner');
+    const bannerText = document.getElementById('star-banner-text');
+    if (banner && bannerText) {
+        bannerText.textContent = langText(
+            `⭐ 心流星 +1！你保持咗 ${Math.round(FLOW_CHARGE_MS / 1000)} 秒穩定專注`,
+            `⭐ Flow star +1! You held steady focus for ${Math.round(FLOW_CHARGE_MS / 1000)}s`
+        );
+        banner.style.display = '';
+        banner.classList.remove('is-in');
+        void banner.offsetWidth;
+        banner.classList.add('is-in');
+        setTimeout(() => {
+            banner.classList.remove('is-in');
+            setTimeout(() => { banner.style.display = 'none'; }, 500);
+        }, 2200);
     }
 }
 
@@ -1522,9 +1543,10 @@ function updateGameLogic(delta) {
         speedMPS = boatSpeed / 3.6;
     }
 
-    // Flow State Boost
-    if (isFlowState) {
-        speedMPS *= 1.2;
+    // Flow State Boost / star-glide payoff (short reward burst after a star)
+    const starGlideActive = now < (trainingAnalytics.starGlideUntil || 0);
+    if (isFlowState || starGlideActive) {
+        speedMPS *= starGlideActive ? 1.25 : 1.2;
         camera.fov = THREE.MathUtils.lerp(camera.fov, 65, 0.05);
     } else {
         camera.fov = THREE.MathUtils.lerp(camera.fov, 55, 0.05);
@@ -1536,7 +1558,7 @@ function updateGameLogic(delta) {
     if (bloomPassRef) {
         bloomPassRef.strength = THREE.MathUtils.lerp(
             bloomPassRef.strength,
-            isFlowState ? BLOOM_FLOW_STRENGTH : BLOOM_BASE_STRENGTH,
+            (isFlowState || starGlideActive) ? BLOOM_FLOW_STRENGTH : BLOOM_BASE_STRENGTH,
             0.04
         );
     }
@@ -3885,6 +3907,18 @@ function init3DScene() {
         getBoat: () => boat,
         togglePrecisionTest: () => TEST_PANEL.toggle()
     };
+
+    // Demo/dev-only hooks: let the booth crew (or an automated test) fire the
+    // new gameplay beats on demand without waiting for a real focus streak.
+    if (DEMO_MODE) {
+        window.EEG_APP.debug = {
+            earnStar: () => earnFlowStar(),
+            getFlowState: () => ({
+                charge: trainingAnalytics.flowCharge,
+                stars: trainingAnalytics.flowStars
+            })
+        };
+    }
 }
 
 // --- Sky System ---
