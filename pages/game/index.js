@@ -100,6 +100,17 @@ export default {
                         <span id="boost-flash-text"></span>
                     </div>
 
+                    <div id="flow-ring" style="display: none;" aria-label="flow charge">
+                        <svg viewBox="0 0 64 64" class="flow-ring-svg" aria-hidden="true">
+                            <circle class="flow-ring-track" cx="32" cy="32" r="26"></circle>
+                            <circle id="flow-ring-fill" class="flow-ring-fill" cx="32" cy="32" r="26"></circle>
+                        </svg>
+                        <div class="flow-ring-center">
+                            <span class="flow-ring-star" aria-hidden="true">⭐</span>
+                            <span id="flow-ring-stars">0</span>
+                        </div>
+                    </div>
+
                     <div id="play-time-display">
                         <span id="play-time-value">00:00</span>
                     </div>

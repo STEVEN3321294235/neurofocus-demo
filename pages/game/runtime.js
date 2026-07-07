@@ -518,6 +518,15 @@ const DEFAULT_FOCUS_TRAINING = {
 // the shared defaults above are never mutated.
 let FOCUS_TRAINING = { ...DEFAULT_FOCUS_TRAINING };
 
+// --- Flow charge (training mode's countable win) ---
+// Hold focus at/above the personal stable threshold and the ring charges; a
+// full ring mints one flow star. Distraction only pauses the charge — it
+// never drains (gentle by design: the win structure rewards sustained focus,
+// losing it must not punish).
+const FLOW_CHARGE_MS = 25000;
+const RESCUE_CHARGE_MULTIPLIER = 1.5; // faster refill right after a breathing rescue
+const FLOW_RING_CIRCUMFERENCE = 2 * Math.PI * 26; // matches SVG r=26
+
 // Adapt the recovery bar to the player's own recent history (simple clamped
 // rules, deliberately not ML — easy to explain to judges):
 // - recoveryThreshold rises from 55 toward 65 as average focus stability
@@ -578,6 +587,10 @@ function createTrainingAnalytics() {
         interventionCooldownUntil: 0,
         boostActive: false,
         boostEndsAt: 0,
+        // Flow charge: fills while focus is held, one star per full ring.
+        flowCharge: 0,
+        flowStars: 0,
+        chargeBoostUntil: 0,
         // Silent focus timeline for the results dashboard (one value per ~2s).
         focusSamples: [],
         sampleAccumulatorMs: 0
@@ -901,6 +914,49 @@ function celebrateBoost() {
     }, FOCUS_TRAINING.boostDurationMs);
 }
 
+// A full flow ring = one star: the discrete, countable "win" of training
+// mode. Kept deliberately gentle — soft chime + ring pop, no siren lights.
+function earnFlowStar() {
+    trainingAnalytics.flowStars += 1;
+    playStarSound();
+    renderFlowCharge(true);
+    const ring = document.getElementById('flow-ring');
+    if (ring) {
+        ring.classList.remove('star-pop');
+        void ring.offsetWidth; // restart CSS animation
+        ring.classList.add('star-pop');
+    }
+}
+
+// Charge-ring HUD. Cheap by construction: writes DOM only when the rounded
+// percent or the star count actually changes.
+function renderFlowCharge(force = false) {
+    const host = document.getElementById('flow-ring');
+    if (!host) return;
+    const show = isTrainingMode() && isGameActive;
+    const displayValue = show ? '' : 'none';
+    if (host.style.display !== displayValue) host.style.display = displayValue;
+    if (!show) return;
+
+    const pct = Math.round(THREE.MathUtils.clamp(trainingAnalytics.flowCharge, 0, 1) * 100);
+    const stars = trainingAnalytics.flowStars;
+    if (!force && host.dataset.pct === String(pct) && host.dataset.stars === String(stars)) return;
+    host.dataset.pct = String(pct);
+    host.dataset.stars = String(stars);
+
+    const fill = document.getElementById('flow-ring-fill');
+    if (fill) fill.style.strokeDashoffset = String(FLOW_RING_CIRCUMFERENCE * (1 - pct / 100));
+    const starsEl = document.getElementById('flow-ring-stars');
+    if (starsEl && starsEl.textContent !== String(stars)) starsEl.textContent = String(stars);
+    host.classList.toggle('is-nearly-full', pct >= 85);
+}
+
+function playStarSound() {
+    // Gentle two-note chime (E5 -> A5), softer than the answer sounds.
+    playTone(659.25, 'sine', 0.35);
+    setTimeout(() => playTone(880, 'sine', 0.5), 130);
+}
+
 // Wordless-first onboarding beat: one line that explains the core mapping,
 // shown as gameplay begins, auto-dismissed.
 function showOnboardingCue() {
@@ -924,6 +980,19 @@ function showOnboardingCue() {
 function updateTrainingAnalytics(deltaMs, effectiveFocus = focusLevel) {
     if (effectiveFocus >= FOCUS_TRAINING.stableThreshold) {
         trainingAnalytics.focusedTimeMs += deltaMs;
+
+        // Flow charge (training only): sustained focus fills the ring; a
+        // recent breathing rescue refills it faster so "分心→救返" also pays.
+        if (isTrainingMode()) {
+            const boost = performance.now() < trainingAnalytics.chargeBoostUntil
+                ? RESCUE_CHARGE_MULTIPLIER
+                : 1;
+            trainingAnalytics.flowCharge += (deltaMs / FLOW_CHARGE_MS) * boost;
+            if (trainingAnalytics.flowCharge >= 1) {
+                trainingAnalytics.flowCharge = 0;
+                earnFlowStar();
+            }
+        }
     }
 
     if (trainingAnalytics.recoveryPending) {
@@ -1494,7 +1563,9 @@ function updateGameLogic(delta) {
         const hudNow = performance.now();
         if (!CONFIG.lastHUDUpdate || hudNow - CONFIG.lastHUDUpdate > 20) {
             CONFIG.lastHUDUpdate = hudNow;
-            
+
+            renderFlowCharge();
+
             const distEl = document.getElementById('distance-value');
             if (distEl) {
                 let distText = "";
