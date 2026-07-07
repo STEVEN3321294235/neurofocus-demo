@@ -1175,6 +1175,85 @@ function playStarSound() {
     setTimeout(() => playTone(880, 'sine', 0.5), 130);
 }
 
+// --- Voyage card (stylized minimap) ---
+// One "leg" of the journey at a time: previous lighthouse -> next lighthouse,
+// boat dot travelling along a curved route. Redraws only when the rounded
+// progress or the indices change, so per-frame cost is a cheap comparison.
+const voyageCardState = { pct: -1, nextIndex: -1, passed: -1 };
+let voyageRouteLength = 0;
+const VOYAGE_T_PREV = 0.06;
+const VOYAGE_T_NEXT = 0.62;
+const VOYAGE_T_AFTER = 0.97;
+
+function placeVoyageDot(id, t, label) {
+    const dot = document.getElementById(id);
+    const route = document.getElementById('voyage-route');
+    if (!dot || !route || !voyageRouteLength) return;
+    const p = route.getPointAtLength(voyageRouteLength * t);
+    dot.setAttribute('transform', `translate(${p.x.toFixed(1)}, ${p.y.toFixed(1)})`);
+    const text = dot.querySelector('text');
+    if (text && text.textContent !== label) text.textContent = label;
+}
+
+function renderVoyageCard(force = false) {
+    const card = document.getElementById('voyage-card');
+    if (!card) return;
+    const show = isGameActive;
+    const displayValue = show ? '' : 'none';
+    if (card.style.display !== displayValue) card.style.display = displayValue;
+    if (!show) return;
+
+    const stats = getVoyageStats(boat ? boat.position.z : 0);
+    const progress = THREE.MathUtils.clamp(1 - stats.distanceToNextM / stats.spacing, 0, 1);
+    const pct = Math.round(progress * 100);
+    if (!force && voyageCardState.pct === pct
+        && voyageCardState.nextIndex === stats.nextIndex
+        && voyageCardState.passed === stats.passed) return;
+
+    const route = document.getElementById('voyage-route');
+    const done = document.getElementById('voyage-route-done');
+    const boatDot = document.getElementById('voyage-boat');
+    if (!route || !done || !boatDot) return;
+    if (!voyageRouteLength) {
+        voyageRouteLength = route.getTotalLength();
+        done.style.strokeDasharray = String(voyageRouteLength);
+    }
+
+    // New leg: quick fade so the dot "jump" reads as turning the page.
+    if (voyageCardState.nextIndex !== -1 && voyageCardState.nextIndex !== stats.nextIndex) {
+        const map = document.getElementById('voyage-map');
+        if (map) {
+            map.classList.remove('leg-flip');
+            void map.getBoundingClientRect();
+            map.classList.add('leg-flip');
+        }
+    }
+    voyageCardState.pct = pct;
+    voyageCardState.nextIndex = stats.nextIndex;
+    voyageCardState.passed = stats.passed;
+
+    const boatT = VOYAGE_T_PREV + (VOYAGE_T_NEXT - VOYAGE_T_PREV) * progress;
+    const boatPoint = route.getPointAtLength(voyageRouteLength * boatT);
+    boatDot.setAttribute('cx', boatPoint.x.toFixed(1));
+    boatDot.setAttribute('cy', boatPoint.y.toFixed(1));
+    done.style.strokeDashoffset = String(voyageRouteLength * (1 - boatT));
+
+    const prevIndex = stats.nextIndex - 1;
+    placeVoyageDot('voyage-dot-prev', VOYAGE_T_PREV, prevIndex <= 0 ? '⚓' : String(prevIndex));
+    placeVoyageDot('voyage-dot-next', VOYAGE_T_NEXT, String(stats.nextIndex));
+    placeVoyageDot('voyage-dot-after', VOYAGE_T_AFTER, String(stats.nextIndex + 1));
+
+    const nextLine = document.getElementById('voyage-next');
+    if (nextLine) {
+        nextLine.textContent = langText(
+            `下一座燈塔仲有 ${Math.max(0, Math.round(stats.distanceToNextM))}m`,
+            `Next lighthouse in ${Math.max(0, Math.round(stats.distanceToNextM))}m`
+        );
+    }
+    const count = document.getElementById('voyage-count');
+    if (count) count.textContent = `⚓ ${stats.passed}`;
+}
+
 // Lighthouse checkpoint: soft harbour-bell + teal banner. Works in both
 // modes (the route belongs to the world, stars belong to training).
 function onCheckpointReached(event) {
@@ -1821,6 +1900,7 @@ function updateGameLogic(delta) {
             CONFIG.lastHUDUpdate = hudNow;
 
             renderFlowCharge();
+            renderVoyageCard();
 
             const distEl = document.getElementById('distance-value');
             if (distEl) {
@@ -3335,6 +3415,8 @@ function getDifficultyProfile() {
 }
 
 function applySessionModeUI() {
+    // Lets CSS reposition shared HUD pieces (voyage card) per mode.
+    document.body.classList.toggle('challenge-session', isChallengeMode());
     const questionPanel = document.getElementById('question-panel');
     const scoreDisplay = document.getElementById('score-display');
     const streakDisplay = document.getElementById('streak-display');
@@ -5699,6 +5781,7 @@ function startGameSession() {
 function disposeGameSession() {
     activeGameSessionId += 1;
     isGameActive = false;
+    document.body.classList.remove('challenge-session');
     stopBGM();
     clearStroopTimer();
 

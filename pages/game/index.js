@@ -119,6 +119,32 @@ export default {
                         </div>
                     </div>
 
+                    <div id="voyage-card" style="display: none;" aria-label="voyage map">
+                        <div class="voyage-card-head">
+                            <span class="voyage-card-title">${t('voyage_title')}</span>
+                            <span id="voyage-count">⚓ 0</span>
+                        </div>
+                        <svg id="voyage-map" viewBox="0 0 220 84" aria-hidden="true">
+                            <path id="voyage-route" d="M12,62 C64,14 118,88 208,34" />
+                            <path id="voyage-route-done" d="M12,62 C64,14 118,88 208,34" />
+                            <g id="voyage-dot-prev" class="voyage-dot">
+                                <circle r="5"></circle>
+                                <text y="-9"></text>
+                            </g>
+                            <g id="voyage-dot-next" class="voyage-dot is-next">
+                                <circle r="7"></circle>
+                                <text y="-11"></text>
+                            </g>
+                            <g id="voyage-dot-after" class="voyage-dot is-after">
+                                <circle r="4"></circle>
+                                <text y="-8"></text>
+                            </g>
+                            <circle id="voyage-boat" r="4.6"></circle>
+                        </svg>
+                        <div id="voyage-next"></div>
+                        <div id="voyage-log-line" style="display: none;"></div>
+                    </div>
+
                     <div id="play-time-display">
                         <span id="play-time-value">00:00</span>
                     </div>

@@ -1323,6 +1323,150 @@ html[data-platform='windows'] .breathing-prompt-pill {
     transform: translateX(-50%) translateY(0);
 }
 
+/* --- Voyage card (stylized minimap) --- */
+
+#voyage-card {
+    position: fixed;
+    right: 1rem;
+    bottom: calc(env(safe-area-inset-bottom, 0px) + 1rem);
+    z-index: 50;
+    width: 15rem;
+    padding: 0.7rem 0.85rem 0.65rem;
+    border-radius: 1rem;
+    background:
+        linear-gradient(180deg, rgba(13, 27, 46, 0.76), rgba(7, 17, 30, 0.68)),
+        radial-gradient(circle at top, rgba(107, 196, 255, 0.14), transparent 52%);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 18px 42px rgba(2, 8, 23, 0.32);
+    backdrop-filter: blur(16px) saturate(138%);
+    pointer-events: none;
+    color: #dbeafe;
+}
+
+/* Challenge mode: the question panel owns the right side; dock bottom-left. */
+body.challenge-session #voyage-card {
+    right: auto;
+    left: 1rem;
+    bottom: calc(env(safe-area-inset-bottom, 0px) + 4.6rem);
+    width: 12.5rem;
+}
+
+.voyage-card-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    margin-bottom: 0.25rem;
+}
+
+.voyage-card-title {
+    color: #8fb8d9;
+    font-size: 0.72rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+}
+
+#voyage-count {
+    font-family: var(--font-tech);
+    font-size: 0.95rem;
+    color: #b5f5e8;
+    text-shadow: 0 0 10px rgba(94, 234, 212, 0.4);
+}
+
+#voyage-map {
+    display: block;
+    width: 100%;
+    height: auto;
+}
+
+#voyage-map.leg-flip {
+    animation: voyage-leg-flip 0.45s ease;
+}
+
+@keyframes voyage-leg-flip {
+    0% { opacity: 1; }
+    40% { opacity: 0.15; }
+    100% { opacity: 1; }
+}
+
+#voyage-route {
+    fill: none;
+    stroke: rgba(125, 211, 252, 0.28);
+    stroke-width: 2.4;
+    stroke-dasharray: 5 6;
+    stroke-linecap: round;
+}
+
+#voyage-route-done {
+    fill: none;
+    stroke: #35f0df;
+    stroke-width: 2.6;
+    stroke-linecap: round;
+    filter: drop-shadow(0 0 3px rgba(53, 240, 223, 0.55));
+}
+
+.voyage-dot circle {
+    fill: rgba(8, 20, 36, 0.9);
+    stroke: rgba(125, 211, 252, 0.6);
+    stroke-width: 1.6;
+}
+
+.voyage-dot.is-next circle {
+    stroke: #ffd76a;
+    filter: drop-shadow(0 0 4px rgba(255, 215, 106, 0.55));
+}
+
+.voyage-dot.is-after circle {
+    opacity: 0.45;
+}
+
+.voyage-dot text {
+    fill: #dbeafe;
+    font-size: 9px;
+    font-family: var(--font-tech);
+    text-anchor: middle;
+}
+
+.voyage-dot.is-after text {
+    opacity: 0.5;
+}
+
+#voyage-boat {
+    fill: #ffd76a;
+    stroke: rgba(255, 255, 255, 0.85);
+    stroke-width: 1.4;
+    filter: drop-shadow(0 0 5px rgba(255, 215, 106, 0.75));
+}
+
+#voyage-next {
+    margin-top: 0.3rem;
+    font-size: 0.8rem;
+    color: #bfdbfe;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+#voyage-log-line {
+    margin-top: 0.15rem;
+    font-size: 0.72rem;
+    color: #7ea8cc;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+@media (max-width: 800px), (max-height: 500px) {
+    #voyage-card {
+        width: 11.5rem;
+        padding: 0.5rem 0.6rem 0.5rem;
+    }
+    body.challenge-session #voyage-card {
+        width: 10.5rem;
+        bottom: calc(env(safe-area-inset-bottom, 0px) + 4.2rem);
+    }
+    #voyage-next { font-size: 0.72rem; }
+    #voyage-log-line { display: none !important; }
+}
+
 /* --- Checkpoint banner (lighthouse reached) --- */
 
 #checkpoint-banner {
