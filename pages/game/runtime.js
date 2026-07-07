@@ -527,6 +527,94 @@ const FLOW_CHARGE_MS = 25000;
 const RESCUE_CHARGE_MULTIPLIER = 1.5; // faster refill right after a breathing rescue
 const FLOW_RING_CIRCUMFERENCE = 2 * Math.PI * 26; // matches SVG r=26
 
+// --- Weather empathy (the sea mirrors the mind) ---
+// gloom 0 = the environment's normal look, 1 = full mist. Sustained
+// distraction rolls the mist in; recovery clears it. The breathing scene can
+// pin the value (weatherGloomHold) for its "mist parts as you exhale" beat.
+// Bystanders read the player's state from the weather alone — no HUD needed.
+let weatherGloom = 0;
+let weatherGloomTarget = 0;
+let weatherGloomHold = null;
+let weatherWasActive = false;
+const WEATHER_MIST_FOG_COLOR = new THREE.Color(0x93a4b5);
+const WEATHER_MIST_WATER_COLOR = new THREE.Color(0x33474a);
+const WEATHER_MIST_FOG_DENSITY = 0.0155;
+
+function updateWeatherTarget(effectiveFocus) {
+    if (weatherGloomHold !== null) {
+        weatherGloomTarget = weatherGloomHold;
+        return;
+    }
+    if (!isGameActive) {
+        weatherGloomTarget = 0;
+        return;
+    }
+    // Hysteresis: mist rolls in below the low threshold, clears once the
+    // player is back above their stable line, and holds in between.
+    if (effectiveFocus < FOCUS_TRAINING.lowThreshold) {
+        weatherGloomTarget = 1;
+    } else if (effectiveFocus >= FOCUS_TRAINING.stableThreshold) {
+        weatherGloomTarget = 0;
+    }
+}
+
+// Called once per frame, after the environment transition lerp, so weather
+// always has the final word on fog/light/water for this frame.
+function applyWeatherMood(deltaSec) {
+    if (!scene || !scene.fog) return;
+
+    // Mist rolls in slowly (~7s feel) and clears a little faster (~5s).
+    const lambda = weatherGloomTarget > weatherGloom ? 0.33 : 0.5;
+    weatherGloom = THREE.MathUtils.damp(weatherGloom, weatherGloomTarget, lambda, deltaSec);
+
+    const g = weatherGloom;
+    if (g < 0.004) {
+        if (!weatherWasActive) return;
+        weatherWasActive = false; // settle exactly on the canonical look once
+    } else {
+        weatherWasActive = true;
+    }
+
+    // Ease actual values toward the gloom-mixed goal (also keeps day/night
+    // theme switches smooth while weather is active).
+    const ease = Math.min(1, deltaSec * 2.5);
+    scene.fog.color.lerp(
+        _weatherFogColor.copy(envState.targetFogColor).lerp(WEATHER_MIST_FOG_COLOR, g),
+        ease
+    );
+    scene.fog.density = THREE.MathUtils.lerp(
+        scene.fog.density,
+        THREE.MathUtils.lerp(envState.targetFogDensity, WEATHER_MIST_FOG_DENSITY, g),
+        ease
+    );
+    if (directionalLight) {
+        directionalLight.intensity = THREE.MathUtils.lerp(
+            directionalLight.intensity, envState.targetSunIntensity * (1 - 0.45 * g), ease
+        );
+    }
+    if (ambientLight) {
+        ambientLight.intensity = THREE.MathUtils.lerp(
+            ambientLight.intensity, envState.targetAmbientIntensity * (1 - 0.22 * g), ease
+        );
+    }
+    if (renderer) {
+        renderer.toneMappingExposure = THREE.MathUtils.lerp(
+            renderer.toneMappingExposure, envState.targetExposure * (1 - 0.12 * g), ease
+        );
+    }
+    if (water?.material?.uniforms?.waterColor) {
+        water.material.uniforms.waterColor.value.lerp(
+            _weatherWaterColor.copy(envState.targetWaterColor).lerp(WEATHER_MIST_WATER_COLOR, g),
+            ease
+        );
+    }
+    // Dim + blur the HDR sky with the mist (fog does not touch the skybox).
+    scene.backgroundIntensity = THREE.MathUtils.lerp(scene.backgroundIntensity ?? 1, 1 - 0.5 * g, ease);
+    scene.backgroundBlurriness = THREE.MathUtils.lerp(scene.backgroundBlurriness ?? 0, 0.3 * g, ease);
+}
+const _weatherFogColor = new THREE.Color();
+const _weatherWaterColor = new THREE.Color();
+
 // Adapt the recovery bar to the player's own recent history (simple clamped
 // rules, deliberately not ML — easy to explain to judges):
 // - recoveryThreshold rises from 55 toward 65 as average focus stability
@@ -1380,6 +1468,9 @@ const gameLoop = new PrecisionLoop((deltaMs, totalTimeMs) => {
         }
     }
 
+    // 2.2 Weather empathy (after the env lerp so weather has the final word)
+    applyWeatherMood(deltaSec);
+
     // 3. Render
 
     if (renderer && scene && camera) {
@@ -1467,6 +1558,9 @@ function updateGameLogic(delta) {
             shouldPause = true;
         }
     }
+
+    // Weather follows the mind every frame (handles hold/idle states itself).
+    updateWeatherTarget(effectiveFocusLevel);
 
     if (isGameActive && !externalPause && !trainingAnalytics.interventionActive) {
         updateTrainingAnalytics(delta * 1000, effectiveFocusLevel);
@@ -3916,7 +4010,13 @@ function init3DScene() {
             getFlowState: () => ({
                 charge: trainingAnalytics.flowCharge,
                 stars: trainingAnalytics.flowStars
-            })
+            }),
+            // Pin the weather (0 = clear, 1 = full mist); pass null to hand
+            // control back to the focus signal.
+            setGloom: (value) => {
+                weatherGloomHold = value === null ? null : THREE.MathUtils.clamp(Number(value) || 0, 0, 1);
+            },
+            getWeather: () => ({ gloom: weatherGloom, target: weatherGloomTarget, hold: weatherGloomHold })
         };
     }
 }
