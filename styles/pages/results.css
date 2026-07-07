@@ -212,6 +212,13 @@
 .dash-half-arrow.is-flat,
 .dash-half-verdict.is-flat { color: var(--text-muted); }
 
+.dash-voyage-line {
+    margin-top: 0.55rem;
+    text-align: center;
+    font-size: 0.9rem;
+    color: var(--text-muted);
+}
+
 .dash-trend-grid {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));

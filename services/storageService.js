@@ -4,7 +4,8 @@ const STORAGE_KEYS = {
     lang: 'game_lang',
     theme: 'theme',
     user: 'current_user',
-    history: 'session_history'
+    history: 'session_history',
+    voyage: 'voyage_log'
 };
 
 const HISTORY_LIMIT = 10;
@@ -108,6 +109,52 @@ export async function getSessionHistory(limit = HISTORY_LIMIT) {
         }
     }
     return readLocalHistory().slice(-limit);
+}
+
+// --- Voyage log (cumulative journey totals) ---
+// The local history above is capped at HISTORY_LIMIT entries, so cumulative
+// totals live in a dedicated counter that only ever increments. Signed-in
+// users can additionally sum their cloud rows (getCumulativeCloudDistance).
+
+export function getLocalVoyageLog() {
+    try {
+        const raw = localStorage.getItem(STORAGE_KEYS.voyage);
+        const parsed = raw ? JSON.parse(raw) : null;
+        return {
+            distanceM: Math.max(0, Number(parsed?.distanceM) || 0),
+            stars: Math.max(0, Number(parsed?.stars) || 0),
+            sessions: Math.max(0, Number(parsed?.sessions) || 0)
+        };
+    } catch (e) {
+        return { distanceM: 0, stars: 0, sessions: 0 };
+    }
+}
+
+export function appendVoyageLog({ distanceM = 0, stars = 0 } = {}) {
+    const log = getLocalVoyageLog();
+    log.distanceM += Math.max(0, Number(distanceM) || 0);
+    log.stars += Math.max(0, Number(stars) || 0);
+    log.sessions += 1;
+    try {
+        localStorage.setItem(STORAGE_KEYS.voyage, JSON.stringify(log));
+    } catch (e) {
+        /* best-effort */
+    }
+    return log;
+}
+
+// Sum of per-session distances across the signed-in user's cloud history.
+// Returns null when signed out / offline so callers fall back to the local log.
+export async function getCumulativeCloudDistance() {
+    const { supabase, userId } = await getCloudSession();
+    if (!supabase || !userId) return null;
+    try {
+        const { data, error } = await supabase.from('session_history').select('distance');
+        if (error || !Array.isArray(data)) return null;
+        return data.reduce((sum, row) => sum + Math.max(0, Number(row.distance) || 0), 0);
+    } catch (e) {
+        return null;
+    }
 }
 
 export async function appendSessionSummary(summary) {

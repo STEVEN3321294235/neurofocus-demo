@@ -10,7 +10,7 @@ import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js'
 import { SMAAPass } from 'three/addons/postprocessing/SMAAPass.js';
 import { setState, getState } from '../../app/state.js';
 import { getCameraFocusScore, getCameraTrackingStatus, stopCameraPreview } from '../../services/focusInputService.js?v=2026-06-24-23';
-import { appendSessionSummary, getSessionHistory } from '../../services/storageService.js';
+import { appendSessionSummary, getSessionHistory, getLocalVoyageLog, appendVoyageLog, getCumulativeCloudDistance } from '../../services/storageService.js';
 import { initVoyage, resetVoyage, updateVoyage, getVoyageStats, CHECKPOINT_SPACING } from './voyage.js';
 
 // DEMO_MODE shows the raw EEG channels (attention / meditation / signal) for
@@ -1252,6 +1252,61 @@ function renderVoyageCard(force = false) {
     }
     const count = document.getElementById('voyage-count');
     if (count) count.textContent = `⚓ ${stats.passed}`;
+}
+
+// --- Voyage log (cumulative journey across all sessions) ---
+// Each session stands alone (design decision 4b), but the journey adds up:
+// total distance + derived lighthouse count give returning players a sense
+// of an ongoing voyage. Local counter always; cloud sum wins when larger.
+let voyageTotals = null;
+
+async function loadVoyageTotals() {
+    const local = getLocalVoyageLog();
+    let distanceM = local.distanceM;
+    try {
+        const cloud = await getCumulativeCloudDistance();
+        if (cloud !== null) distanceM = Math.max(cloud, local.distanceM);
+    } catch (e) { /* local fallback */ }
+    voyageTotals = { distanceM, stars: local.stars, sessions: local.sessions };
+    renderVoyageLogLine();
+}
+
+function formatVoyageTotals() {
+    if (!voyageTotals) return '';
+    const km = voyageTotals.distanceM / 1000;
+    const lighthouses = Math.floor(voyageTotals.distanceM / CHECKPOINT_SPACING);
+    return langText(
+        `累積 ${km.toFixed(1)} km · ${lighthouses} 座燈塔`,
+        `Total ${km.toFixed(1)} km · ${lighthouses} lighthouses`
+    );
+}
+
+function renderVoyageLogLine() {
+    const el = document.getElementById('voyage-log-line');
+    if (!el) return;
+    if (!voyageTotals || voyageTotals.distanceM < 1) {
+        el.style.display = 'none';
+        return;
+    }
+    el.style.display = '';
+    el.textContent = `⛵ ${langText('航海日誌', 'Voyage log')}：${formatVoyageTotals()}`;
+}
+
+// A gentle "welcome back to your voyage" beat after the onboarding cue.
+function showVoyageContinuationCue() {
+    if (!voyageTotals || voyageTotals.distanceM < 100 || !isGameActive) return;
+    const cue = document.getElementById('onboarding-cue');
+    const cueText = document.getElementById('onboarding-cue-text');
+    if (!cue || !cueText) return;
+    cueText.textContent = `⛵ ${langText('繼續你嘅航程', 'Your voyage continues')} — ${formatVoyageTotals()}`;
+    cue.style.display = '';
+    cue.classList.remove('is-in');
+    void cue.offsetWidth;
+    cue.classList.add('is-in');
+    setTimeout(() => {
+        cue.classList.remove('is-in');
+        setTimeout(() => { cue.style.display = 'none'; }, 600);
+    }, 6000);
 }
 
 // Lighthouse checkpoint: soft harbour-bell + teal banner. Works in both
@@ -2524,8 +2579,11 @@ function initGameSession() {
     lastFetchTime = 0;
     fallbackQuestionCursor = loadFallbackQuestionCursor();
     trainingAnalytics = createTrainingAnalytics();
+    // Cumulative voyage totals (cloud when signed in, local otherwise).
+    loadVoyageTotals().catch(() => {});
     // Teach the core mapping as play begins (after the entry countdown).
     setTimeout(showOnboardingCue, 3500);
+    setTimeout(showVoyageContinuationCue, 13000);
     // Personalize thresholds from recent history (resolves within the first
     // moments of play; defaults apply until then and for new players).
     resolveAdaptiveFocusTraining().catch(() => {});
@@ -3159,9 +3217,28 @@ function renderResults() {
         firstHalfFocus: Math.round(firstHalfFocus * 10) / 10,
         secondHalfFocus: Math.round(secondHalfFocus * 10) / 10,
         breathingCount: trainingAnalytics.interventionCount,
-        adaptiveThresholdUsed: FOCUS_TRAINING.recoveryThreshold
+        adaptiveThresholdUsed: FOCUS_TRAINING.recoveryThreshold,
+        // New gameplay fields (local history only for now; the Supabase insert
+        // maps explicit columns, so these are ignored by the cloud until D1
+        // adds them to the schema with Steven's sign-off).
+        flowStars: trainingAnalytics.flowStars,
+        checkpoints: trainingAnalytics.checkpointCount,
+        goldenTimeMs: Math.round(trainingAnalytics.goldenTimeMs)
     };
     appendSessionSummary(lastSessionSummary).catch(() => {});
+
+    // Voyage log: the journey adds up across sessions (local counter).
+    const updatedLog = appendVoyageLog({
+        distanceM: CONFIG.totalDistance,
+        stars: trainingAnalytics.flowStars
+    });
+    if (voyageTotals) {
+        voyageTotals.distanceM = Math.max(voyageTotals.distanceM + CONFIG.totalDistance, updatedLog.distanceM);
+        voyageTotals.stars = updatedLog.stars;
+        voyageTotals.sessions = updatedLog.sessions;
+    } else {
+        voyageTotals = { ...updatedLog };
+    }
     
     // Update UI
     document.getElementById('res-distance').textContent = CONFIG.totalDistance.toFixed(1) + " m";
@@ -3271,7 +3348,10 @@ function renderSessionDashboard() {
                     <span class="dash-half-value">${second.toFixed(1)}</span>
                 </div>
             </div>
-            <p class="dash-half-verdict ${verdictClass}">${verdictText} (${delta >= 0 ? '+' : ''}${delta.toFixed(1)})</p>`;
+            <p class="dash-half-verdict ${verdictClass}">${verdictText} (${delta >= 0 ? '+' : ''}${delta.toFixed(1)})</p>
+            ${voyageTotals && voyageTotals.distanceM >= 1
+                ? `<p class="dash-voyage-line">⛵ ${langText('航海日誌', 'Voyage log')}：${formatVoyageTotals()}</p>`
+                : ''}`;
     }
 }
 
