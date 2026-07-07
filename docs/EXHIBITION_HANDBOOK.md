@@ -52,7 +52,7 @@
 ### 第一層：任務模式（練咩）
 > 兩個模式**都喺同一個海洋場景、玩法一致**，分別只在於挑戰模式會加入題目壓力。（2026-07 已把訓練模式一度試過嘅「書房場景」移除，統一用海洋。）
 
-- **訓練模式**：純專注航行，**不出題**，主打穩定維持專注。船一直向前，用戶只需維持穩定狀態。最適合台上展示（流程最清、最穩）。
+- **訓練模式**：專注航行，**不出題**，主打穩定維持專注。沿一條**無限彎曲航道**航行：專注先揸得住個舵（分心船會漂離航道）、穩住專注 25 秒摘一粒**心流星**、每 500m 經過一個**航標**、天氣即時反映腦狀態（分心起霧、復原放晴）。最適合台上展示（流程最清、最穩、旁觀者一眼睇明）。
 - **挑戰模式**：加入 **Stroop 題 + 邏輯題**，主打「一邊做任務、一邊維持專注」，貼近真實生活。最適合台下俾評判親身感受「做 task 時大腦容易亂」。
 
 ### 第二層：訊號來源模式（用咩訊號）
@@ -117,7 +117,8 @@ graph LR
 | `services/storageService.js` | localStorage + **跨 session 歷史讀寫** |
 | `services/runtimeLoader.js` | 版本號 query string + 動態 import runtime（降快取干擾） |
 | `services/focusInputService.js` | 相機專注偵測（MediaPipe FaceLandmarker） |
-| `pages/game/runtime.js` | **全專案核心引擎**（5000+ 行）：Three.js 場景、題目、focus 更新、呼吸介入、simulation profile、bridge reconnect、results、audio、performance profile、**自適應門檻**、**FPS meter** |
+| `pages/game/runtime.js` | **全專案核心引擎**（6000+ 行）：Three.js 場景、航行物理（航向+慣性）、心流充能摘星、天氣共感、黃金時刻、題目、focus 更新、呼吸介入、simulation profile、bridge reconnect、results、audio、performance profile、**自適應門檻**、**FPS meter** |
+| `pages/game/voyage.js` | **航程系統**：無限不規則彎曲航道（發光虛線）、航標浮塔 checkpoint（浮沉+燈頭脈動+海鷗）、航海圖數據 |
 | `eeg_bridge.py` | 本地硬體橋：掃 COM port、揀 MindWave、解析 attention/meditation/signal、WebSocket 廣播 |
 | `styles/**` | UI 外觀、Liquid Glass、dark mode、各頁樣式 |
 | `*.bat` / `requirements-eeg-bridge.txt` | Windows 一鍵啟動（見 Part 8） |
@@ -129,8 +130,12 @@ graph LR
 ### 基本流程
 `輸入名稱 → Setup（揀任務模式 → 揀訊號來源 →（挑戰揀難度 / 訓練揀時長）→（Simulation 問相機授權））→ Game → Results`
 
-### 核心邏輯
-- **專注度驅動船速**：`focusLevel` 係核心輸入，越高船越快，越低越慢；暫停時專注與速度歸零。
+### 核心邏輯（2026-07 gameplay 重新設計後）
+- **專注度驅動船速 + 舵**：`focusLevel` 係核心輸入——越高船越快；同時專注 = 舵嘅控制力：專注時船貼住彎曲航道行，分心時船會隨機漂離航道，重新專注先拉得返（真實航向物理：慣性加速、入彎側傾）。
+- **心流充能摘星（訓練模式嘅「贏」）**：企穩喺個人穩定線以上，能量環≈25 秒充滿一圈 = 1 粒星（分心只暫停充能，唔倒扣）；摘星有短暫滑行加速 + 金色橫額。
+- **航標 checkpoint**：每 500m 一個紅白航標浮塔座喺航道上，經過有鐘聲 + 橫額；右下航海圖卡實時顯示航道彎位、船嘅偏航同下一個航標距離；跨 session 有「航海日誌」累積總航程。
+- **天氣共感**：分心持續 → 起霧、水濁、天暗（旁觀者唔使識睇 HUD 都知狀態）；復原 → 放晴。呼吸介入時霧鎖畫面，**跟住呼氣一格格撥開**，完成陽光爆返。
+- **黃金時刻（Real EEG 專屬）**：專注 + 放鬆雙軸同時達標 4 秒 → 成個場景轉入暖金黃昏——雙軸神經回饋嘅高光位，Simulation 冇（冇 meditation 訊號，唔造假）。
 - **題目系統**（挑戰模式）：先試 AI 生成 → 失敗 / 太慢 / 格式錯就自動轉**本地 fallback 題庫**。題目偏生活化 + 生物/化學/邏輯推理。有嚴格本地 validation（唯一正解、拒絕重複選項 / 「以上皆是」/ 缺解釋），無效 AI 題自動換成本地驗證過嘅題。
 - **雙軸心流（Real EEG 專屬）**：EEG 模式下，心流條件係「**專注 AND 放鬆**」（attention 高 + meditation 達標）；Simulation / camera 模式無 meditation 訊號，用單軸規則。
 - **Box Breathing 觸發**：`focusLevel` 低於**自適應門檻**（用歷史調整，唔再死 45/55）並持續一段時間 → 頂部提示 → 觸發呼吸 UI → 完成後短暫 focus boost。
