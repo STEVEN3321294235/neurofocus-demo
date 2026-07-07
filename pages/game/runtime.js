@@ -4581,6 +4581,10 @@ const foamPlanes = [];
 let cameraLight;
 const splashPlaneGeometry = new THREE.PlaneGeometry(3.6, 3.6);
 const wakePlaneGeometry = new THREE.PlaneGeometry(3.2, 3.2);
+const trailPlaneGeometry = new THREE.PlaneGeometry(4.6, 4.6);
+// Stern foam trail: patches are dropped in WORLD space as the hull moves, so
+// a turning (or wandering) boat leaves a genuinely curved wash behind it.
+let trailSpawnAccumM = 0;
 
 function setupBoatParticles() {
     // Clear old system if exists
@@ -4628,7 +4632,43 @@ function updateParticles(delta, speed) {
     // Only spawn if moving
     if (speed > 1.0) {
         const time = performance.now() / 1000;
-        
+        const speedRatio = Math.min(speed / (CONFIG.MAX_SHIP_SPEED / 3.6), 1);
+        // Faster hull = bigger, whiter wash. Applied to every spawn below.
+        const wakeScale = 0.75 + speedRatio * 0.7;
+
+        // --- System C: Stern foam trail (world-fixed wash line) ---
+        // One patch per ~5m of travel; it stays where it was dropped, grows
+        // and fades, so the boat's actual curved path stays readable astern.
+        trailSpawnAccumM += speed * delta;
+        const trailStepM = 5 / Math.max(0.4, PERFORMANCE_PROFILE.particleMultiplier);
+        if (trailSpawnAccumM >= trailStepM) {
+            trailSpawnAccumM = 0;
+            const material = new THREE.MeshBasicMaterial({
+                map: foamTexture,
+                transparent: true,
+                opacity: 0.34,
+                depthWrite: false,
+                blending: THREE.NormalBlending,
+                side: THREE.DoubleSide
+            });
+            const mesh = new THREE.Mesh(trailPlaneGeometry, material);
+            const sternOffset = new THREE.Vector3((Math.random() - 0.5) * 1.6, 0, 9.5).applyEuler(boat.rotation);
+            mesh.position.copy(boat.position).add(sternOffset);
+            mesh.position.y = 0.05;
+            mesh.rotation.x = -Math.PI / 2;
+            mesh.rotation.z = Math.random() * Math.PI * 2;
+            mesh.scale.setScalar(wakeScale * (0.8 + Math.random() * 0.4));
+            scene.add(mesh);
+            foamPlanes.push({
+                mesh,
+                life: 3.2,
+                maxLife: 3.2,
+                velocity: null,
+                isTrail: true,
+                baseOpacity: 0.34
+            });
+        }
+
         // --- System A: Bow Impact (Splash) ---
         // Spawn rate based on speed
         const splashRate = Math.min(speed * 0.45, 7.5) * PERFORMANCE_PROFILE.particleMultiplier;
@@ -4656,7 +4696,8 @@ function updateParticles(delta, speed) {
             mesh.rotation.x = -Math.PI / 2;
             mesh.rotation.z = Math.random() * Math.PI * 2; // Random rotation
             mesh.position.y = 0.12;
-            
+            mesh.scale.setScalar(wakeScale);
+
             // Velocity for expansion (V-shape)
             // Move OUTWARD from center line
             const right = new THREE.Vector3(1, 0, 0).applyEuler(boat.rotation);
@@ -4689,8 +4730,9 @@ function updateParticles(delta, speed) {
                 
                 mesh.rotation.x = -Math.PI / 2;
                 mesh.rotation.z = boat.rotation.z; // Align with boat
-                mesh.position.y = 0.08; 
-                
+                mesh.position.y = 0.08;
+                mesh.scale.setScalar(wakeScale);
+
                 // Velocity: Outward and Backward
                 // Outward: side * right
                 // Backward: We simulate wake staying behind as boat moves forward
@@ -4749,12 +4791,16 @@ function updateParticles(delta, speed) {
                 // Kelvin Wake Logic
                 p.mesh.position.addScaledVector(p.velocity, delta);
                 // Scale x3 rapidly
-                p.mesh.scale.multiplyScalar(1.0 + delta * 1.8); 
+                p.mesh.scale.multiplyScalar(1.0 + delta * 1.8);
+            } else if (p.isTrail) {
+                // Stern wash: stays put, spreads slowly, dissolves.
+                p.mesh.scale.multiplyScalar(1.0 + delta * 0.55);
             } else {
                 // Fallback for old particles (if any)
-                p.mesh.scale.multiplyScalar(1.0 + delta * 0.2); 
+                p.mesh.scale.multiplyScalar(1.0 + delta * 0.2);
             }
-            p.mesh.material.opacity = (p.life / p.maxLife) * 0.52;
+            const fade = p.life / p.maxLife;
+            p.mesh.material.opacity = p.isTrail ? fade * p.baseOpacity : fade * 0.52;
         }
     }
 }

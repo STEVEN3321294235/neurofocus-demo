@@ -121,7 +121,7 @@ export default {
 
                     <div id="voyage-card" style="display: none;" aria-label="voyage map">
                         <div class="voyage-card-head">
-                            <span class="voyage-card-title">${t('voyage_title')}</span>
+                            <span class="voyage-card-title" data-i18n="voyage_title">${t('voyage_title')}</span>
                             <span id="voyage-count">⚓ 0</span>
                         </div>
                         <svg id="voyage-map" viewBox="0 0 220 84" aria-hidden="true">
