@@ -908,6 +908,7 @@ function getEffectiveFocusLevel(now = performance.now()) {
 }
 
 function hideBreathingIntervention() {
+    weatherGloomHold = null; // hand the mist back to the live focus signal
     const overlay = document.getElementById('breathing-intervention');
     if (!overlay) return;
     overlay.classList.remove('active', 'phase-inhale', 'phase-hold', 'phase-exhale');
@@ -936,9 +937,22 @@ function renderBreathingIntervention(now = performance.now()) {
         helperText = langText('保持呼吸環停留在最大狀態，穩住 4 秒。', 'Keep the ring at its largest size and hold for 4 seconds.');
     } else if (cycleElapsed >= 8000) {
         phaseClass = 'phase-exhale';
-        phaseTitle = langText('慢慢呼氣，回到題目', 'Slow exhale and refocus');
+        phaseTitle = langText('慢慢呼氣，睇住個霧散開', 'Slow exhale and watch the mist part');
         phaseText = langText('呼氣', 'Exhale');
         helperText = langText('跟住呼吸環由大慢慢收細，用 4 秒慢慢呼氣。', 'Follow the ring from large to small and exhale slowly over 4 seconds.');
+    }
+
+    // The mist parts as you exhale: each cycle's exhale phase visibly clears
+    // a slice of the gloom, so the world itself rewards the breathing.
+    const totalCycles = Math.max(1, Math.round(FOCUS_TRAINING.interventionDurationMs / 12000));
+    const cycleIndex = Math.min(totalCycles - 1, Math.floor(elapsed / 12000));
+    const clearedPerCycle = 0.65 / totalCycles;
+    const gloomAtCycleStart = 1 - cycleIndex * clearedPerCycle;
+    if (phaseClass === 'phase-exhale') {
+        const exhaleProgress = THREE.MathUtils.clamp((cycleElapsed - 8000) / 4000, 0, 1);
+        weatherGloomHold = gloomAtCycleStart - clearedPerCycle * exhaleProgress;
+    } else {
+        weatherGloomHold = gloomAtCycleStart;
     }
 
     overlay.style.display = 'flex';
@@ -955,6 +969,7 @@ function renderBreathingIntervention(now = performance.now()) {
 
 function startBreathingIntervention(now = performance.now()) {
     hideBreathingPrompt();
+    weatherGloomHold = 1; // the mist locks in as the breathing scene opens
     trainingAnalytics.interventionActive = true;
     trainingAnalytics.interventionCount += 1;
     trainingAnalytics.interventionStartMs = now;
@@ -980,7 +995,10 @@ function stopBreathingIntervention() {
     trainingAnalytics.lowFocusStreakMs = 0;
     trainingAnalytics.boostActive = true;
     trainingAnalytics.boostEndsAt = performance.now() + FOCUS_TRAINING.boostDurationMs;
-    hideBreathingIntervention();
+    // Rescue pays forward: the flow ring refills faster for a while, so a
+    // "分心 → 救返" arc still feels like progress rather than lost time.
+    trainingAnalytics.chargeBoostUntil = performance.now() + 20000;
+    hideBreathingIntervention(); // also releases the mist -> sun bursts back
     celebrateBoost();
 }
 
@@ -991,7 +1009,7 @@ function celebrateBoost() {
     const flash = document.getElementById('boost-flash');
     const flashText = document.getElementById('boost-flash-text');
     if (flash && flashText) {
-        flashText.textContent = langText('🔥 專注全滿 5 秒！', '🔥 Full focus for 5s!');
+        flashText.textContent = langText('🌤 霧散返喇！專注全滿 5 秒，充能加速中', '🌤 The mist is parting! Full focus for 5s, charge boosted');
         flash.style.display = '';
         flash.classList.remove('is-in');
         void flash.offsetWidth; // restart CSS animation
@@ -4016,7 +4034,12 @@ function init3DScene() {
             setGloom: (value) => {
                 weatherGloomHold = value === null ? null : THREE.MathUtils.clamp(Number(value) || 0, 0, 1);
             },
-            getWeather: () => ({ gloom: weatherGloom, target: weatherGloomTarget, hold: weatherGloomHold })
+            getWeather: () => ({ gloom: weatherGloom, target: weatherGloomTarget, hold: weatherGloomHold }),
+            triggerBreathing: () => {
+                if (isGameActive && !trainingAnalytics.interventionActive) {
+                    startBreathingIntervention(performance.now());
+                }
+            }
         };
     }
 }
