@@ -169,11 +169,18 @@ function getPerformanceProfile() {
         lowPowerDevice,
         ultraLowProfile,
         pixelRatioCap: ultraLowProfile ? 1.0 : isWindows ? 1.1 : compactViewport ? 1.25 : Math.min(dpr, 1.5),
-        antialias: !(isMobile || lowPowerDevice),
+        // Hardware MSAA everywhere: navigator.deviceMemory caps at 8, so the
+        // old `memoryGb <= 8` gate classified virtually every device as low
+        // power and silently disabled AA on all of them (hence the jagged
+        // hull). MSAA is resolved in fixed-function hardware and is cheap on
+        // modern GPUs incl. mobile tilers; heavier knobs below pay for it.
+        antialias: true,
+        msaaSamples: ultraLowProfile ? 2 : 4,
         usePostProcessing: !(isWindows || lowPowerDevice),
         enableShadows: !lowPowerDevice,
         shadowMapSize: ultraLowProfile ? 512 : compactViewport ? 768 : 1024,
-        waterResolution: ultraLowProfile ? 192 : lowPowerDevice ? 256 : 320,
+        // One notch lower than before to offset the MSAA cost on weak GPUs.
+        waterResolution: ultraLowProfile ? 160 : lowPowerDevice ? 224 : 320,
         textureAnisotropy: ultraLowProfile ? 2 : lowPowerDevice ? 4 : 8,
         particleMultiplier: ultraLowProfile ? 0.45 : lowPowerDevice ? 0.65 : 1.0
     };
@@ -3882,13 +3889,27 @@ function setupPostProcessing() {
     bloomPass.radius = 0.4;     // Blur radius
     bloomPassRef = bloomPass;   // expose to the game loop for flow-state boost
 
-    // SMAA Pass for superior Anti-Aliasing
-    const smaaPass = new SMAAPass(window.innerWidth * renderer.getPixelRatio(), window.innerHeight * renderer.getPixelRatio());
+    // The composer renders into an offscreen target, which bypasses the
+    // renderer's own MSAA. On WebGL2 we hand the composer a multisampled
+    // target instead, which also lets us drop the (more expensive) SMAA pass.
+    const drawSize = renderer.getDrawingBufferSize(new THREE.Vector2());
+    const msaaSamples = renderer.capabilities.isWebGL2 ? PERFORMANCE_PROFILE.msaaSamples : 0;
+    const composerTarget = new THREE.WebGLRenderTarget(drawSize.width, drawSize.height, {
+        samples: msaaSamples,
+        type: THREE.HalfFloatType
+    });
 
-    composer = new EffectComposer(renderer);
+    composer = new EffectComposer(renderer, composerTarget);
     composer.addPass(renderScene);
     composer.addPass(bloomPass);
-    composer.addPass(smaaPass); // Add SMAA as final pass
+    if (!msaaSamples) {
+        // WebGL1 fallback only: SMAA as the final AA pass.
+        const smaaPass = new SMAAPass(drawSize.width, drawSize.height);
+        composer.addPass(smaaPass);
+    }
+    // Normalize sizes (composer tracks CSS px + pixel ratio internally, while
+    // our target was created at drawing-buffer size). setSize keeps `samples`.
+    composer.setSize(window.innerWidth, window.innerHeight);
 }
 
 function loadTextures() {
