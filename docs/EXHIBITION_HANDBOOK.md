@@ -141,11 +141,15 @@ graph LR
 - **Box Breathing 觸發**：`focusLevel` 低於**自適應門檻**（用歷史調整，唔再死 45/55）並持續一段時間 → 頂部提示 → 觸發呼吸 UI → 完成後短暫 focus boost。
 - **自適應門檻**：系統跟住玩家歷史表現收緊 recovery / trigger 門檻——係真「訓練」而唔淨係「量度」。
 
-### Results 量化（sprint 後大幅加強）
-- 單次指標：Distance、Accuracy、Total Time、Focus Rate、Recovery Time、Breathing Count。
-- **session 內前後對比**（頭半段 vs 尾半段專注）。
-- **專注曲線 SVG**（睇得到起伏 + 穩定線）。
-- **跨 session trend**（多次 session 嘅 recovery / 穩定度趨勢）——直接回應評判「點證明有進步」。
+### Results 量化（2026-07-10 D1 重新設計：航海報告版面）
+> 設計語言用 v0 設計稿，Claude 以 vanilla JS + inline SVG 落地（唔加框架），Training / Challenge 兩版共用一套 teal + 金色系，深淺色 + 雙語齊全。由上到下：
+- **Hero 判語**：一句大字 + 模式/難度/訊號來源 chips + 專注率或正確率——做到「3 秒睇明今次點」。
+- **4 格指標**：專注穩定度（高亮）、平均恢復、呼吸救返；第 4 格挑戰係「距離 + 航標」、訓練係「訓練時長」。
+- **成就（訓練）**：心流星、航標、**黃金時刻（真 EEG 專屬，模擬顯示鎖住唔造假）**、航海日誌累積；**答題回顧（挑戰）**：答對數 + 可展開答錯卡（你的答案／正解／解釋）。
+- **專注曲線 SVG**（area fill + 穩定線）+ **session 內前後對比 badge**（頭半 vs 尾半）。
+- **跨 session trend**（recovery / 穩定度趨勢 + 「分心恢復 vs 你最近平均」誠實 headline）——直接回應評判「點證明有進步」。
+- **下一個目標卡**：一個具體目標 + 一句現實意義（例如「恢復快 = 溫書分咗心都追得返」）——見到進步之餘知道下一步。
+- **耐刷新**：中途 refresh Results 頁唔會歸零（快照存 localStorage，還原最新一局；重複刷新唔會重複入歷史）。
 
 ### UI 機制（值得同評判講嘅工程細節）
 **1. Loading 狀態機**（避免黑屏 / 感知崩潰）

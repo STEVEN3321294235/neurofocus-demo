@@ -6,8 +6,10 @@
 > Repo 而家**只有一條 `main` branch**，Claude 同 TRAE 都直接喺 `main` 做嘢。
 >
 > **剩低嘅工作分兩階段：**
-> - **【階段一 · 重新設計】** D2 Gameplay ✅ **已完成（2026-07-07，航海旅程 × 心流充能，詳見 §5）** → D1 Results Dashboard（下一件事：Stitch 出設計稿、Claude 實作；Training / Challenge 分開設計）
+> - **【階段一 · 重新設計】** D2 Gameplay ✅ **已完成（2026-07-07）** → D1 Results Dashboard ✅ **已完成（2026-07-10，v0 設計稿 → Claude 實作，Training / Challenge 兩版 + 深淺色，詳見 §5）**
 > - **【階段二 · 收尾打磨】** P1 動態畫質 → P2 Web 加靚/現代化 → U1 文案人性化 + Footer → E1 EEG 韌性 → F1 審計（過期檔案/漏洞/風險）
+>
+> **2026-07-10 額外修正（喺 main）**：① Homepage footer 死連結（隱私政策/服務條款/技術支援/聯絡我們，全部 `href="#"`）已移除，留返有真內容嘅版本俾 U1 做。② **Results 頁 refresh 唔再歸零**——一局完會存快照落 localStorage，refresh 後由快照還原真數據（附「一個 session 只計一次」保護，唔會重複入歷史/航海日誌）。
 
 ---
 
@@ -46,8 +48,12 @@
 | 字體統一（Orbitron 只留 game HUD） | `styles/pages/game.css` |
 | 兩個模式統一海洋（書房已完全移除） | commit `daa57813` |
 | Repo 清潔（30MB zip、debug 遙測已清）+ 文件整合成手冊 | commit `71e327a6` |
+| D2 Gameplay 重新設計（航海旅程 × 心流充能，12 步） | 2026-07-07 |
+| **D1 Results Dashboard 重新設計**（v0 → vanilla 實作，兩模式 + 深淺色） | commit `2419836c`（2026-07-10） |
+| Results refresh 唔再歸零（localStorage 快照還原 + 一 session 只計一次） | commit `75591fcb`（2026-07-10） |
+| Homepage footer 死連結移除（留返俾 U1 做真內容版） | commit `696b3203`（2026-07-10） |
 
-**未做 / 待做**：見 §5 —— 階段一（Dashboard + Gameplay 重新設計）、階段二（P1 P2 U1 E1 F1）、人手任務（EEG rehearsal、Vercel 驗證、換 key）。
+**未做 / 待做**：見 §5 —— 階段二（P1 P2 U1 E1 F1）、人手任務（EEG rehearsal、Vercel 驗證、換 key）。
 
 > 註：`pages/game/focusGates.js` 已於 2026-07-06（D2-0）**移除**——佢嘅「離散事件」角色由 D2 新設計嘅「心流充能摘星」取代（見 §5）。
 
@@ -185,14 +191,20 @@ curl -s -X POST "https://<你嘅-app>.vercel.app/api/questions" \
 > **Steven 人手驗收指引**（本機）：`git pull origin main` → `node server.js` → Simulation 訓練模式玩一場（睇：航道彎位、能量環摘星、分心起霧+漂航、呼吸撥霧、經過航標、右下海圖、FPS meter 企穩）；再玩一場挑戰模式（題目照舊、無星環、左下精簡卡）。EEG 黃金時刻要頭帶或者 console 打 `EEG_APP.debug.setGolden(true)`。
 > **DEMO_MODE debug 掣**（俾攤位/測試用，console）：`EEG_APP.debug.earnStar() / setGloom(0-1或null) / triggerBreathing() / setGolden(true/false/null) / teleport(米數)`。
 
-#### D1 — Results Dashboard（D2 完成後先開）
+#### D1 — Results Dashboard ✅ 已完成（2026-07-10）
 
-**流程已定**：Training 同 Challenge 兩個模式嘅 Results **分開設計**。版面視覺由 **Stitch** 出設計稿（Steven 主導），Claude 負責：
-1. **D2 新數據落地**：session 摘要加「星數 / checkpoint 數 / 黃金時刻秒數 / 呼吸救返次數」（以新增欄位方式，唔郁現有結構；動 schema 前要同 Steven 講清楚）。
-2. 攞住 Stitch 設計稿實作：數據綁定、雙語 i18n、響應式、EEG session 豐富版 vs Simulation 簡化版。
-3. 設計原則保留：**3 秒內答到「今次得唔得？有冇進步？」**；EEG session 展示最豐富數據；跨 session 進步要一眼睇到。
+**點做咗**：Steven 用 **v0** 出咗挑戰模式設計稿（React/Tailwind/recharts），Claude 唔搬框架，改為**照住個視覺用現有 vanilla JS + inline SVG 重畫**（保住「冇 build step、`node server.js` 就跑到、Vercel 靜態部署」嘅架構），訓練版用同一套設計 derive。兩版共用一套色系（teal + 金），深淺色都 cover，全部雙語、響應式。
 
-> D1 嘅詳細拆步等 Stitch 設計稿出咗、Steven 揀咗先寫入呢度。
+**版面（由上到下）**：
+1. **Hero 判語**：模式 chips（模式 / 難度或時長 / 訊號來源）+ 一句大字判語 + 專注率／正確率 subchips —— 做到「3 秒睇明今次點」。
+2. **4 格指標**：專注穩定度（高亮）、平均恢復、呼吸救返；第 4 格挑戰係「距離 + 航標」、訓練係「訓練時長」。
+3. **成就（訓練）**：心流星、航標、**黃金時刻（真 EEG 專屬，模擬會顯示鎖住）**、航海日誌累積；**答題回顧（挑戰）**：答對數 chip + 可展開嘅答錯卡（你的答案／正解／解釋，紅綠 teal 色標）。
+4. **專注曲線**：area fill + 前半／後半對比 badge。
+5. **跨局趨勢**：保留「分心恢復 vs 你最近平均」誠實 headline + 專注穩定度／恢復時間兩條 bar chart（最新一局高亮）。
+6. **下一個目標**：一個具體目標 + 一句現實意義（例如「恢復快 = 溫書分咗心都追得返」）——令青少年見到進步之餘知道下一步。
+
+**驗收（headless 已跑）**：訓練／挑戰 × 深／淺 × 雙語共 4 個情境全部零 JS 錯誤；答錯題文字 HTML-escape 防注入；home 照樣 boot。
+**未做（可留 U1/之後）**：黃金時刻等豐富數據目前用本機 session 欄位；如要上雲端需按 §D1 原則同 Steven 傾 schema 先加。Steven 本機驗收指引：`node server.js` → Simulation 玩一局 → 完場睇 Results → 切語言／切深淺色 → refresh 確認唔歸零。
 
 ---
 
