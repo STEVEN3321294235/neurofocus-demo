@@ -1658,6 +1658,10 @@ let smoothedHelmFocus = 55;  // eased focus signal for speed/steering inertia
 let wanderYawTarget = 0;     // the random bearing a distracted boat drifts to
 let wanderTimerMs = 0;
 let lastAppliedYawRate = 0;  // rad/s, for banking into turns
+// Swell phase is INTEGRATED (phase += freq * dt), never computed as t*freq:
+// the frequency shifts with speed/weather every frame, and t*freq would make
+// the phase — and the hull — jump whenever it does.
+let bobPhase = 0;
 const _camOffset = new THREE.Vector3();
 const _camTargetPos = new THREE.Vector3();
 const _lookTarget = new THREE.Vector3();
@@ -2145,14 +2149,17 @@ function updateGameLogic(delta) {
         const targetLift = 1.08 + speedFactor * 0.46 - waveIntensity * 0.1; 
         
         // --- Bobbing ---
-        // Low speed + low focus = rougher water and larger drift.
-        const bobAmplitude = 0.16 + waveIntensity * 0.34 + (1.0 - speedFactor) * 0.08; 
-        const bobFreq = 1.35 + waveIntensity * 1.6 + speedFactor * 2.1;
-        const bobbing = Math.sin(timeVal * bobFreq) * bobAmplitude;
-        const secondaryHeave = Math.sin(timeVal * 0.65 + 1.2) * (0.05 + waveIntensity * 0.08);
-        
+        // Gentler, slower swell; low speed + low focus still roughen the water,
+        // but a multi-tonne hull shouldn't hop. Phase is integrated so changing
+        // sea state never causes a vertical jump (see bobPhase note).
+        const bobAmplitude = 0.09 + waveIntensity * 0.2 + (1.0 - speedFactor) * 0.05;
+        const bobFreq = 0.95 + waveIntensity * 0.85 + speedFactor * 0.7;
+        bobPhase += bobFreq * delta;
+        const bobbing = Math.sin(bobPhase) * bobAmplitude;
+        const secondaryHeave = Math.sin(timeVal * 0.65 + 1.2) * (0.04 + waveIntensity * 0.06);
+
         const targetY = THREE.MathUtils.clamp(targetLift + bobbing + secondaryHeave, 0.88, 1.78);
-        boat.position.y = THREE.MathUtils.lerp(boat.position.y, targetY, 0.1);
+        boat.position.y = THREE.MathUtils.lerp(boat.position.y, targetY, 0.06);
 
         // --- Yaw ---
         // The hull faces its true heading (rotation.y = -yaw by convention).
@@ -2160,21 +2167,22 @@ function updateGameLogic(delta) {
 
         // --- Roll ---
         // Wave wobble + banking into turns (lean follows the applied yaw rate).
-        const rollAmp = 0.02 + waveIntensity * 0.085 + (1.0 - speedFactor) * 0.025;
+        const rollAmp = 0.016 + waveIntensity * 0.06 + (1.0 - speedFactor) * 0.02;
         const rollWobble =
             Math.sin(timeVal * 0.92) * rollAmp +
             Math.sin(timeVal * 1.9 + 0.8) * rollAmp * 0.32;
         const bank = THREE.MathUtils.clamp(-lastAppliedYawRate * 1.8, -0.13, 0.13) * speedFactor;
 
-        boat.rotation.z = THREE.MathUtils.lerp(boat.rotation.z, rollWobble + bank, 0.05);
+        boat.rotation.z = THREE.MathUtils.lerp(boat.rotation.z, rollWobble + bank, 0.04);
 
         // --- Pitch ---
         // Mild bow-up posture at speed, extra lift while actively accelerating
         // (throttle squat), rough low-focus water increases pitch swing.
+        // wavePitch shares the integrated bobPhase (same swell, no phase jumps).
         const accelPitch = THREE.MathUtils.clamp((targetSpeed - boatSpeed) / 40, -1, 1) * 0.045;
         const pitchCurve = Math.sin(speedFactor * Math.PI / 2) * 0.105 + accelPitch - waveIntensity * 0.012;
-        const wavePitch = Math.cos(timeVal * bobFreq) * (0.014 + waveIntensity * 0.02);
-        boat.rotation.x = THREE.MathUtils.lerp(boat.rotation.x, pitchCurve + wavePitch, 0.05);
+        const wavePitch = Math.cos(bobPhase) * (0.010 + waveIntensity * 0.014);
+        boat.rotation.x = THREE.MathUtils.lerp(boat.rotation.x, pitchCurve + wavePitch, 0.04);
 
         // 5. Chase camera: aims at the hull and partially follows its heading
         // so upcoming bends stay readable. Distance auto-scales with viewport
@@ -4989,9 +4997,10 @@ const foamPlanes = [];
 let cameraLight;
 const splashPlaneGeometry = new THREE.PlaneGeometry(3.6, 3.6);
 const wakePlaneGeometry = new THREE.PlaneGeometry(3.2, 3.2);
-const trailPlaneGeometry = new THREE.PlaneGeometry(4.6, 4.6);
-// Stern foam trail: patches are dropped in WORLD space as the hull moves, so
-// a turning (or wandering) boat leaves a genuinely curved wash behind it.
+// Stern wash ribbon: narrow ACROSS the path (x), long ALONG it (y). Segments
+// are dropped in world space aligned with the hull's heading and overlap the
+// previous one, so they read as one continuous band instead of loose blobs.
+const trailPlaneGeometry = new THREE.PlaneGeometry(2.4, 7.5);
 let trailSpawnAccumM = 0;
 
 function setupBoatParticles() {
@@ -5044,36 +5053,39 @@ function updateParticles(delta, speed) {
         // Faster hull = bigger, whiter wash. Applied to every spawn below.
         const wakeScale = 0.75 + speedRatio * 0.7;
 
-        // --- System C: Stern foam trail (world-fixed wash line) ---
-        // One patch per ~5m of travel; it stays where it was dropped, grows
-        // and fades, so the boat's actual curved path stays readable astern.
+        // --- System C: Stern wash ribbon (world-fixed, heading-aligned) ---
+        // A segment every ~3m, aligned with the hull's heading at the moment it
+        // was shed. Segments overlap lengthwise, start at hull width, then only
+        // WIDEN (never lengthen) while fading — a turning boat leaves one
+        // continuous curved band of wash, the way a real stern wake spreads.
         trailSpawnAccumM += speed * delta;
-        const trailStepM = 5 / Math.max(0.4, PERFORMANCE_PROFILE.particleMultiplier);
+        const trailStepM = 3.2 / Math.max(0.4, PERFORMANCE_PROFILE.particleMultiplier);
         if (trailSpawnAccumM >= trailStepM) {
             trailSpawnAccumM = 0;
             const material = new THREE.MeshBasicMaterial({
                 map: foamTexture,
                 transparent: true,
-                opacity: 0.34,
+                opacity: 0,
                 depthWrite: false,
                 blending: THREE.NormalBlending,
                 side: THREE.DoubleSide
             });
             const mesh = new THREE.Mesh(trailPlaneGeometry, material);
-            const sternOffset = new THREE.Vector3((Math.random() - 0.5) * 1.6, 0, 9.5).applyEuler(boat.rotation);
+            const sternOffset = new THREE.Vector3((Math.random() - 0.5) * 0.7, 0, 9.0).applyEuler(boat.rotation);
             mesh.position.copy(boat.position).add(sternOffset);
             mesh.position.y = 0.05;
-            mesh.rotation.x = -Math.PI / 2;
-            mesh.rotation.z = Math.random() * Math.PI * 2;
-            mesh.scale.setScalar(wakeScale * (0.8 + Math.random() * 0.4));
+            // rotation.x lays the plane on the water; rotation.z aligns its long
+            // axis with the hull's heading (euler XYZ: z applies first).
+            mesh.rotation.set(-Math.PI / 2, 0, boat.rotation.y);
+            mesh.scale.set(0.62 + speedRatio * 0.3, 1, 1);
             scene.add(mesh);
             foamPlanes.push({
                 mesh,
-                life: 3.2,
-                maxLife: 3.2,
+                life: 5.2,
+                maxLife: 5.2,
                 velocity: null,
                 isTrail: true,
-                baseOpacity: 0.34
+                baseOpacity: 0.26
             });
         }
 
@@ -5125,7 +5137,7 @@ function updateParticles(delta, speed) {
                 const material = new THREE.MeshBasicMaterial({
                     map: splashTexture, // Fix: Use splash.png
                     transparent: true,
-                    opacity: 0.52,
+                    opacity: 0.42,
                     depthWrite: false,
                     blending: THREE.NormalBlending,
                     side: THREE.DoubleSide
@@ -5198,17 +5210,23 @@ function updateParticles(delta, speed) {
             if (p.isKelvin) {
                 // Kelvin Wake Logic
                 p.mesh.position.addScaledVector(p.velocity, delta);
-                // Scale x3 rapidly
-                p.mesh.scale.multiplyScalar(1.0 + delta * 1.8);
+                p.mesh.scale.multiplyScalar(1.0 + delta * 1.25);
             } else if (p.isTrail) {
-                // Stern wash: stays put, spreads slowly, dissolves.
-                p.mesh.scale.multiplyScalar(1.0 + delta * 0.55);
+                // Stern wash: stays put and only widens across the path; the
+                // band's length comes from overlapping segments, not growth.
+                p.mesh.scale.x *= 1.0 + delta * 0.34;
             } else {
                 // Fallback for old particles (if any)
                 p.mesh.scale.multiplyScalar(1.0 + delta * 0.2);
             }
             const fade = p.life / p.maxLife;
-            p.mesh.material.opacity = p.isTrail ? fade * p.baseOpacity : fade * 0.52;
+            if (p.isTrail) {
+                // Brief ease-in so segments surface softly instead of popping.
+                const fadeIn = Math.min(1, (1 - fade) * 6);
+                p.mesh.material.opacity = fadeIn * fade * p.baseOpacity;
+            } else {
+                p.mesh.material.opacity = fade * (p.isKelvin ? 0.42 : 0.52);
+            }
         }
     }
 }

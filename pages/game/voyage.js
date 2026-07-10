@@ -71,7 +71,7 @@ function buildLane(scene) {
     const mat = new THREE.MeshBasicMaterial({
         map: tex,
         transparent: true,
-        opacity: 0.75,
+        opacity: 0.5,
         blending: THREE.AdditiveBlending,
         depthWrite: false
     });
@@ -89,20 +89,44 @@ function buildLane(scene) {
     }
 }
 
+// Soft radial glow for the beacon lamp (shared canvas texture, one sprite per
+// buoy so each can pulse on its own phase).
+function makeGlowTexture() {
+    const canvas = document.createElement('canvas');
+    canvas.width = 64;
+    canvas.height = 64;
+    const ctx = canvas.getContext('2d');
+    const grad = ctx.createRadialGradient(32, 32, 2, 32, 32, 30);
+    grad.addColorStop(0, 'rgba(255, 236, 180, 0.9)');
+    grad.addColorStop(0.35, 'rgba(255, 216, 130, 0.42)');
+    grad.addColorStop(1, 'rgba(255, 200, 90, 0)');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, 64, 64);
+    return new THREE.CanvasTexture(canvas);
+}
+
 function buildShared() {
     sharedGeo = {
-        float: new THREE.CylinderGeometry(1.5, 2.3, 1.9, 10),
-        band: new THREE.CylinderGeometry(1.28, 1.52, 1.0, 10),
-        pole: new THREE.CylinderGeometry(0.16, 0.2, 3.4, 6),
-        lamp: new THREE.SphereGeometry(0.62, 10, 8),
-        cap: new THREE.ConeGeometry(0.5, 0.7, 8),
-        wing: new THREE.PlaneGeometry(1.7, 0.5)
+        // Higher segment counts + smooth shading: the buoys are close-up set
+        // dressing, and only three exist, so the extra vertices are free.
+        float: new THREE.CylinderGeometry(1.5, 2.3, 1.9, 18),
+        band: new THREE.CylinderGeometry(1.28, 1.52, 1.0, 18),
+        rim: new THREE.TorusGeometry(1.58, 0.13, 8, 22),
+        pole: new THREE.CylinderGeometry(0.16, 0.2, 3.4, 10),
+        lamp: new THREE.SphereGeometry(0.62, 16, 12),
+        cage: new THREE.TorusGeometry(0.7, 0.04, 6, 16),
+        cap: new THREE.ConeGeometry(0.5, 0.7, 12),
+        wing: new THREE.PlaneGeometry(1.7, 0.5),
+        birdBody: new THREE.SphereGeometry(0.3, 10, 8),
+        beak: new THREE.ConeGeometry(0.09, 0.32, 6)
     };
     sharedMat = {
-        red: new THREE.MeshStandardMaterial({ color: 0xd25b4a, flatShading: true, roughness: 0.55 }),
-        white: new THREE.MeshStandardMaterial({ color: 0xf4f0e8, flatShading: true, roughness: 0.5 }),
-        dark: new THREE.MeshStandardMaterial({ color: 0x2b3a4a, flatShading: true, roughness: 0.7 }),
-        bird: new THREE.MeshBasicMaterial({ color: 0xf5faff, side: THREE.DoubleSide })
+        red: new THREE.MeshStandardMaterial({ color: 0xd25b4a, roughness: 0.42, metalness: 0.08 }),
+        white: new THREE.MeshStandardMaterial({ color: 0xf4f0e8, roughness: 0.38, metalness: 0.05 }),
+        dark: new THREE.MeshStandardMaterial({ color: 0x2b3a4a, roughness: 0.55, metalness: 0.3 }),
+        bird: new THREE.MeshBasicMaterial({ color: 0xf5faff, side: THREE.DoubleSide }),
+        beak: new THREE.MeshBasicMaterial({ color: 0xe8a13c }),
+        glowTexture: makeGlowTexture()
     };
 }
 
@@ -111,6 +135,10 @@ function buildBuoy(scene, poolSlot) {
 
     const float = new THREE.Mesh(sharedGeo.float, sharedMat.red);
     float.position.y = 0.6;
+    // Dark fender ring where the hull meets the water — grounds the shape.
+    const rim = new THREE.Mesh(sharedGeo.rim, sharedMat.dark);
+    rim.position.y = 1.42;
+    rim.rotation.x = Math.PI / 2;
     const band = new THREE.Mesh(sharedGeo.band, sharedMat.white);
     band.position.y = 2.0;
     const pole = new THREE.Mesh(sharedGeo.pole, sharedMat.dark);
@@ -124,27 +152,53 @@ function buildBuoy(scene, poolSlot) {
     });
     const lamp = new THREE.Mesh(sharedGeo.lamp, lampMat);
     lamp.position.y = 6.1;
+    // Two thin cage hoops around the lamp, like a real lantern housing.
+    const cageA = new THREE.Mesh(sharedGeo.cage, sharedMat.dark);
+    cageA.position.y = 6.1;
+    cageA.rotation.x = Math.PI / 2;
+    const cageB = new THREE.Mesh(sharedGeo.cage, sharedMat.dark);
+    cageB.position.y = 6.1;
     const cap = new THREE.Mesh(sharedGeo.cap, sharedMat.red);
     cap.position.y = 7.0;
-    group.add(float, band, pole, lamp, cap);
+    // Soft light halo around the lamp; pulses with the lamp emissive.
+    const glowMat = new THREE.SpriteMaterial({
+        map: sharedMat.glowTexture,
+        color: 0xffd98a,
+        transparent: true,
+        opacity: 0.4,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false
+    });
+    const glow = new THREE.Sprite(glowMat);
+    glow.position.y = 6.1;
+    glow.scale.setScalar(3.8);
+    group.add(float, rim, band, pole, lamp, cageA, cageB, cap, glow);
 
     // A couple of gulls riding the wind around the lamp.
     const birds = [];
     if (ecoEnabled) {
         for (let b = 0; b < BIRDS_PER_BUOY; b++) {
             const bird = new THREE.Group();
+            // Slim body + beak so the gulls read as birds, not bow ties.
+            const body = new THREE.Mesh(sharedGeo.birdBody, sharedMat.bird);
+            body.scale.set(1.5, 0.6, 0.85);
+            const beak = new THREE.Mesh(sharedGeo.beak, sharedMat.beak);
+            beak.position.set(0.52, 0.02, 0);
+            beak.rotation.z = -Math.PI / 2;
             const left = new THREE.Mesh(sharedGeo.wing, sharedMat.bird);
-            left.position.x = -0.8;
-            left.rotation.z = 0.45;
+            left.position.set(-0.85, 0.08, 0);
+            left.rotation.z = 0.32;
             const right = new THREE.Mesh(sharedGeo.wing, sharedMat.bird);
-            right.position.x = 0.8;
-            right.rotation.z = -0.45;
-            bird.add(left, right);
+            right.position.set(0.85, 0.08, 0);
+            right.rotation.z = -0.32;
+            bird.add(body, beak, left, right);
             bird.userData = {
                 radius: 5.5 + b * 3,
                 height: 9 + b * 2.2,
                 speed: 0.5 + b * 0.16,
-                phase: b * 2.4 + poolSlot * 1.7
+                phase: b * 2.4 + poolSlot * 1.7,
+                wingL: left,
+                wingR: right
             };
             group.add(bird);
             birds.push(bird);
@@ -154,7 +208,7 @@ function buildBuoy(scene, poolSlot) {
     group.scale.setScalar(2.1); // stylized-large so it reads from a distance
     group.traverse((child) => { child.castShadow = false; child.receiveShadow = false; });
     scene.add(group);
-    return { group, z: 0, x: 0, checkpointIndex: 0, state: 'idle', lampMat, birds, poolSlot };
+    return { group, z: 0, x: 0, checkpointIndex: 0, state: 'idle', lampMat, glowMat, birds, poolSlot };
 }
 
 function placeBuoy(buoy, checkpointIndex) {
@@ -167,6 +221,7 @@ function placeBuoy(buoy, checkpointIndex) {
     buoy.group.position.set(buoy.x, -0.2, buoy.z);
     buoy.group.rotation.y = ((checkpointIndex * 53) % 360) * (Math.PI / 180);
     buoy.lampMat.emissiveIntensity = 1.4;
+    if (buoy.glowMat) buoy.glowMat.opacity = 0.4;
 }
 
 export function initVoyage(scene, threeRef, profile = {}) {
@@ -211,8 +266,10 @@ export function updateVoyage({ boatZ = 0, elapsedMs = 0, deltaSec = 0, active = 
     const t = elapsedMs / 1000;
     let event = null;
     for (const buoy of buoys) {
-        // Lamp pulse + gentle bobbing/tilt in the swell.
-        buoy.lampMat.emissiveIntensity = 1.4 + Math.sin(t * 1.8 + buoy.poolSlot * 2.4) * 0.5;
+        // Lamp pulse (halo breathes with it) + gentle bobbing/tilt in the swell.
+        const pulse = Math.sin(t * 1.8 + buoy.poolSlot * 2.4);
+        buoy.lampMat.emissiveIntensity = 1.4 + pulse * 0.5;
+        if (buoy.glowMat) buoy.glowMat.opacity = 0.34 + (pulse * 0.5 + 0.5) * 0.22;
         buoy.group.position.y = -0.2 + Math.sin(t * 0.9 + buoy.poolSlot * 2.0) * 0.32;
         buoy.group.rotation.z = Math.sin(t * 0.7 + buoy.poolSlot) * 0.06;
         buoy.group.rotation.x = Math.cos(t * 0.8 + buoy.poolSlot * 1.4) * 0.05;
@@ -221,17 +278,24 @@ export function updateVoyage({ boatZ = 0, elapsedMs = 0, deltaSec = 0, active = 
             for (const bird of buoy.birds) {
                 const d = bird.userData;
                 const a = t * d.speed + d.phase;
-                bird.position.set(Math.cos(a) * d.radius, d.height, Math.sin(a) * d.radius);
+                // Circling flight with a soaring rise/dip and a lean into the turn.
+                bird.position.set(
+                    Math.cos(a) * d.radius,
+                    d.height + Math.sin(a * 2.3 + d.phase) * 0.5,
+                    Math.sin(a) * d.radius
+                );
                 bird.rotation.y = -a - Math.PI / 2;
-                const flap = Math.sin(t * 9 + d.phase);
-                bird.children[0].rotation.z = 0.45 + flap * 0.35;
-                bird.children[1].rotation.z = -0.45 - flap * 0.35;
+                const flap = Math.sin(t * 6.5 + d.phase);
+                bird.rotation.z = 0.2 + flap * 0.06;
+                d.wingL.rotation.z = 0.32 + flap * 0.3;
+                d.wingR.rotation.z = -0.32 - flap * 0.3;
             }
         }
 
         if (buoy.state === 'idle' && active && boatZ <= buoy.z) {
             buoy.state = 'passed';
             buoy.lampMat.emissiveIntensity = 3.0; // salute flash
+            if (buoy.glowMat) buoy.glowMat.opacity = 0.85;
             checkpointsPassed += 1;
             event = { index: buoy.checkpointIndex, passed: checkpointsPassed };
         } else if (boatZ < buoy.z - RECYCLE_BEHIND) {
@@ -270,6 +334,7 @@ export function disposeVoyage(scene) {
     for (const buoy of buoys) {
         target?.remove(buoy.group);
         buoy.lampMat?.dispose?.();
+        buoy.glowMat?.dispose?.();
     }
     buoys = [];
     if (sharedGeo) Object.values(sharedGeo).forEach((g) => g?.dispose?.());
