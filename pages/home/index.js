@@ -78,22 +78,22 @@ export default {
                                 <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
                                 <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-green-500"></span>
                             </span>
-                            <span class="text-xs font-bold tracking-widest uppercase text-slate-700 dark:text-slate-200 font-display transition-colors duration-500">System Online v4.0</span>
+                            <span class="text-xs font-bold tracking-widest uppercase text-slate-700 dark:text-slate-200 font-display transition-colors duration-500">${dualText('Live Student Prototype · IEYI 2026', '學生原型 · IEYI 2026 · 運作中')}</span>
                         </div>
                         <h1 class="home-title-stitch text-5xl md:text-7xl font-display font-black tracking-tight mb-8 leading-tight dark:text-white text-slate-900 drop-shadow-sm transition-colors duration-500">
                             ${dualText('Master Focus, <br class="md:hidden"> Unlock Your Potential.', '掌握專注，<br class="md:hidden">釋放專注力潛能。')}
                         </h1>
                         <p class="mt-4 max-w-2xl mx-auto text-xl text-slate-600 dark:text-slate-300 font-normal leading-relaxed tracking-wide transition-colors duration-500">
-                            ${dualText('A student-led EEG neurofeedback platform using real-time data analysis to scientifically enhance concentration and learning strategies.', '這是一個由學生主導研發的 EEG 腦電波回饋平台，運用實時數據分析，助你科學化提升集中力，讓學習變得更有策略。')}
+                            ${dualText('A neurofeedback platform built by Hong Kong students: your real-time focus steers a sailboat, and every session shows you — in plain numbers — when you drifted and how fast you pulled yourself back.', '由香港中學生研發嘅神經回饋訓練平台：你嘅專注力實時揸住隻帆船，每一場訓練都用清楚嘅數據話你知——你幾時分咗心、又幾快拉得返。')}
                         </p>
                         <div class="mt-12 flex flex-col sm:flex-row justify-center gap-5">
                             <button type="button" class="group relative inline-flex items-center justify-center px-8 py-4 text-lg font-bold text-white transition-all duration-300 bg-primary rounded-full hover:bg-[#4a8a98] border border-transparent shadow-[0_4px_20px_rgba(93,168,184,0.4)] hover:shadow-[0_8px_30px_rgba(93,168,184,0.6)] hover:-translate-y-1" data-enter-app>
-                                ${dualText('Start Learning', '啟動學習模組')}
+                                ${dualText('Start Training', '開始訓練')}
                                 <span class="material-symbols-outlined ml-2 group-hover:translate-x-1 transition-transform">rocket_launch</span>
                             </button>
                             <a class="glass-btn group inline-flex items-center justify-center px-8 py-4 text-lg font-semibold dark:text-slate-200 text-slate-700 transition-all duration-300 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800/80 hover:-translate-y-1 shadow-sm" href="#features">
                                 <span class="material-symbols-outlined mr-2 text-primary group-hover:text-slate-900 dark:group-hover:text-white transition-colors">play_circle</span>
-                                ${dualText('Watch Demo', '觀看演示影片')}
+                                ${dualText('See How It Works', '睇下點樣運作')}
                             </a>
                         </div>
                         <div class="mt-24 relative max-w-5xl mx-auto fade-up-element" style="transition-delay: 200ms;">
@@ -137,7 +137,7 @@ export default {
                                 ${dualText('Core Features', '核心功能特點')}
                             </h2>
                             <p class="text-slate-600 dark:text-slate-400 max-w-3xl mx-auto text-lg leading-relaxed transition-colors duration-500">
-                                ${dualText('Combining neuroscience with gamification, using advanced technology to bring you a comprehensive cognitive enhancement experience. Each training session is a deep exploration of your brain\'s potential.', '結合神經科學與遊戲化機制，運用先進科技為你帶來全方位的認知提升體驗。每一次訓練，都是對大腦潛能的深度探索。')}
+                                ${dualText('Neurofeedback made playable: see your state, feel the sea respond, and practise steering yourself back. Short sessions, honest numbers, visible progress.', '將神經回饋變成玩得落嘅嘢：見到自己嘅狀態、感受個海即時回應、練習點樣拉返自己。短場數、誠實數據、進步睇得見。')}
                             </p>
                         </div>
                         <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
@@ -162,7 +162,7 @@ export default {
                                     ${dualText('3D Immersive Engine', '3D 沉浸式引擎')}
                                 </h3>
                                 <p class="text-slate-600 dark:text-slate-400 text-base leading-relaxed text-justify-inter font-normal transition-colors duration-500">
-                                    ${dualText('An interactive environment built with WebGL technology. No keyboard or mouse required; your focus is the controller. As you concentrate, the game environment evolves positively, achieving true mind-interaction.', '使用 WebGL 技術打造的互動環境。不需要鍵盤，你的專注就是控制器。當你越專心，遊戲環境就會產生正向變化，實現真正的意念互動。')}
+                                    ${dualText('A living ocean built with WebGL. No keyboard, no mouse — focus is the controller. Hold steady attention and the sea clears and the boat surges; drift, and the mist rolls in until you steer yourself back.', '用 WebGL 打造嘅一片活海。唔使鍵盤滑鼠——專注就係控制器。企穩專注，海面放晴、船速加快；一分心，海上就起霧，直到你拉返自己為止。')}
                                 </p>
                             </div>
                             <div class="glass-card p-8 rounded-3xl group hover:-translate-y-2 transition-all duration-300 hover:bg-white dark:hover:bg-slate-800/80 hover:shadow-[0_20px_40px_-10px_rgba(0,0,0,0.1)] dark:hover:shadow-[0_20px_40px_-10px_rgba(0,0,0,0.4)] hover:border-teal-500/30 relative overflow-hidden">
@@ -174,7 +174,7 @@ export default {
                                     ${dualText('Device Connectivity', '裝置連接')}
                                 </h3>
                                 <p class="text-slate-600 dark:text-slate-400 text-base leading-relaxed text-justify-inter font-normal transition-colors duration-500">
-                                    ${dualText('Supports mainstream EEG headsets like Muse and Emotiv via Bluetooth high-speed connection. Plug-and-play ensures every thought is instantly captured and fed back by the system.', '支援主流腦電波儀器，透過藍牙高速連接。確保你的每一個念頭都能被系統即時捕捉並回饋。')}
+                                    ${dualText('Built around the NeuroSky MindWave EEG headset over Bluetooth. No headset with you? Camera and simulation modes run the full training loop on any device — and the input layer is designed to welcome more sensors later.', '以 NeuroSky MindWave 腦電頭帶為核心（藍牙連接）。冇頭帶在手？相機同模擬模式一樣行到成套訓練流程，任何裝置都試到；輸入層仲預留咗將來接駁更多感測器嘅空間。')}
                                 </p>
                             </div>
                         </div>
@@ -192,7 +192,7 @@ export default {
                                     ${dualText('Transforming Abstract Signals into <span style="font-size: 3rem;">Interactive Experiences</span>', '將抽象信號<br>轉化為互動體驗')}
                                 </h2>
                                 <p class="text-slate-600 dark:text-slate-400 mb-8 text-lg leading-relaxed text-justify-inter border-l-4 border-primary pl-6 font-normal transition-colors duration-500">
-                                    ${dualText('The NeuroFocus system precisely analyzes your brainwave data, extracting Alpha waves representing relaxation and Beta waves representing focus. We bridge the gap between your brain activity and the digital world, making cognitive training tangible data rather than abstract theory.', 'NeuroFocus 系統能精確分析你的腦波數據，重點提取代表放鬆的 Alpha 波與代表專注的 Beta 波。我們在你的大腦活動與數位世界之間架起橋樑，讓認知訓練不再是空泛的理論，而是看得見的數據。')}
+                                    ${dualText('NeuroFocus reads the attention and meditation indices from the NeuroSky headset — measures related to the brain\'s Beta (focus) and Alpha (relaxation) rhythms — and turns them into the wind and weather of a sea you steer. We treat this as a training framework, not a clinical diagnosis: the point is that you can finally SEE your state, then practise steering it.', 'NeuroFocus 讀取 NeuroSky 頭帶輸出嘅 attention（專注）同 meditation（放鬆）指標——兩者同腦電入面 Beta、Alpha 節律相關——再將佢哋變成你揸緊嗰片海嘅風同天氣。我哋將呢啲指標當成訓練嘅設計框架，而唔係臨床診斷：重點係你終於「見到」自己嘅狀態，然後練習點樣調返佢。')}
                                 </p>
                                 <div class="space-y-8">
                                     <div class="flex gap-5 group">
@@ -204,7 +204,7 @@ export default {
                                                 ${dualText('Neuroplasticity', '神經可塑性')}
                                             </h4>
                                             <p class="text-slate-600 dark:text-slate-400 text-sm leading-relaxed font-normal transition-colors duration-500">
-                                                ${dualText('Through repetitive and targeted focus exercises, we can strengthen specific neural circuit connections, enhancing brain efficiency at a physiological level.', '透過重複且有目標的專注力練習，我們能強化特定神經迴路的連接，從生理層面提升大腦的運作效率。')}
+                                                ${dualText('Attention research backs a simple idea: repeated practice with immediate feedback helps build steadier attention habits. That principle is our whole design — short sessions, instant feedback, progress you can point at.', '注意力研究支持一個好簡單嘅原則：重複練習＋即時回饋，有助養成更穩定嘅注意力習慣。我哋成個設計就係圍住呢句嚟做——短場數、即時回饋、指得出嘅進步。')}
                                             </p>
                                         </div>
                                     </div>
@@ -214,10 +214,10 @@ export default {
                                         </div>
                                         <div>
                                             <h4 class="dark:text-white text-slate-900 font-bold text-xl mb-2 transition-colors duration-500">
-                                                ${dualText('Big Data Analytics', '大數據分析')}
+                                                ${dualText('Progress You Can See', '進步睇得見')}
                                             </h4>
                                             <p class="text-slate-600 dark:text-slate-400 text-sm leading-relaxed font-normal transition-colors duration-500">
-                                                ${dualText('Every training session\'s data is recorded to generate detailed cognitive growth reports, allowing you to clearly visualize your progress trajectory.', '每一次的訓練數據都會被記錄下來，生成詳盡的認知成長報告，讓你能清楚看到自己的進步軌跡。')}
+                                                ${dualText('Every session is summarised — stability, recovery speed, breathing rescues — into your personal trend charts, so "am I improving?" gets a real answer. Sign in and your history follows you across devices.', '每一場訓練都會整理成摘要——穩定度、恢復速度、呼吸救返——加入你嘅個人趨勢圖，「我有冇進步」有真答案。登入後，紀錄仲會跨裝置跟住你。')}
                                             </p>
                                         </div>
                                     </div>
@@ -262,8 +262,8 @@ export default {
                                         </div>
                                     </div>
                                     <div class="mt-8 pt-4 border-t border-slate-200 dark:border-white/10 text-center transition-colors duration-500">
-                                        <button class="text-xs font-bold dark:text-slate-200 text-slate-700 hover:text-primary dark:hover:text-primary transition-colors flex items-center justify-center gap-1 mx-auto group">
-                                            ${dualText('Generate Full AI Report', 'AI 生成完整報告')}
+                                        <button type="button" class="text-xs font-bold dark:text-slate-200 text-slate-700 hover:text-primary dark:hover:text-primary transition-colors flex items-center justify-center gap-1 mx-auto group" data-enter-app>
+                                            ${dualText('Play one session — get your own real report', '玩一場，攞你自己嘅真報告')}
                                             <span class="material-symbols-outlined text-sm transition-transform group-hover:translate-x-1">arrow_forward</span>
                                         </button>
                                         <p class="mt-4 text-[10px] text-slate-500 font-normal tracking-wide transition-colors duration-500">
@@ -284,10 +284,10 @@ export default {
                             <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-primary/20 rounded-full blur-[100px] transition-colors duration-500"></div>
                             <div class="relative z-10">
                                 <h2 class="text-4xl md:text-6xl font-display font-bold text-white mb-8 tracking-tight drop-shadow-sm transition-colors duration-500">
-                                    ${dualText('Ready to Release Your <br>Academic Potential?', '準備好釋放你的<br>學術潛力嗎？')}
+                                    ${dualText('Ready to watch your focus <br>get steadier?', '準備好見住自己嘅<br>專注力變穩？')}
                                 </h2>
                                 <p class="text-slate-200 text-lg md:text-xl mb-12 max-w-2xl mx-auto font-normal transition-colors duration-500">
-                                    ${dualText('Start your first training session today and unlock the unlimited possibilities of your brain!', '今天就開始你的第一次訓練，解鎖大腦無限可能！')}
+                                    ${dualText('Your first voyage takes three minutes — with or without an EEG headset.', '第一場航程只需要三分鐘，有冇 EEG 頭帶都玩到。')}
                                 </p>
                                 <button type="button" class="bg-white text-slate-900 hover:bg-slate-50 hover:text-primary px-10 py-4 rounded-full font-bold text-lg shadow-[0_4px_20px_rgba(0,0,0,0.1)] dark:shadow-[0_4px_20px_rgba(255,255,255,0.1)] transition-all duration-300 hover:-translate-y-1 inline-flex items-center group border border-transparent" data-enter-app>
                                     ${dualText('Get Started Now', '立即開始')}
@@ -305,13 +305,13 @@ export default {
                                 <span class="material-symbols-outlined text-primary text-4xl group-hover:scale-105 transition-transform duration-300">psychology</span>
                                 <div>
                                     <span class="font-bold text-2xl dark:text-white text-slate-900 block tracking-tight transition-colors duration-500">NeuroFocus</span>
-                                    <span class="text-xs text-slate-500 tracking-wider font-semibold transition-colors duration-500">COGNITIVE SYSTEMS</span>
+                                    <span class="text-xs text-slate-500 tracking-wider font-semibold transition-colors duration-500">FOCUS TRAINING PROTOTYPE</span>
                                 </div>
                             </div>
                         </div>
                         <div class="flex flex-col md:flex-row justify-between items-center pt-8 border-t border-slate-200 dark:border-white/5 transition-colors duration-500">
                             <div class="flex flex-col md:flex-row items-center gap-4">
-                                <p class="text-slate-500 text-xs text-center md:text-left font-mono transition-colors duration-500">© Cyt. All rights reserved.</p>
+                                <p class="text-slate-500 text-xs text-center md:text-left font-mono transition-colors duration-500">© 2026 NeuroFocus Student Team</p>
                                 <span class="text-[10px] text-slate-500 bg-slate-200 dark:bg-slate-900 px-2.5 py-1 rounded border border-slate-300 dark:border-slate-800 transition-colors duration-500">${dualText('Project by HK Secondary School Innovation Team', '香港中學創新團隊項目')}</span>
                             </div>
                             <div class="mt-4 md:mt-0 flex items-center text-xs text-slate-600 dark:text-slate-400 bg-white dark:bg-slate-900 rounded-full px-4 py-1.5 border border-slate-200 dark:border-white/10 shadow-sm transition-colors duration-300">
