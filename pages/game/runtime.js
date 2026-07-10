@@ -130,6 +130,27 @@ let runtimeResultsHandler = null;
 // the results-dashboard renderers.
 let lastSessionSummary = null;
 
+// --- Results persistence across page refresh ---
+// runtime.js is a fresh module instance on every page load, so all in-memory
+// session state (CONFIG, trainingAnalytics, lastSessionSummary) is empty after
+// a refresh. Without help, refreshing the results page would repaint every
+// metric as zero. We therefore write a full snapshot of the finished session to
+// localStorage and, when the results page mounts with no live session in
+// memory (i.e. after a refresh), rehydrate from that snapshot and repaint the
+// last real session instead of zeros.
+const LAST_SESSION_SNAPSHOT_KEY = 'last_session_snapshot_v1';
+// True once a real game session has run in THIS module instance. Never set by
+// snapshot rehydration, so it cleanly distinguishes "live finish" from
+// "refreshed into results".
+let liveSessionInMemory = false;
+// True once this session's summary has been committed to cross-session history
+// and the voyage log. Guards against double-counting when the results page is
+// re-mounted within the same load (e.g. a language switch re-renders it).
+let sessionResultsCommitted = false;
+// New-record (🔥) flags are only meaningful on a live finish; a refresh repaint
+// leaves them off.
+let lastNewRecords = { isNewDist: false, isNewAcc: false, isNewTime: false };
+
 function isTrainingMode() {
     return CONFIG.testMode === 'training';
 }
@@ -2636,7 +2657,19 @@ function initGameSession() {
     CONFIG.wrongAnswers = [];
     CONFIG.totalDistance = 0;
     CONFIG.accumulatedPlayTime = 0;
+    CONFIG.gameEndTime = 0;
     CONFIG.isPaused = false;
+    // A real session is now live in memory; its results have not been committed
+    // to history / voyage yet. These flags drive the refresh-safe results path.
+    liveSessionInMemory = true;
+    sessionResultsCommitted = false;
+    lastNewRecords = { isNewDist: false, isNewAcc: false, isNewTime: false };
+    // Remember which mode is being played so the results page can pick the right
+    // layout even after a refresh clears in-memory app state.
+    try {
+        localStorage.setItem('last_session_mode', CONFIG.testMode);
+        localStorage.setItem('last_session_difficulty', CONFIG.difficulty || '');
+    } catch (e) { /* best-effort */ }
     currentQuestionIndex = 0;
     questionBank = [];
     isWaitingForQuestions = false;
@@ -3242,26 +3275,115 @@ function loadQuestionFromBank() {
     }
 }
 
-function renderResults() {
-    const finalScore = CONFIG.score;
-    const totalQ = TOTAL_QUESTIONS;
-    const accuracy = (finalScore / totalQ) * 100;
+// Derive the display metrics from whatever session state is currently in
+// memory. Works identically for a live finish and for a snapshot rehydrated
+// after refresh, because both leave the same CONFIG / trainingAnalytics fields
+// populated. gameEndTime and gameStartTime are performance.now() readings from
+// the ORIGINAL page load; only their difference (a duration) is used, so it
+// survives a refresh that resets the performance clock.
+function computeResultDisplayValues() {
+    const accuracy = (CONFIG.score / TOTAL_QUESTIONS) * 100;
     const focusedRatio = CONFIG.accumulatedPlayTime > 0
         ? (trainingAnalytics.focusedTimeMs / CONFIG.accumulatedPlayTime) * 100
         : 0;
     const averageRecoveryMs = trainingAnalytics.recoveryDurationsMs.length > 0
         ? trainingAnalytics.recoveryDurationsMs.reduce((sum, value) => sum + value, 0) / trainingAnalytics.recoveryDurationsMs.length
         : 0;
-    
-    CONFIG.gameEndTime = performance.now();
-    const totalTimeMs = CONFIG.gameEndTime - CONFIG.gameStartTime;
-    hideBreathingPrompt();
-    hideBreathingIntervention();
-    
-    // Save Best
+    const totalTimeMs = Math.max(0, CONFIG.gameEndTime - CONFIG.gameStartTime);
+    return { accuracy, focusedRatio, averageRecoveryMs, totalTimeMs };
+}
+
+// Persist the finished session so a refresh can restore it instead of showing
+// zeros. Best-effort: never throws into the render path.
+function saveLastSessionSnapshot() {
+    try {
+        const snapshot = {
+            v: 1,
+            savedAt: Date.now(),
+            // Context (lets the results page pick the right mode layout on refresh).
+            testMode: CONFIG.testMode,
+            difficulty: CONFIG.difficulty,
+            focusSource: CONFIG.focusSource,
+            // Raw session state the renderers read.
+            score: CONFIG.score,
+            totalDistance: CONFIG.totalDistance,
+            accumulatedPlayTime: CONFIG.accumulatedPlayTime || 0,
+            gameStartTime: CONFIG.gameStartTime,
+            gameEndTime: CONFIG.gameEndTime,
+            wrongAnswers: CONFIG.wrongAnswers || [],
+            analytics: {
+                focusedTimeMs: trainingAnalytics.focusedTimeMs,
+                recoveryDurationsMs: trainingAnalytics.recoveryDurationsMs,
+                interventionCount: trainingAnalytics.interventionCount,
+                flowStars: trainingAnalytics.flowStars,
+                checkpointCount: trainingAnalytics.checkpointCount,
+                goldenTimeMs: trainingAnalytics.goldenTimeMs,
+                focusSamples: trainingAnalytics.focusSamples
+            },
+            stableThreshold: FOCUS_TRAINING.stableThreshold,
+            recoveryThreshold: FOCUS_TRAINING.recoveryThreshold,
+            summary: lastSessionSummary,
+            voyageTotals: voyageTotals
+        };
+        localStorage.setItem(LAST_SESSION_SNAPSHOT_KEY, JSON.stringify(snapshot));
+    } catch (e) {
+        /* storage full/blocked: refresh restore is best-effort */
+    }
+}
+
+// Rehydrate in-memory session state from the last snapshot (refresh path).
+// Returns true if a snapshot was found and applied. Deliberately does NOT touch
+// liveSessionInMemory, so it can never be mistaken for a live finish and will
+// never re-commit history / voyage totals.
+function applySnapshotToMemory() {
+    let snapshot = null;
+    try {
+        const raw = localStorage.getItem(LAST_SESSION_SNAPSHOT_KEY);
+        snapshot = raw ? JSON.parse(raw) : null;
+    } catch (e) {
+        snapshot = null;
+    }
+    if (!snapshot) return false;
+
+    CONFIG.testMode = ['training', 'challenge'].includes(snapshot.testMode) ? snapshot.testMode : CONFIG.testMode;
+    CONFIG.difficulty = snapshot.difficulty ?? CONFIG.difficulty;
+    CONFIG.focusSource = snapshot.focusSource || CONFIG.focusSource;
+    CONFIG.score = Number(snapshot.score) || 0;
+    CONFIG.totalDistance = Number(snapshot.totalDistance) || 0;
+    CONFIG.accumulatedPlayTime = Number(snapshot.accumulatedPlayTime) || 0;
+    CONFIG.gameStartTime = Number(snapshot.gameStartTime) || 0;
+    CONFIG.gameEndTime = Number(snapshot.gameEndTime) || 0;
+    CONFIG.wrongAnswers = Array.isArray(snapshot.wrongAnswers) ? snapshot.wrongAnswers : [];
+
+    const a = snapshot.analytics || {};
+    trainingAnalytics.focusedTimeMs = Number(a.focusedTimeMs) || 0;
+    trainingAnalytics.recoveryDurationsMs = Array.isArray(a.recoveryDurationsMs) ? a.recoveryDurationsMs : [];
+    trainingAnalytics.interventionCount = Number(a.interventionCount) || 0;
+    trainingAnalytics.flowStars = Number(a.flowStars) || 0;
+    trainingAnalytics.checkpointCount = Number(a.checkpointCount) || 0;
+    trainingAnalytics.goldenTimeMs = Number(a.goldenTimeMs) || 0;
+    trainingAnalytics.focusSamples = Array.isArray(a.focusSamples) ? a.focusSamples : [];
+
+    if (Number.isFinite(snapshot.stableThreshold)) FOCUS_TRAINING.stableThreshold = snapshot.stableThreshold;
+    if (Number.isFinite(snapshot.recoveryThreshold)) FOCUS_TRAINING.recoveryThreshold = snapshot.recoveryThreshold;
+    lastSessionSummary = snapshot.summary || null;
+    if (snapshot.voyageTotals) voyageTotals = snapshot.voyageTotals;
+    lastNewRecords = { isNewDist: false, isNewAcc: false, isNewTime: false };
+    return true;
+}
+
+// Live finish: stamp the end time, record bests, build the session summary, and
+// (once only) commit it to cross-session history + the voyage log. Re-entrant:
+// a re-mount within the same load (e.g. language switch) repaints without
+// double-counting.
+function commitLiveResults() {
+    if (!CONFIG.gameEndTime || CONFIG.gameEndTime < CONFIG.gameStartTime) {
+        CONFIG.gameEndTime = performance.now();
+    }
+    const { accuracy, focusedRatio, averageRecoveryMs, totalTimeMs } = computeResultDisplayValues();
+
     const scoreMetric = isTrainingMode() ? focusedRatio : accuracy;
-    const { isNewDist, isNewAcc, isNewTime } = GAME_STATS.saveBest(CONFIG.totalDistance, scoreMetric, totalTimeMs);
-    const bests = GAME_STATS.getBest();
+    lastNewRecords = GAME_STATS.saveBest(CONFIG.totalDistance, scoreMetric, totalTimeMs);
 
     // Within-session before/after: first half vs second half of the focus timeline.
     const samples = trainingAnalytics.focusSamples;
@@ -3270,9 +3392,6 @@ function renderResults() {
     const firstHalfFocus = avgOf(samples.slice(0, mid));
     const secondHalfFocus = avgOf(samples.slice(mid));
 
-    // Persist this session into cross-session history (cloud when signed in,
-    // localStorage otherwise). Fire-and-forget: results must render even if
-    // storage fails.
     lastSessionSummary = {
         testMode: isTrainingMode() ? 'training' : 'challenge',
         difficulty: CONFIG.difficulty,
@@ -3292,23 +3411,38 @@ function renderResults() {
         checkpoints: trainingAnalytics.checkpointCount,
         goldenTimeMs: Math.round(trainingAnalytics.goldenTimeMs)
     };
-    appendSessionSummary(lastSessionSummary).catch(() => {});
 
-    // Voyage log: the journey adds up across sessions (local counter).
-    const updatedLog = appendVoyageLog({
-        distanceM: CONFIG.totalDistance,
-        stars: trainingAnalytics.flowStars
-    });
-    if (voyageTotals) {
-        voyageTotals.distanceM = Math.max(voyageTotals.distanceM + CONFIG.totalDistance, updatedLog.distanceM);
-        voyageTotals.stars = updatedLog.stars;
-        voyageTotals.sessions = updatedLog.sessions;
-    } else {
-        voyageTotals = { ...updatedLog };
+    // Commit to history + voyage log exactly once per session, so repainting the
+    // results page (language switch, etc.) never double-counts.
+    if (!sessionResultsCommitted) {
+        appendSessionSummary(lastSessionSummary).catch(() => {});
+        const updatedLog = appendVoyageLog({
+            distanceM: CONFIG.totalDistance,
+            stars: trainingAnalytics.flowStars
+        });
+        if (voyageTotals) {
+            voyageTotals.distanceM = Math.max(voyageTotals.distanceM + CONFIG.totalDistance, updatedLog.distanceM);
+            voyageTotals.stars = updatedLog.stars;
+            voyageTotals.sessions = updatedLog.sessions;
+        } else {
+            voyageTotals = { ...updatedLog };
+        }
+        sessionResultsCommitted = true;
     }
-    
-    // Update UI
-    document.getElementById('res-distance').textContent = CONFIG.totalDistance.toFixed(1) + " m";
+
+    saveLastSessionSnapshot();
+}
+
+// Paint the results DOM from whatever session state is in memory (live or
+// rehydrated). Pure rendering — no persistence side effects.
+function paintResults() {
+    const { accuracy, focusedRatio, averageRecoveryMs, totalTimeMs } = computeResultDisplayValues();
+    const bests = GAME_STATS.getBest();
+    const { isNewDist, isNewAcc, isNewTime } = lastNewRecords;
+
+    const distanceEl = document.getElementById('res-distance');
+    if (!distanceEl) return; // results DOM not mounted
+    distanceEl.textContent = CONFIG.totalDistance.toFixed(1) + " m";
     document.getElementById('res-accuracy').textContent = isTrainingMode()
         ? langText('專注訓練', 'Attention Training')
         : `${accuracy.toFixed(0)}%`;
@@ -3320,7 +3454,7 @@ function renderResults() {
     if (focusRateEl) focusRateEl.textContent = `${Math.round(focusedRatio)}%`;
     if (recoveryEl) recoveryEl.textContent = formatAverageRecovery(averageRecoveryMs);
     if (breathingCountEl) breathingCountEl.textContent = String(trainingAnalytics.interventionCount);
-    
+
     document.getElementById('best-distance').textContent = `${I18N[CONFIG.currentLang].best_label}: ${bests.distance} m ${isNewDist ? '🔥' : ''}`;
     if (bestAccuracyEl) {
         if (isTrainingMode()) {
@@ -3332,28 +3466,45 @@ function renderResults() {
         }
     }
     document.getElementById('best-time').textContent = `${I18N[CONFIG.currentLang].best_label}: ${GAME_STATS.formatTime(bests.time)} ${isNewTime ? '🔥' : ''}`;
-    
+
     // Render Wrong Answers List
     const list = document.getElementById('wrong-answers-list');
-    list.innerHTML = '';
-    
-    if (isTrainingMode()) {
-        list.innerHTML = `<div style="text-align:center; color: #93c5fd; font-size: 1.05em;">${langText('此模式不設答題，目標是穩定維持專注並在分心後盡快拉回。', 'This mode has no quiz review. The goal is to sustain stable focus and recover quickly after distraction.')}</div>`;
-    } else if (CONFIG.wrongAnswers.length === 0) {
-        list.innerHTML = `<div style="text-align:center; color: #16a34a; font-size: 1.05em;">${langText('全對完成，專注表現非常穩定。', 'Perfect run. Your focus stayed very stable.')}</div>`;
-    } else {
-        CONFIG.wrongAnswers.forEach(item => {
-            const div = document.createElement('div');
-            div.className = 'wrong-answer-item';
-            div.innerHTML = `
-                <h4>Q: ${item.question}</h4>
-                <p><strong>${langText('你的答案', 'Your Answer')}:</strong> <span style="color:#dc2626">${item.userChoice}</span></p>
-                <p><strong>${I18N[CONFIG.currentLang].correct_answer}:</strong> <span style="color:#16a34a">${item.correctChoice}</span></p>
-                <p class="explanation-row"><strong>${I18N[CONFIG.currentLang].explanation}:</strong> <span class="explanation-text">${item.explanation || I18N[CONFIG.currentLang].no_explanation}</span></p>
-            `;
-            list.appendChild(div);
-        });
+    if (list) {
+        list.innerHTML = '';
+        if (isTrainingMode()) {
+            list.innerHTML = `<div style="text-align:center; color: #93c5fd; font-size: 1.05em;">${langText('此模式不設答題，目標是穩定維持專注並在分心後盡快拉回。', 'This mode has no quiz review. The goal is to sustain stable focus and recover quickly after distraction.')}</div>`;
+        } else if (CONFIG.wrongAnswers.length === 0) {
+            list.innerHTML = `<div style="text-align:center; color: #16a34a; font-size: 1.05em;">${langText('全對完成，專注表現非常穩定。', 'Perfect run. Your focus stayed very stable.')}</div>`;
+        } else {
+            CONFIG.wrongAnswers.forEach(item => {
+                const div = document.createElement('div');
+                div.className = 'wrong-answer-item';
+                div.innerHTML = `
+                    <h4>Q: ${item.question}</h4>
+                    <p><strong>${langText('你的答案', 'Your Answer')}:</strong> <span style="color:#dc2626">${item.userChoice}</span></p>
+                    <p><strong>${I18N[CONFIG.currentLang].correct_answer}:</strong> <span style="color:#16a34a">${item.correctChoice}</span></p>
+                    <p class="explanation-row"><strong>${I18N[CONFIG.currentLang].explanation}:</strong> <span class="explanation-text">${item.explanation || I18N[CONFIG.currentLang].no_explanation}</span></p>
+                `;
+                list.appendChild(div);
+            });
+        }
     }
+}
+
+function renderResults() {
+    hideBreathingPrompt();
+    hideBreathingIntervention();
+
+    if (liveSessionInMemory) {
+        // A real session ran in this module instance: compute + persist it.
+        commitLiveResults();
+    } else {
+        // Refreshed straight into the results page: restore the last session
+        // from storage so we repaint real numbers instead of zeros.
+        applySnapshotToMemory();
+    }
+
+    paintResults();
 }
 
 // --- Results Dashboard renderers (focus curve, halves compare, trend) ---

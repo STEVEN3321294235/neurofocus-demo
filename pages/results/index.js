@@ -11,7 +11,14 @@ async function getRuntime() {
 export default {
     render() {
         const state = getState();
-        const isTraining = state.testMode === 'training';
+        // The results page always reflects the LAST completed session. In-memory
+        // app state (state.testMode) is reset to the default on a page refresh,
+        // so prefer the mode persisted at game start; fall back to app state for
+        // the very first load before any session exists.
+        let lastMode = null;
+        try { lastMode = localStorage.getItem('last_session_mode'); } catch (e) { lastMode = null; }
+        const resolvedMode = (lastMode === 'training' || lastMode === 'challenge') ? lastMode : state.testMode;
+        const isTraining = resolvedMode === 'training';
         const summaryTitle = isTraining ? t('results_mode_training') : t('results_mode_challenge');
         const summaryLead = isTraining ? t('results_mode_training_lead') : t('results_mode_challenge_lead');
         const secondaryLabel = isTraining ? t('results_goal') : t('results_accuracy');
@@ -101,7 +108,7 @@ export default {
                             <div class="results-training-header">
                                 <h2 id="dash-review-title">${t('dash_review_title')}</h2>
                             </div>
-                            <div id="wrong-answers-list" data-mode="${state.testMode}"></div>
+                            <div id="wrong-answers-list" data-mode="${resolvedMode}"></div>
                         </section>
 
                         <div class="results-actions">
