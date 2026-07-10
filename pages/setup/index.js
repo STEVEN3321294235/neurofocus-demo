@@ -1,4 +1,3 @@
-import { renderControlBar, bindControlBar } from '../../components/controlBar.js?v=2026-06-24-21';
 import { t } from '../../app/i18n.js?v=2026-06-24-21';
 import { getState, setState } from '../../app/state.js';
 import { activateEEGMode, activateSimulationMode, disposeMode, syncRuntimeState } from '../../services/eegBridgeService.js?v=2026-06-24-21';
@@ -220,7 +219,6 @@ export default {
                                 <h1>${t('setup_title')}</h1>
                                 <p class="page-support">${t('game_player')}：${state.currentUser || '-'}</p>
                             </div>
-                            ${renderControlBar()}
                         </header>
                         <div class="setup-flow-inline">
                             <span>01 ${t('setup_flow_goal')}</span>
@@ -251,7 +249,6 @@ export default {
             return;
         }
 
-        bindControlBar(root, { refresh: router.refresh });
         await syncRuntimeState({
             user: state.currentUser,
             lang: state.lang,

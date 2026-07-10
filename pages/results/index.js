@@ -1,4 +1,3 @@
-import { renderControlBar, bindControlBar } from '../../components/controlBar.js?v=2026-06-24-21';
 import { t } from '../../app/i18n.js?v=2026-06-24-21';
 import { getState, resetFlowState, setState } from '../../app/state.js';
 import { disposeMode, syncRuntimeState } from '../../services/eegBridgeService.js?v=2026-06-24-21';
@@ -25,12 +24,13 @@ export default {
             <main class="page page-results">
                 <section id="results-screen">
                     <div class="results-shell" data-mode="${resolvedMode}">
+                        <!-- Language/theme follow the user's homepage settings; no
+                             mid-flow toggles after setup. -->
                         <div class="results-topbar">
                             <div class="results-brand">
                                 <span class="results-brand-mark">⛵</span>
                                 <span class="results-brand-name">NeuroFocus</span>
                             </div>
-                            ${renderControlBar()}
                         </div>
 
                         <!-- 1. Hero verdict (painted by runtime) -->
@@ -80,7 +80,6 @@ export default {
     },
 
     async mount({ root, router }) {
-        bindControlBar(root, { refresh: router.refresh });
         const state = getState();
         const runtime = await getRuntime();
         await syncRuntimeState({

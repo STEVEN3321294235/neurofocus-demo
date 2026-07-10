@@ -3415,6 +3415,14 @@ function commitLiveResults() {
     // Commit to history + voyage log exactly once per session, so repainting the
     // results page (language switch, etc.) never double-counts.
     if (!sessionResultsCommitted) {
+        // Track the best single-session star count (stars are open-ended, so the
+        // achievements row shows "this run" vs "personal best" rather than /5).
+        try {
+            const prevBestStars = parseInt(localStorage.getItem('best_session_stars') || '0', 10) || 0;
+            if (trainingAnalytics.flowStars > prevBestStars) {
+                localStorage.setItem('best_session_stars', String(trainingAnalytics.flowStars));
+            }
+        } catch (e) { /* best-effort */ }
         appendSessionSummary(lastSessionSummary).catch(() => {});
         const updatedLog = appendVoyageLog({
             distanceM: CONFIG.totalDistance,
@@ -3476,7 +3484,6 @@ function buildHeroHTML(values) {
     const withinDelta = (summary.secondHalfFocus || 0) - (summary.firstHalfFocus || 0);
 
     if (isTrainingMode()) {
-        const durationMin = Math.max(1, Math.round(totalTimeMs / 60000));
         let headline;
         if (withinDelta >= 3) headline = langText('越練越穩嘅一程 ⛵', 'Steadier as the voyage went on ⛵');
         else if (focusedRatio >= 55) headline = langText('一段穩定專注嘅航程 ⛵', 'A steady, focused voyage ⛵');
@@ -3489,7 +3496,7 @@ function buildHeroHTML(values) {
         return `
             <div class="results-hero-chips">
                 <span class="results-chip">${langText('訓練', 'Training')}</span>
-                <span class="results-chip">${durationMin} ${langText('分鐘', 'min')}</span>
+                <span class="results-chip">${formatClock(totalTimeMs)}</span>
                 <span class="results-chip">${source}</span>
             </div>
             <h1 class="results-hero-headline">${headline}</h1>
@@ -3499,10 +3506,13 @@ function buildHeroHTML(values) {
             </div>`;
     }
 
+    // Verdict copy scales with the score band.
     let verdict;
-    if (accuracy >= 80) verdict = langText('答對 — 壓力下專注穩定', 'correct — focus held under pressure');
-    else if (accuracy >= 50) verdict = langText('答對 — 穩步進步', 'correct — steady progress');
-    else verdict = langText('答對 — 逐步建立', 'correct — building up');
+    if (accuracy >= 100) verdict = langText('全對 — 壓力下依然清晰', 'correct — a perfect, clear-headed run');
+    else if (accuracy >= 80) verdict = langText('答對 — 壓力下專注穩定', 'correct — focus held under pressure');
+    else if (accuracy >= 60) verdict = langText('答對 — 穩步進步', 'correct — steady progress');
+    else if (accuracy >= 40) verdict = langText('答對 — 有進步空間，繼續練', 'correct — room to grow, keep training');
+    else verdict = langText('答對 — 萬事起頭難，逐步建立', 'correct — every voyage starts somewhere');
 
     return `
         <div class="results-hero-chips">
@@ -3548,22 +3558,29 @@ function buildMetricsHTML(values) {
 // 3b. Challenge review — a correct-count chip plus expandable wrong-answer cards.
 function buildAchievementsHTML() {
     if (isTrainingMode()) {
+        // Stars are open-ended (longer sessions can earn more), so a 5-slot
+        // "score out of 5" would mislead. Show THIS session's count plus the
+        // personal best single-session count instead.
         const stars = Math.max(0, trainingAnalytics.flowStars);
-        const shown = Math.min(stars, 5);
+        let bestStars = 0;
+        try { bestStars = parseInt(localStorage.getItem('best_session_stars') || '0', 10) || 0; } catch (e) { /* best-effort */ }
+        bestStars = Math.max(bestStars, stars);
         let starIcons = '';
-        for (let i = 0; i < 5; i++) starIcons += `<span class="achv-star ${i < shown ? '' : 'is-empty'}">★</span>`;
+        const glyphs = Math.min(Math.max(stars, 1), 5);
+        for (let i = 0; i < glyphs; i++) starIcons += `<span class="achv-star ${stars === 0 ? 'is-empty' : ''}">★</span>`;
+        const bestChip = `<div class="achv-chip is-best">🏆 ${langText('最佳一次', 'Personal best')} ×${bestStars}</div>`;
         const beaconChip = `⚓ ${langText('通過', 'Passed')} ${trainingAnalytics.checkpointCount} ${langText('個航標', 'beacons')} · ${langText('航行', 'sailed')} ${Math.round(CONFIG.totalDistance)} m`;
 
         const goldenSec = Math.round(trainingAnalytics.goldenTimeMs / 1000);
         const goldenCard = goldenSec > 0
             ? `<div class="achv-golden">
                    <span class="achv-golden-icon">🌅</span>
-                   <span class="achv-golden-text">${langText('黃金時刻', 'Golden Moment')} — ${langText('深度平靜專注', 'deep calm focus')} ${goldenSec}s</span>
+                   <span class="achv-golden-text">${langText('黃金時刻', 'Golden Moment')} — ${langText('「專注 + 放鬆」雙軸同時達標，維持咗', 'focus + calm held together for')} ${goldenSec}s</span>
                    <span class="achv-golden-badge">${langText('真 EEG 專屬', 'Real EEG only')}</span>
                </div>`
             : `<div class="achv-golden is-locked">
                    <span class="achv-golden-icon">🌙</span>
-                   <span class="achv-golden-text">${langText('黃金時刻要真 EEG 雙軸先解鎖', 'Golden Moment unlocks with dual-axis Real EEG')}</span>
+                   <span class="achv-golden-text">${langText('黃金時刻：當「專注」同「放鬆」兩個腦電指標同時企穩 4 秒，成個海面會轉做暖金黃昏——要真 EEG 雙軸訊號先解鎖', 'Golden Moment: hold focus AND calm together for 4s and the sea turns golden dusk — unlocks with dual-axis Real EEG')}</span>
                    <span class="achv-golden-badge">${langText('真 EEG 專屬', 'Real EEG only')}</span>
                </div>`;
 
@@ -3577,7 +3594,8 @@ function buildAchievementsHTML() {
                 <div class="achv-grid">
                     <div class="achv-stars-card">
                         <div class="achv-stars">${starIcons}</div>
-                        <div class="achv-stars-label">${langText('心流星', 'Flow stars')} ×${stars}</div>
+                        <div class="achv-stars-label">${langText('心流星', 'Flow stars')} ×${stars}${langText('（今次）', ' (this run)')}</div>
+                        ${bestChip}
                         <div class="achv-chip">${beaconChip}</div>
                     </div>
                     ${goldenCard}
@@ -3630,20 +3648,64 @@ function buildAchievementsHTML() {
         </div>`;
 }
 
-// 6. Next goal — one concrete, encouraging target + a real-life meaning line.
+// Rotate through a copy pool across visits (index persisted in localStorage)
+// so the meaning line doesn't read identical every session.
+function pickRotating(storageKey, poolLength) {
+    let idx = 0;
+    try {
+        idx = ((parseInt(localStorage.getItem(storageKey) || '-1', 10) || -1) + 1) % poolLength;
+        localStorage.setItem(storageKey, String(idx));
+    } catch (e) {
+        idx = Math.floor(Math.random() * poolLength);
+    }
+    return Math.max(0, Math.min(poolLength - 1, idx));
+}
+
+// 6. Next goal — picked from THIS session's weakest metric (recovery slow →
+// recovery goal; stability low → stability goal; else stretch goal), plus a
+// rotating real-life meaning line.
 function buildNextGoalHTML(values) {
-    const { focusedRatio } = values;
-    let eyebrow, title, insight;
+    const { accuracy, focusedRatio, averageRecoveryMs } = values;
+    const recoverySec = averageRecoveryMs / 1000;
+    let eyebrow, title;
+
     if (isTrainingMode()) {
-        const target = Math.min(90, Math.max(Math.ceil(focusedRatio / 5) * 5, Math.round(focusedRatio) + 5));
         eyebrow = langText('下一個目標', 'Next voyage');
-        title = langText(`維持穩定度喺 ${target}% 以上`, `Hold stability above ${target}%`);
-        insight = langText('恢復得快 = 溫書分咗心都追得返。', 'Faster recovery = pulling yourself back when studying drifts.');
+        const stars = trainingAnalytics.flowStars;
+        if (recoverySec > 5) {
+            const target = Math.max(3, Math.floor(recoverySec) - 1);
+            title = langText(`將平均恢復時間壓落 ${target} 秒內`, `Bring average recovery under ${target}s`);
+        } else if (focusedRatio < 60) {
+            const target = Math.min(90, Math.max(Math.ceil(focusedRatio / 5) * 5, Math.round(focusedRatio) + 5));
+            title = langText(`維持穩定度喺 ${target}% 以上`, `Hold stability above ${target}%`);
+        } else if (stars < 5) {
+            title = langText(`下次試吓摘 ${stars + 1} 粒心流星`, `Try earning ${stars + 1} flow stars next voyage`);
+        } else {
+            const target = Math.min(90, Math.round(focusedRatio) + 3);
+            title = langText(`挑戰吓穩定度 ${target}%`, `Push stability towards ${target}%`);
+        }
     } else {
         eyebrow = langText('下一個挑戰', 'Next challenge');
-        title = langText('解題時恢復時間控制喺 5 秒以下', 'Keep recovery under 5s while answering');
-        insight = langText('做難題時保持冷靜 = 考試時少啲低級失誤。', 'Staying calm on tricky questions = fewer careless mistakes in tests.');
+        if (accuracy < 100) {
+            const target = Math.min(100, (Math.floor(accuracy / 10) + 1) * 10);
+            title = langText(`正確率上 ${target}%`, `Push accuracy to ${target}%`);
+        } else if (recoverySec > 5) {
+            title = langText('解題時恢復時間控制喺 5 秒以下', 'Keep recovery under 5s while answering');
+        } else {
+            title = langText('保持全對，試吓揀難一級', 'Keep the perfect score — try a harder level');
+        }
     }
+
+    // Real-life meaning lines: same message family, rotating phrasing.
+    const insights = [
+        langText('恢復得快 = 溫書分咗心都追得返。', 'Faster recovery = pulling yourself back when studying drifts.'),
+        langText('專注穩 = 做功課快啲完，時間留返俾自己。', 'Steadier focus = homework done sooner, more time for you.'),
+        langText('識得用呼吸冷靜自己 = 考試前、比賽前都用得着。', 'Breathing yourself calm works before exams and matches too.'),
+        langText('上堂恍神拉得返 = 少啲「頭先講咗乜」嘅慌張。', 'Snapping back in class = fewer "wait, what did I miss" moments.'),
+        langText('入狀態快 = 打機、運動、練琴都上手快啲。', 'Getting in the zone faster helps gaming, sport and music too.')
+    ];
+    const insight = insights[pickRotating('nextgoal_insight_idx', insights.length)];
+
     return `
         <div class="nextgoal-icon">🎯</div>
         <div class="nextgoal-body">
@@ -3706,27 +3768,41 @@ function renderSessionDashboard() {
         if (samples.length < 5) {
             curveHost.innerHTML = `<p class="dash-empty">${langText('本局時間太短，未足以繪製專注曲線。', 'This session was too short to draw a focus curve.')}</p>`;
         } else {
+            // Plot geometry: values span the full box (0 → bottom, 100 → top);
+            // axis labels live in HTML outside the stretchy SVG so text never
+            // distorts under preserveAspectRatio="none".
             const w = 600;
             const h = 190;
-            const pad = 10;
-            const stepX = (w - pad * 2) / Math.max(1, samples.length - 1);
-            const xy = samples.map((v, i) => [
-                svgEscapeNumber(pad + i * stepX),
-                svgEscapeNumber(h - pad - (Math.max(0, Math.min(100, v)) / 100) * (h - pad * 2))
-            ]);
-            const linePoints = xy.map((p) => `${p[0]},${p[1]}`).join(' ');
-            const lastX = svgEscapeNumber(pad + (samples.length - 1) * stepX);
-            const areaPoints = `${pad},${h - pad} ${linePoints} ${lastX},${h - pad}`;
-            const stableY = svgEscapeNumber(h - pad - (FOCUS_TRAINING.stableThreshold / 100) * (h - pad * 2));
+            const stepX = w / Math.max(1, samples.length - 1);
+            const yOf = (v) => svgEscapeNumber(h - (Math.max(0, Math.min(100, v)) / 100) * h);
+            const linePoints = samples.map((v, i) => `${svgEscapeNumber(i * stepX)},${yOf(v)}`).join(' ');
+            const areaPoints = `0,${h} ${linePoints} ${w},${h}`;
+            const stableY = yOf(FOCUS_TRAINING.stableThreshold);
+            const grid = [25, 50, 75]
+                .map((v) => `<line x1="0" y1="${yOf(v)}" x2="${w}" y2="${yOf(v)}" class="dash-curve-grid" />`)
+                .join('');
+            // X axis is real session time (samples arrive every FOCUS_SAMPLE_INTERVAL_MS).
+            const totalMs = (samples.length - 1) * FOCUS_SAMPLE_INTERVAL_MS;
             curveHost.innerHTML = `
-                <svg viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" class="dash-curve-svg" role="img" aria-label="focus curve">
-                    <polygon points="${areaPoints}" class="dash-curve-area" />
-                    <line x1="${pad}" y1="${stableY}" x2="${w - pad}" y2="${stableY}" class="dash-curve-threshold" />
-                    <polyline points="${linePoints}" class="dash-curve-line" />
-                </svg>
+                <div class="curve-wrap">
+                    <div class="curve-y-labels"><span>100</span><span>75</span><span>50</span><span>25</span><span>0</span></div>
+                    <div class="curve-plot">
+                        <svg viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" class="dash-curve-svg" role="img" aria-label="focus curve">
+                            ${grid}
+                            <polygon points="${areaPoints}" class="dash-curve-area" />
+                            <line x1="0" y1="${stableY}" x2="${w}" y2="${stableY}" class="dash-curve-threshold" />
+                            <polyline points="${linePoints}" class="dash-curve-line" />
+                        </svg>
+                        <div class="curve-x-labels">
+                            <span>0:00</span>
+                            <span>${formatClock(totalMs / 2)}</span>
+                            <span>${formatClock(totalMs)}</span>
+                        </div>
+                    </div>
+                </div>
                 <div class="dash-curve-legend">
-                    <span class="dash-legend-line"></span>${langText('專注值', 'Focus')}
-                    <span class="dash-legend-threshold"></span>${langText('穩定線', 'Stable line')} (${FOCUS_TRAINING.stableThreshold})
+                    <span class="dash-legend-line"></span>${langText('專注值 (%)', 'Focus (%)')}
+                    <span class="dash-legend-threshold"></span>${langText('穩定線', 'Stable line')} (${FOCUS_TRAINING.stableThreshold}%)
                 </div>`;
         }
     }
@@ -3770,13 +3846,16 @@ async function renderHistoryTrend() {
         return;
     }
 
+    // Each bar carries its exact value as a label so the numbers are readable
+    // without hovering.
     const bars = (values, formatter) => {
         const max = Math.max(...values, 1);
         return values.map((v, i) => {
             const ratio = Math.max(0.06, v / max);
             const isLatest = i === values.length - 1;
             return `<div class="dash-bar-wrap" title="${formatter(v)}">
-                <div class="dash-bar ${isLatest ? 'is-latest' : ''}" style="height:${Math.round(ratio * 100)}%"></div>
+                <span class="dash-bar-value ${isLatest ? 'is-latest' : ''}">${formatter(v)}</span>
+                <div class="dash-bar ${isLatest ? 'is-latest' : ''}" style="height:${Math.round(ratio * 82)}%"></div>
             </div>`;
         }).join('');
     };
