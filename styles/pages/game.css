@@ -662,6 +662,87 @@
     letter-spacing: 0.04em;
 }
 
+/* --- Modern voyage loader: bobbing boat over rolling scallop waves + an
+       indeterminate progress shimmer. Transform/background animations only,
+       so it stays cheap on weak GPUs. --- */
+#transition-loader .loader-scene {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.2rem;
+}
+
+#transition-loader .loader-boat {
+    font-size: 2.6rem;
+    line-height: 1;
+    filter: drop-shadow(0 6px 14px rgba(56, 189, 248, 0.35));
+    animation: loader-boat-bob 2.6s ease-in-out infinite;
+}
+
+#transition-loader .loader-sea {
+    width: 150px;
+    height: 12px;
+    overflow: hidden;
+    background-image: radial-gradient(circle at 10px -3px, transparent 8px, rgba(125, 211, 252, 0.65) 8.6px, transparent 11px);
+    background-size: 20px 12px;
+    background-repeat: repeat-x;
+    animation: loader-sea-flow 1.3s linear infinite;
+    -webkit-mask-image: linear-gradient(90deg, transparent, #000 18%, #000 82%, transparent);
+    mask-image: linear-gradient(90deg, transparent, #000 18%, #000 82%, transparent);
+}
+
+#transition-loader .loader-brand {
+    font-family: var(--font-display);
+    font-size: 1.25rem;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    color: rgba(241, 245, 249, 0.88);
+}
+
+#transition-loader .loader-bar {
+    position: relative;
+    width: 220px;
+    height: 3px;
+    border-radius: 999px;
+    background: rgba(148, 163, 184, 0.22);
+    overflow: hidden;
+}
+
+#transition-loader .loader-bar-fill {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 42%;
+    height: 100%;
+    border-radius: 999px;
+    background: linear-gradient(90deg, transparent, #38bdf8 45%, #7dd3fc);
+    animation: loader-bar-slide 1.5s ease-in-out infinite;
+}
+
+@keyframes loader-boat-bob {
+    0%, 100% { transform: translateY(0) rotate(-2deg); }
+    50% { transform: translateY(-5px) rotate(2.5deg); }
+}
+
+@keyframes loader-sea-flow {
+    from { background-position-x: 0; }
+    to { background-position-x: -20px; }
+}
+
+@keyframes loader-bar-slide {
+    0% { transform: translateX(-110%); }
+    100% { transform: translateX(370%); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    #transition-loader .loader-boat,
+    #transition-loader .loader-sea,
+    #transition-loader .loader-bar-fill {
+        animation: none;
+    }
+}
+
 #breathing-prompt {
     position: fixed;
     bottom: calc(env(safe-area-inset-bottom, 0px) + 13.6rem);

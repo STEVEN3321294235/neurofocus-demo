@@ -152,7 +152,8 @@ const copy = {
         game_loading_text: 'Loading...',
         game_training_countdown: 'Countdown',
         game_home_confirm: 'Exit game and return home? Current progress will be lost.',
-        game_logout_confirm: 'Logout now? Current progress will be lost.'
+        game_logout_confirm: 'Logout now? Current progress will be lost.',
+        loader_preparing: 'Preparing your voyage…'
     },
     hk: {
         home_eyebrow: 'EEG 專注力訓練',
@@ -305,7 +306,8 @@ const copy = {
         game_loading_text: '載入中...',
         game_training_countdown: '倒計時',
         game_home_confirm: '確定離開遊戲並返回首頁？目前進度會遺失。',
-        game_logout_confirm: '確定現在登出？目前進度會遺失。'
+        game_logout_confirm: '確定現在登出？目前進度會遺失。',
+        loader_preparing: '正在準備你嘅航程…'
     }
 };
 

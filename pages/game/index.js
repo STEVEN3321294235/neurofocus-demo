@@ -14,8 +14,11 @@ export default {
         const state = getState();
         return `
             <main class="page page-game">
-                <div id="canvas-container"></div>
-                <div id="ui-container">
+                <!-- Both containers start in the same "hidden" pose that
+                     setGamePresentationState('hidden') applies, so the very
+                     first paint never flashes a raw scene/HUD frame. -->
+                <div id="canvas-container" style="opacity: 0.14; filter: blur(8px) saturate(0.7); transform: scale(1.012);"></div>
+                <div id="ui-container" style="opacity: 0; transform: translateY(10px); filter: blur(6px);">
                     <div id="portrait-warning">
                         <div class="warning-icon" aria-hidden="true">
                             <span class="warning-arc warning-arc-left"></span>
@@ -183,6 +186,20 @@ export default {
         if (!state.currentUser || !state.difficulty) {
             router.navigate('setup');
             return;
+        }
+
+        // Cover the screen SYNCHRONOUSLY, before the first await below yields
+        // to the browser — otherwise the raw HUD paints for a frame or two.
+        // Transition is suppressed for this one show so the cover is instant
+        // (the runtime's normal fade-out on ready is untouched).
+        const loader = document.getElementById('transition-loader');
+        if (loader) {
+            const textEl = loader.querySelector('.loading-text');
+            if (textEl) textEl.textContent = t('loader_preparing');
+            loader.style.transition = 'none';
+            loader.style.display = 'flex';
+            loader.style.opacity = '1';
+            requestAnimationFrame(() => { loader.style.transition = ''; });
         }
 
         const runtime = await getRuntime();
