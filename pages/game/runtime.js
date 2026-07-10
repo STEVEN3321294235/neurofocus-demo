@@ -3433,62 +3433,243 @@ function commitLiveResults() {
     saveLastSessionSnapshot();
 }
 
+// Escape user/AI-provided text before it goes into innerHTML (review cards show
+// AI-generated questions + answer strings — never trust them as markup).
+function escapeHtml(value) {
+    return String(value == null ? '' : value)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
+// Bilingual label for the focus input source (hero chip).
+function focusSourceLabel() {
+    const src = String(CONFIG.focusSource || '');
+    if (src.includes('eeg')) return langText('真 EEG', 'Real EEG');
+    if (src.includes('camera')) return langText('相機', 'Camera');
+    return langText('模擬', 'Simulation');
+}
+
+// Bilingual difficulty label (challenge hero chip).
+function difficultyLabel() {
+    const d = CONFIG.difficulty;
+    if (d === 'easy') return langText('容易', 'Easy');
+    if (d === 'hard') return langText('困難', 'Hard');
+    return langText('中等', 'Medium');
+}
+
+// MM:SS clock for hero/metrics (GAME_STATS.formatTime is finer, MM:SS.cs).
+function formatClock(ms) {
+    const total = Math.max(0, Math.floor(ms / 1000));
+    const m = Math.floor(total / 60);
+    const s = total % 60;
+    return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+}
+
+// 1. Hero verdict — a 3-second read of "how did I do?".
+function buildHeroHTML(values) {
+    const { accuracy, focusedRatio, totalTimeMs } = values;
+    const source = focusSourceLabel();
+    const summary = lastSessionSummary || {};
+    const withinDelta = (summary.secondHalfFocus || 0) - (summary.firstHalfFocus || 0);
+
+    if (isTrainingMode()) {
+        const durationMin = Math.max(1, Math.round(totalTimeMs / 60000));
+        let headline;
+        if (withinDelta >= 3) headline = langText('越練越穩嘅一程 ⛵', 'Steadier as the voyage went on ⛵');
+        else if (focusedRatio >= 55) headline = langText('一段穩定專注嘅航程 ⛵', 'A steady, focused voyage ⛵');
+        else headline = langText('專注力訓練中，繼續加油 ⛵', 'Building your focus — keep going ⛵');
+
+        const deltaChip = Math.abs(withinDelta) >= 3
+            ? `<span class="results-subchip ${withinDelta > 0 ? 'is-up' : 'is-down'}">${langText('本局', 'This session')} ${withinDelta >= 0 ? '+' : ''}${withinDelta.toFixed(1)} ${withinDelta > 0 ? '↑' : '↓'}</span>`
+            : '';
+
+        return `
+            <div class="results-hero-chips">
+                <span class="results-chip">${langText('訓練', 'Training')}</span>
+                <span class="results-chip">${durationMin} ${langText('分鐘', 'min')}</span>
+                <span class="results-chip">${source}</span>
+            </div>
+            <h1 class="results-hero-headline">${headline}</h1>
+            <div class="results-hero-sub">
+                <span class="results-subchip">${langText('專注穩定度', 'Focus stability')} <span class="accent">${Math.round(focusedRatio)}%</span></span>
+                ${deltaChip}
+            </div>`;
+    }
+
+    let verdict;
+    if (accuracy >= 80) verdict = langText('答對 — 壓力下專注穩定', 'correct — focus held under pressure');
+    else if (accuracy >= 50) verdict = langText('答對 — 穩步進步', 'correct — steady progress');
+    else verdict = langText('答對 — 逐步建立', 'correct — building up');
+
+    return `
+        <div class="results-hero-chips">
+            <span class="results-chip">${langText('挑戰', 'Challenge')}</span>
+            <span class="results-chip">${difficultyLabel()}</span>
+            <span class="results-chip">${source}</span>
+        </div>
+        <h1 class="results-hero-headline"><span class="accent">${CONFIG.score} / ${TOTAL_QUESTIONS}</span> ${verdict}</h1>
+        <div class="results-hero-sub">
+            <span class="results-subchip">${langText('正確率', 'Accuracy')} <span class="accent">${accuracy.toFixed(0)}%</span></span>
+            <span class="results-subchip">${langText('耗時', 'Total time')} <span class="accent">${formatClock(totalTimeMs)}</span></span>
+        </div>`;
+}
+
+// 2. Four metric cards. Focus Stability is highlighted; the 4th card differs by
+// mode (training shows session time, challenge shows distance + beacons).
+function buildMetricsHTML(values) {
+    const { focusedRatio, averageRecoveryMs, totalTimeMs } = values;
+    const recoveryVal = averageRecoveryMs > 0
+        ? `${(averageRecoveryMs / 1000).toFixed(1)}${langText(' 秒', ' s')}`
+        : '—';
+    const card = (icon, label, value, opts = {}) => `
+        <div class="metric-card ${opts.highlight ? 'is-highlight' : ''}">
+            <div class="metric-icon">${icon}</div>
+            <div class="metric-label">${label}</div>
+            <div class="metric-value">${value}</div>
+            ${opts.badge ? `<span class="metric-badge">${opts.badge}</span>` : ''}
+        </div>`;
+
+    const focusCard = card('🎯', langText('專注穩定度', 'Focus Stability'), `${Math.round(focusedRatio)}%`, { highlight: true });
+    const recoveryCard = card('⏱️', langText('平均恢復', 'Avg Recovery'), recoveryVal);
+    const breathingCard = card('🫁', langText('呼吸救返', 'Breathing Rescues'), String(trainingAnalytics.interventionCount));
+    const fourthCard = isTrainingMode()
+        ? card('⏳', langText('訓練時長', 'Session Time'), formatClock(totalTimeMs))
+        : card('⚓', langText('航行距離', 'Distance'), `${Math.round(CONFIG.totalDistance)} m`, {
+            badge: `⚓ ${trainingAnalytics.checkpointCount} ${langText('航標', 'beacons')}`
+        });
+
+    return focusCard + recoveryCard + breathingCard + fourthCard;
+}
+
+// 3a. Training achievements — flow stars, beacons, and the Real-EEG golden moment.
+// 3b. Challenge review — a correct-count chip plus expandable wrong-answer cards.
+function buildAchievementsHTML() {
+    if (isTrainingMode()) {
+        const stars = Math.max(0, trainingAnalytics.flowStars);
+        const shown = Math.min(stars, 5);
+        let starIcons = '';
+        for (let i = 0; i < 5; i++) starIcons += `<span class="achv-star ${i < shown ? '' : 'is-empty'}">★</span>`;
+        const beaconChip = `⚓ ${langText('通過', 'Passed')} ${trainingAnalytics.checkpointCount} ${langText('個航標', 'beacons')} · ${langText('航行', 'sailed')} ${Math.round(CONFIG.totalDistance)} m`;
+
+        const goldenSec = Math.round(trainingAnalytics.goldenTimeMs / 1000);
+        const goldenCard = goldenSec > 0
+            ? `<div class="achv-golden">
+                   <span class="achv-golden-icon">🌅</span>
+                   <span class="achv-golden-text">${langText('黃金時刻', 'Golden Moment')} — ${langText('深度平靜專注', 'deep calm focus')} ${goldenSec}s</span>
+                   <span class="achv-golden-badge">${langText('真 EEG 專屬', 'Real EEG only')}</span>
+               </div>`
+            : `<div class="achv-golden is-locked">
+                   <span class="achv-golden-icon">🌙</span>
+                   <span class="achv-golden-text">${langText('黃金時刻要真 EEG 雙軸先解鎖', 'Golden Moment unlocks with dual-axis Real EEG')}</span>
+                   <span class="achv-golden-badge">${langText('真 EEG 專屬', 'Real EEG only')}</span>
+               </div>`;
+
+        const voyageLine = (voyageTotals && voyageTotals.distanceM >= 1)
+            ? `<p class="achv-voyage">⛵ ${langText('航海日誌', 'Voyage log')}：${formatVoyageTotals()}</p>`
+            : '';
+
+        return `
+            <div class="results-card">
+                <div class="results-card-head"><h2>${langText('成就', 'Achievements')}</h2></div>
+                <div class="achv-grid">
+                    <div class="achv-stars-card">
+                        <div class="achv-stars">${starIcons}</div>
+                        <div class="achv-stars-label">${langText('心流星', 'Flow stars')} ×${stars}</div>
+                        <div class="achv-chip">${beaconChip}</div>
+                    </div>
+                    ${goldenCard}
+                    ${voyageLine}
+                </div>
+            </div>`;
+    }
+
+    const wrong = CONFIG.wrongAnswers || [];
+    const summaryChip = `<div class="review-summary-chip">✓ ${CONFIG.score} ${langText('題答對', 'correct')}</div>`;
+
+    let body;
+    if (wrong.length === 0) {
+        body = `<p class="review-empty">${langText('全對完成，專注表現非常穩定 ✓', 'Perfect run — your focus stayed very stable ✓')}</p>`;
+    } else {
+        const items = wrong.map((item) => `
+            <div class="review-item">
+                <button type="button" class="review-q-btn">
+                    <span class="review-q-left">
+                        <span class="review-x">✗</span>
+                        <span class="review-q-text">${escapeHtml(item.question)}</span>
+                    </span>
+                    <span class="review-caret">▾</span>
+                </button>
+                <div class="review-detail">
+                    <div class="review-answer is-your">
+                        <div class="review-answer-label">${langText('你的答案', 'Your answer')}</div>
+                        <div class="review-answer-text">${escapeHtml(item.userChoice)}</div>
+                    </div>
+                    <div class="review-answer is-correct">
+                        <div class="review-answer-label">${langText('正確答案', 'Correct answer')}</div>
+                        <div class="review-answer-text">${escapeHtml(item.correctChoice)}</div>
+                    </div>
+                    <div class="review-answer is-explain">
+                        <div class="review-answer-label">${langText('解釋', 'Explanation')}</div>
+                        <div class="review-answer-text">${escapeHtml(item.explanation || langText('暫無解釋', 'No explanation provided'))}</div>
+                    </div>
+                </div>
+            </div>`).join('');
+        body = `<p class="review-subhead">${langText('答錯', 'Missed')} (${wrong.length})</p><div class="review-list">${items}</div>`;
+    }
+
+    return `
+        <div class="results-card">
+            <div class="results-card-head">
+                <h2>${langText('答題回顧', 'Review')}</h2>
+                ${summaryChip}
+            </div>
+            ${body}
+        </div>`;
+}
+
+// 6. Next goal — one concrete, encouraging target + a real-life meaning line.
+function buildNextGoalHTML(values) {
+    const { focusedRatio } = values;
+    let eyebrow, title, insight;
+    if (isTrainingMode()) {
+        const target = Math.min(90, Math.max(Math.ceil(focusedRatio / 5) * 5, Math.round(focusedRatio) + 5));
+        eyebrow = langText('下一個目標', 'Next voyage');
+        title = langText(`維持穩定度喺 ${target}% 以上`, `Hold stability above ${target}%`);
+        insight = langText('恢復得快 = 溫書分咗心都追得返。', 'Faster recovery = pulling yourself back when studying drifts.');
+    } else {
+        eyebrow = langText('下一個挑戰', 'Next challenge');
+        title = langText('解題時恢復時間控制喺 5 秒以下', 'Keep recovery under 5s while answering');
+        insight = langText('做難題時保持冷靜 = 考試時少啲低級失誤。', 'Staying calm on tricky questions = fewer careless mistakes in tests.');
+    }
+    return `
+        <div class="nextgoal-icon">🎯</div>
+        <div class="nextgoal-body">
+            <div class="nextgoal-eyebrow">${eyebrow}</div>
+            <div class="nextgoal-title">${title}</div>
+            <div class="nextgoal-insight">
+                <span class="nextgoal-insight-icon">💡</span>
+                <span>${insight}</span>
+            </div>
+        </div>`;
+}
+
 // Paint the results DOM from whatever session state is in memory (live or
 // rehydrated). Pure rendering — no persistence side effects.
 function paintResults() {
-    const { accuracy, focusedRatio, averageRecoveryMs, totalTimeMs } = computeResultDisplayValues();
-    const bests = GAME_STATS.getBest();
-    const { isNewDist, isNewAcc, isNewTime } = lastNewRecords;
+    const heroHost = document.getElementById('results-hero');
+    if (!heroHost) return; // results DOM not mounted
+    const values = computeResultDisplayValues();
 
-    const distanceEl = document.getElementById('res-distance');
-    if (!distanceEl) return; // results DOM not mounted
-    distanceEl.textContent = CONFIG.totalDistance.toFixed(1) + " m";
-    document.getElementById('res-accuracy').textContent = isTrainingMode()
-        ? langText('專注訓練', 'Attention Training')
-        : `${accuracy.toFixed(0)}%`;
-    document.getElementById('res-time').textContent = GAME_STATS.formatTime(totalTimeMs);
-    const focusRateEl = document.getElementById('res-focus-rate');
-    const recoveryEl = document.getElementById('res-recovery-time');
-    const breathingCountEl = document.getElementById('res-breathing-count');
-    const bestAccuracyEl = document.getElementById('best-accuracy');
-    if (focusRateEl) focusRateEl.textContent = `${Math.round(focusedRatio)}%`;
-    if (recoveryEl) recoveryEl.textContent = formatAverageRecovery(averageRecoveryMs);
-    if (breathingCountEl) breathingCountEl.textContent = String(trainingAnalytics.interventionCount);
-
-    document.getElementById('best-distance').textContent = `${I18N[CONFIG.currentLang].best_label}: ${bests.distance} m ${isNewDist ? '🔥' : ''}`;
-    if (bestAccuracyEl) {
-        if (isTrainingMode()) {
-            bestAccuracyEl.textContent = '';
-            bestAccuracyEl.classList.add('is-hidden');
-        } else {
-            bestAccuracyEl.textContent = `${I18N[CONFIG.currentLang].best_label}: ${bests.accuracy} % ${isNewAcc ? '🔥' : ''}`;
-            bestAccuracyEl.classList.remove('is-hidden');
-        }
-    }
-    document.getElementById('best-time').textContent = `${I18N[CONFIG.currentLang].best_label}: ${GAME_STATS.formatTime(bests.time)} ${isNewTime ? '🔥' : ''}`;
-
-    // Render Wrong Answers List
-    const list = document.getElementById('wrong-answers-list');
-    if (list) {
-        list.innerHTML = '';
-        if (isTrainingMode()) {
-            list.innerHTML = `<div style="text-align:center; color: #93c5fd; font-size: 1.05em;">${langText('此模式不設答題，目標是穩定維持專注並在分心後盡快拉回。', 'This mode has no quiz review. The goal is to sustain stable focus and recover quickly after distraction.')}</div>`;
-        } else if (CONFIG.wrongAnswers.length === 0) {
-            list.innerHTML = `<div style="text-align:center; color: #16a34a; font-size: 1.05em;">${langText('全對完成，專注表現非常穩定。', 'Perfect run. Your focus stayed very stable.')}</div>`;
-        } else {
-            CONFIG.wrongAnswers.forEach(item => {
-                const div = document.createElement('div');
-                div.className = 'wrong-answer-item';
-                div.innerHTML = `
-                    <h4>Q: ${item.question}</h4>
-                    <p><strong>${langText('你的答案', 'Your Answer')}:</strong> <span style="color:#dc2626">${item.userChoice}</span></p>
-                    <p><strong>${I18N[CONFIG.currentLang].correct_answer}:</strong> <span style="color:#16a34a">${item.correctChoice}</span></p>
-                    <p class="explanation-row"><strong>${I18N[CONFIG.currentLang].explanation}:</strong> <span class="explanation-text">${item.explanation || I18N[CONFIG.currentLang].no_explanation}</span></p>
-                `;
-                list.appendChild(div);
-            });
-        }
-    }
+    heroHost.innerHTML = buildHeroHTML(values);
+    const metricsHost = document.getElementById('results-metrics');
+    if (metricsHost) metricsHost.innerHTML = buildMetricsHTML(values);
+    const achvHost = document.getElementById('results-achievements');
+    if (achvHost) achvHost.innerHTML = buildAchievementsHTML();
+    const nextGoalHost = document.getElementById('results-nextgoal');
+    if (nextGoalHost) nextGoalHost.innerHTML = buildNextGoalHTML(values);
 }
 
 function renderResults() {
@@ -3517,7 +3698,7 @@ function svgEscapeNumber(value) {
 // currentColor + CSS classes).
 function renderSessionDashboard() {
     const curveHost = document.getElementById('dash-focus-curve');
-    const halvesHost = document.getElementById('dash-halves');
+    const badgeHost = document.getElementById('curve-halves-badge');
     const summary = lastSessionSummary;
     const samples = trainingAnalytics.focusSamples;
 
@@ -3526,17 +3707,22 @@ function renderSessionDashboard() {
             curveHost.innerHTML = `<p class="dash-empty">${langText('本局時間太短，未足以繪製專注曲線。', 'This session was too short to draw a focus curve.')}</p>`;
         } else {
             const w = 600;
-            const h = 160;
-            const pad = 8;
+            const h = 190;
+            const pad = 10;
             const stepX = (w - pad * 2) / Math.max(1, samples.length - 1);
-            const points = samples
-                .map((v, i) => `${svgEscapeNumber(pad + i * stepX)},${svgEscapeNumber(h - pad - (Math.max(0, Math.min(100, v)) / 100) * (h - pad * 2))}`)
-                .join(' ');
+            const xy = samples.map((v, i) => [
+                svgEscapeNumber(pad + i * stepX),
+                svgEscapeNumber(h - pad - (Math.max(0, Math.min(100, v)) / 100) * (h - pad * 2))
+            ]);
+            const linePoints = xy.map((p) => `${p[0]},${p[1]}`).join(' ');
+            const lastX = svgEscapeNumber(pad + (samples.length - 1) * stepX);
+            const areaPoints = `${pad},${h - pad} ${linePoints} ${lastX},${h - pad}`;
             const stableY = svgEscapeNumber(h - pad - (FOCUS_TRAINING.stableThreshold / 100) * (h - pad * 2));
             curveHost.innerHTML = `
                 <svg viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" class="dash-curve-svg" role="img" aria-label="focus curve">
+                    <polygon points="${areaPoints}" class="dash-curve-area" />
                     <line x1="${pad}" y1="${stableY}" x2="${w - pad}" y2="${stableY}" class="dash-curve-threshold" />
-                    <polyline points="${points}" class="dash-curve-line" fill="none" />
+                    <polyline points="${linePoints}" class="dash-curve-line" />
                 </svg>
                 <div class="dash-curve-legend">
                     <span class="dash-legend-line"></span>${langText('專注值', 'Focus')}
@@ -3545,31 +3731,25 @@ function renderSessionDashboard() {
         }
     }
 
-    if (halvesHost && summary) {
-        const first = summary.firstHalfFocus || 0;
-        const second = summary.secondHalfFocus || 0;
-        const delta = second - first;
-        let verdictText = langText('局內保持平穩', 'Held steady during the session');
-        let verdictClass = 'is-flat';
-        if (delta >= 3) { verdictText = langText('局內有進步', 'Improved during the session'); verdictClass = 'is-up'; }
-        else if (delta <= -3) { verdictText = langText('局內有回落', 'Dropped during the session'); verdictClass = 'is-down'; }
-        const arrow = delta >= 3 ? '↑' : delta <= -3 ? '↓' : '→';
-        halvesHost.innerHTML = `
-            <div class="dash-halves-grid">
-                <div class="dash-half-card">
-                    <span class="dash-half-label">${langText('前半段', 'First Half')}</span>
-                    <span class="dash-half-value">${first.toFixed(1)}</span>
-                </div>
-                <div class="dash-half-arrow ${verdictClass}">${arrow}</div>
-                <div class="dash-half-card">
-                    <span class="dash-half-label">${langText('後半段', 'Second Half')}</span>
-                    <span class="dash-half-value">${second.toFixed(1)}</span>
-                </div>
-            </div>
-            <p class="dash-half-verdict ${verdictClass}">${verdictText} (${delta >= 0 ? '+' : ''}${delta.toFixed(1)})</p>
-            ${voyageTotals && voyageTotals.distanceM >= 1
-                ? `<p class="dash-voyage-line">⛵ ${langText('航海日誌', 'Voyage log')}：${formatVoyageTotals()}</p>`
-                : ''}`;
+    if (badgeHost) {
+        if (summary) {
+            const first = summary.firstHalfFocus || 0;
+            const second = summary.secondHalfFocus || 0;
+            const delta = second - first;
+            let cls = 'is-flat';
+            let arrow = '→';
+            if (delta >= 3) { cls = 'is-up'; arrow = '↑'; }
+            else if (delta <= -3) { cls = 'is-down'; arrow = '↓'; }
+            badgeHost.innerHTML = `
+                <span class="curve-halves-badge ${cls}">
+                    <span class="dim">${langText('前半段', 'First half')}</span> ${first.toFixed(1)}
+                    <span class="dim">→</span>
+                    <span class="dim">${langText('後半段', 'Second half')}</span> ${second.toFixed(1)}
+                    <b>${delta >= 0 ? '+' : ''}${delta.toFixed(1)} ${arrow}</b>
+                </span>`;
+        } else {
+            badgeHost.innerHTML = '';
+        }
     }
 }
 
@@ -3590,15 +3770,13 @@ async function renderHistoryTrend() {
         return;
     }
 
-    const bars = (values, formatter, invert = false) => {
+    const bars = (values, formatter) => {
         const max = Math.max(...values, 1);
         return values.map((v, i) => {
             const ratio = Math.max(0.06, v / max);
             const isLatest = i === values.length - 1;
-            // invert=true means lower is better (recovery time)
-            const goodness = invert ? 1 - ratio : ratio;
             return `<div class="dash-bar-wrap" title="${formatter(v)}">
-                <div class="dash-bar ${isLatest ? 'is-latest' : ''} ${goodness > 0.66 ? 'is-good' : goodness < 0.33 ? 'is-weak' : ''}" style="height:${Math.round(ratio * 100)}%"></div>
+                <div class="dash-bar ${isLatest ? 'is-latest' : ''}" style="height:${Math.round(ratio * 100)}%"></div>
             </div>`;
         }).join('');
     };
@@ -3616,20 +3794,20 @@ async function renderHistoryTrend() {
         if (latest > 0 && prevAvg > 0) {
             const diffPct = ((prevAvg - latest) / prevAvg) * 100;
             if (diffPct >= 5) {
-                headline = `<p class="dash-recovery-headline is-up">▲ ${langText(
+                headline = `<div class="trend-headline is-up"><span class="trend-arrow">▲</span> ${langText(
                     `分心後拉返專注快咗 ${diffPct.toFixed(0)}%（對比你之前幾局平均）`,
                     `You recover from distraction ${diffPct.toFixed(0)}% faster than your recent average`
-                )}</p>`;
+                )}</div>`;
             } else if (diffPct <= -5) {
-                headline = `<p class="dash-recovery-headline is-down">▼ ${langText(
+                headline = `<div class="trend-headline is-down"><span class="trend-arrow">▼</span> ${langText(
                     `今局恢復速度慢過你之前平均 ${Math.abs(diffPct).toFixed(0)}%，好正常，繼續練`,
                     `Recovery was ${Math.abs(diffPct).toFixed(0)}% slower than your recent average — keep training`
-                )}</p>`;
+                )}</div>`;
             } else {
-                headline = `<p class="dash-recovery-headline is-flat">▶ ${langText(
+                headline = `<div class="trend-headline is-flat"><span class="trend-arrow">▶</span> ${langText(
                     '恢復速度同你最近平均相若',
                     'Recovery speed is in line with your recent average'
-                )}</p>`;
+                )}</div>`;
             }
         }
     }

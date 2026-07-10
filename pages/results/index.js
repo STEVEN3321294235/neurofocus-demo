@@ -8,112 +8,70 @@ async function getRuntime() {
     return importGameRuntime('/pages/game/runtime.js');
 }
 
+// The results page always reflects the LAST completed session. In-memory app
+// state (state.testMode) resets to the default on a page refresh, so prefer the
+// mode persisted at game start; fall back to app state for the very first load.
+function resolveMode() {
+    const state = getState();
+    let lastMode = null;
+    try { lastMode = localStorage.getItem('last_session_mode'); } catch (e) { lastMode = null; }
+    return (lastMode === 'training' || lastMode === 'challenge') ? lastMode : state.testMode;
+}
+
 export default {
     render() {
-        const state = getState();
-        // The results page always reflects the LAST completed session. In-memory
-        // app state (state.testMode) is reset to the default on a page refresh,
-        // so prefer the mode persisted at game start; fall back to app state for
-        // the very first load before any session exists.
-        let lastMode = null;
-        try { lastMode = localStorage.getItem('last_session_mode'); } catch (e) { lastMode = null; }
-        const resolvedMode = (lastMode === 'training' || lastMode === 'challenge') ? lastMode : state.testMode;
-        const isTraining = resolvedMode === 'training';
-        const summaryTitle = isTraining ? t('results_mode_training') : t('results_mode_challenge');
-        const summaryLead = isTraining ? t('results_mode_training_lead') : t('results_mode_challenge_lead');
-        const secondaryLabel = isTraining ? t('results_goal') : t('results_accuracy');
-        const secondaryValue = isTraining ? t('results_goal_training') : '0%';
-        const secondaryBest = isTraining ? '' : `${t('results_best')}: --`;
-        const timeLabel = isTraining ? t('results_duration') : t('results_time');
+        const resolvedMode = resolveMode();
         return `
             <main class="page page-results">
                 <section id="results-screen">
-                    <div class="results-panel">
-                        <header class="page-header results-header">
-                            <div>
-                                <span class="eyebrow">Results</span>
-                                <h1>${summaryTitle}</h1>
-                                <p class="results-lead">${summaryLead}</p>
+                    <div class="results-shell" data-mode="${resolvedMode}">
+                        <div class="results-topbar">
+                            <div class="results-brand">
+                                <span class="results-brand-mark">⛵</span>
+                                <span class="results-brand-name">NeuroFocus</span>
                             </div>
                             ${renderControlBar()}
-                        </header>
-
-                        <div class="results-stats-grid">
-                            <div class="stat-card">
-                                <span class="stat-icon">${t('results_distance')}</span>
-                                <h3 data-i18n="stat_distance">Total Distance</h3>
-                                <div class="stat-value" id="res-distance">0.0 m</div>
-                                <div class="stat-best" id="best-distance">${t('results_best')}: --</div>
-                            </div>
-                            <div class="stat-card">
-                                <span class="stat-icon">${secondaryLabel}</span>
-                                <h3>${secondaryLabel}</h3>
-                                <div class="stat-value" id="res-accuracy">${secondaryValue}</div>
-                                <div class="stat-best ${isTraining ? 'is-hidden' : ''}" id="best-accuracy">${secondaryBest}</div>
-                            </div>
-                            <div class="stat-card">
-                                <span class="stat-icon">${timeLabel}</span>
-                                <h3>${timeLabel}</h3>
-                                <div class="stat-value" id="res-time">00:00</div>
-                                <div class="stat-best" id="best-time">${t('results_best')}: --</div>
-                            </div>
                         </div>
 
-                        <section class="results-training-panel" aria-labelledby="results-training-title">
-                            <div class="results-training-header">
-                                <h2 id="results-training-title">${t('results_training_title')}</h2>
-                                <p>${t('results_training_lead')}</p>
-                            </div>
-                            <div class="results-insights-grid">
-                                <div class="stat-card">
-                                    <span class="stat-icon">${t('results_focus_rate')}</span>
-                                    <div class="stat-value" id="res-focus-rate">0%</div>
-                                </div>
-                                <div class="stat-card">
-                                    <span class="stat-icon">${t('results_recovery_time')}</span>
-                                    <div class="stat-value" id="res-recovery-time">--</div>
-                                </div>
-                                <div class="stat-card">
-                                    <span class="stat-icon">${t('results_breathing_count')}</span>
-                                    <div class="stat-value" id="res-breathing-count">0</div>
-                                </div>
-                            </div>
-                        </section>
+                        <!-- 1. Hero verdict (painted by runtime) -->
+                        <section class="results-hero" id="results-hero"></section>
 
-                        <section class="results-dash-panel" aria-labelledby="dash-halves-title">
-                            <div class="results-training-header">
-                                <h2 id="dash-halves-title">${t('dash_halves_title')}</h2>
-                                <p>${t('dash_halves_lead')}</p>
-                            </div>
-                            <div id="dash-halves"></div>
-                        </section>
+                        <!-- 2. Metric cards (painted by runtime) -->
+                        <section class="results-metrics" id="results-metrics"></section>
 
-                        <section class="results-dash-panel" aria-labelledby="dash-curve-title">
-                            <div class="results-training-header">
-                                <h2 id="dash-curve-title">${t('dash_curve_title')}</h2>
-                                <p>${t('dash_curve_lead')}</p>
+                        <!-- 3. Achievements (training) / Answer review (challenge) -->
+                        <section id="results-achievements"></section>
+
+                        <!-- 4. Focus curve -->
+                        <section class="results-card">
+                            <div class="results-card-head">
+                                <div>
+                                    <h2>${t('dash_curve_title')}</h2>
+                                    <p class="results-card-sub">${t('dash_curve_lead')}</p>
+                                </div>
+                                <div id="curve-halves-badge"></div>
                             </div>
                             <div id="dash-focus-curve"></div>
                         </section>
 
-                        <section class="results-dash-panel" aria-labelledby="dash-trend-title">
-                            <div class="results-training-header">
-                                <h2 id="dash-trend-title">${t('dash_trend_title')}</h2>
-                                <p>${t('dash_trend_lead')}</p>
+                        <!-- 5. Progress trend -->
+                        <section class="results-card">
+                            <div class="results-card-head">
+                                <div>
+                                    <h2>${t('dash_trend_title')}</h2>
+                                    <p class="results-card-sub">${t('dash_trend_lead')}</p>
+                                </div>
                             </div>
                             <div id="dash-history-trend"></div>
                         </section>
 
-                        <section class="results-dash-panel" aria-labelledby="dash-review-title">
-                            <div class="results-training-header">
-                                <h2 id="dash-review-title">${t('dash_review_title')}</h2>
-                            </div>
-                            <div id="wrong-answers-list" data-mode="${resolvedMode}"></div>
-                        </section>
+                        <!-- 6. Next goal (painted by runtime) -->
+                        <section class="results-nextgoal" id="results-nextgoal"></section>
 
+                        <!-- 7. Actions -->
                         <div class="results-actions">
-                            <button type="button" class="primary-btn" id="btn-restart">${t('play_again')}</button>
-                            <button type="button" class="secondary-btn" id="btn-home">${t('back_home')}</button>
+                            <button type="button" class="results-btn-primary" id="btn-restart">${t('play_again')}</button>
+                            <button type="button" class="results-btn-secondary" id="btn-home">${t('back_home')}</button>
                         </div>
                     </div>
                 </section>
@@ -139,6 +97,14 @@ export default {
         runtime.renderResults();
         runtime.renderSessionDashboard();
         runtime.renderHistoryTrend().catch(() => {});
+
+        // Answer-review cards expand/collapse on click (challenge mode).
+        root.querySelector('#results-achievements')?.addEventListener('click', (event) => {
+            const btn = event.target.closest('.review-q-btn');
+            if (!btn) return;
+            const item = btn.closest('.review-item');
+            if (item) item.classList.toggle('is-open');
+        });
 
         root.querySelector('#btn-restart')?.addEventListener('click', () => {
             setState({ setupStep: 'test', difficulty: null });
