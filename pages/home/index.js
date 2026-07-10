@@ -308,12 +308,6 @@ export default {
                                     <span class="text-xs text-slate-500 tracking-wider font-semibold transition-colors duration-500">COGNITIVE SYSTEMS</span>
                                 </div>
                             </div>
-                            <div class="flex flex-wrap gap-8">
-                                <a class="text-slate-600 hover:text-primary dark:text-slate-400 dark:hover:text-white text-sm font-medium transition-colors duration-300" href="#">${dualText('Privacy Policy', '隱私政策')}</a>
-                                <a class="text-slate-600 hover:text-primary dark:text-slate-400 dark:hover:text-white text-sm font-medium transition-colors duration-300" href="#">${dualText('Terms of Service', '服務條款')}</a>
-                                <a class="text-slate-600 hover:text-primary dark:text-slate-400 dark:hover:text-white text-sm font-medium transition-colors duration-300" href="#">${dualText('Support', '技術支援')}</a>
-                                <a class="text-slate-600 hover:text-primary dark:text-slate-400 dark:hover:text-white text-sm font-medium transition-colors duration-300" href="#">${dualText('Contact', '聯繫我們')}</a>
-                            </div>
                         </div>
                         <div class="flex flex-col md:flex-row justify-between items-center pt-8 border-t border-slate-200 dark:border-white/5 transition-colors duration-500">
                             <div class="flex flex-col md:flex-row items-center gap-4">
