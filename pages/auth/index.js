@@ -1,4 +1,3 @@
-import { renderControlBar, bindControlBar } from '../../components/controlBar.js?v=2026-06-24-21';
 import { t } from '../../app/i18n.js?v=2026-06-24-21';
 import { getState, setState } from '../../app/state.js';
 import { login, register, logout } from '../../services/authService.js';
@@ -54,7 +53,6 @@ export default {
                                 <h1>${t('auth_title')}</h1>
                                 <p class="page-support">${t('auth_intro_desc')}</p>
                             </div>
-                            ${renderControlBar()}
                         </header>
                         ${state.currentUser ? renderSessionCard(state) : renderAuthForm(state)}
                     </div>
@@ -64,8 +62,6 @@ export default {
     },
 
     mount({ root, router }) {
-        bindControlBar(root, { refresh: router.refresh });
-
         const backHome = root.querySelector('[data-back-home]');
         if (backHome) {
             backHome.addEventListener('click', () => router.navigate('home'));

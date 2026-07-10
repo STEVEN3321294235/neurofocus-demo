@@ -3670,49 +3670,74 @@ function pickRotating(storageKey, poolLength) {
 }
 
 // 6. Next goal — picked from THIS session's weakest metric (recovery slow →
-// recovery goal; stability low → stability goal; else stretch goal), plus a
-// rotating real-life meaning line.
+// recovery goal; stability low → stability goal; else stretch goal). The
+// meaning line comes from a pool that MATCHES the chosen goal, so it always
+// speaks to the problem this session actually showed, with rotating phrasing.
 function buildNextGoalHTML(values) {
     const { accuracy, focusedRatio, averageRecoveryMs } = values;
     const recoverySec = averageRecoveryMs / 1000;
     let eyebrow, title;
+    let goalKind; // 'recovery' | 'stability' | 'flow' | 'accuracy'
 
     if (isTrainingMode()) {
         eyebrow = langText('下一個目標', 'Next voyage');
         const stars = trainingAnalytics.flowStars;
         if (recoverySec > 5) {
+            goalKind = 'recovery';
             const target = Math.max(3, Math.floor(recoverySec) - 1);
             title = langText(`將平均恢復時間壓落 ${target} 秒內`, `Bring average recovery under ${target}s`);
         } else if (focusedRatio < 60) {
+            goalKind = 'stability';
             const target = Math.min(90, Math.max(Math.ceil(focusedRatio / 5) * 5, Math.round(focusedRatio) + 5));
             title = langText(`維持穩定度喺 ${target}% 以上`, `Hold stability above ${target}%`);
         } else if (stars < 5) {
+            goalKind = 'flow';
             title = langText(`下次試吓摘 ${stars + 1} 粒心流星`, `Try earning ${stars + 1} flow stars next voyage`);
         } else {
+            goalKind = 'flow';
             const target = Math.min(90, Math.round(focusedRatio) + 3);
             title = langText(`挑戰吓穩定度 ${target}%`, `Push stability towards ${target}%`);
         }
     } else {
         eyebrow = langText('下一個挑戰', 'Next challenge');
         if (accuracy < 100) {
+            goalKind = 'accuracy';
             const target = Math.min(100, (Math.floor(accuracy / 10) + 1) * 10);
             title = langText(`正確率上 ${target}%`, `Push accuracy to ${target}%`);
         } else if (recoverySec > 5) {
+            goalKind = 'recovery';
             title = langText('解題時恢復時間控制喺 5 秒以下', 'Keep recovery under 5s while answering');
         } else {
+            goalKind = 'flow';
             title = langText('保持全對，試吓揀難一級', 'Keep the perfect score — try a harder level');
         }
     }
 
-    // Real-life meaning lines: same message family, rotating phrasing.
-    const insights = [
-        langText('恢復得快 = 溫書分咗心都追得返。', 'Faster recovery = pulling yourself back when studying drifts.'),
-        langText('專注穩 = 做功課快啲完，時間留返俾自己。', 'Steadier focus = homework done sooner, more time for you.'),
-        langText('識得用呼吸冷靜自己 = 考試前、比賽前都用得着。', 'Breathing yourself calm works before exams and matches too.'),
-        langText('上堂恍神拉得返 = 少啲「頭先講咗乜」嘅慌張。', 'Snapping back in class = fewer "wait, what did I miss" moments.'),
-        langText('入狀態快 = 打機、運動、練琴都上手快啲。', 'Getting in the zone faster helps gaming, sport and music too.')
-    ];
-    const insight = insights[pickRotating('nextgoal_insight_idx', insights.length)];
+    // Meaning lines grouped by what the player actually needs to work on.
+    const insightPools = {
+        recovery: [
+            langText('恢復得快 = 溫書分咗心都追得返。', 'Faster recovery = pulling yourself back when studying drifts.'),
+            langText('上堂恍神拉得返 = 少啲「頭先講咗乜」嘅慌張。', 'Snapping back in class = fewer "wait, what did I miss" moments.'),
+            langText('分心唔緊要，快啲返嚟先係本事。', 'Drifting is normal — coming back fast is the skill.')
+        ],
+        stability: [
+            langText('專注穩 = 做功課快啲完，時間留返俾自己。', 'Steadier focus = homework done sooner, more time for you.'),
+            langText('坐得定唔係天生，係練返嚟——你而家就係喺度練。', 'Sitting steady isn’t a talent — it’s trained, and this is the training.'),
+            langText('穩定專注耐啲，先追得住老師嘅節奏。', 'Holding focus longer is how you keep up with the lesson.')
+        ],
+        flow: [
+            langText('入狀態快 = 打機、運動、練琴都上手快啲。', 'Getting in the zone faster helps gaming, sport and music too.'),
+            langText('一粒星 = 完全企穩 25 秒——溫書嗰陣呢種狀態最值錢。', 'One star = 25 seconds fully steady — the exact state studying needs.'),
+            langText('心流唔係等運到，係練得出嚟。', 'Flow isn’t luck — it’s trainable.')
+        ],
+        accuracy: [
+            langText('壓力下保持冷靜 = 考試少啲低級失誤。', 'Staying calm under pressure = fewer careless mistakes in tests.'),
+            langText('答錯唔緊要，睇返個解釋先係真正上分位。', 'Missing one is fine — reading the explanation is where the marks come from.'),
+            langText('難題面前唔慌，先係真本事。', 'Not panicking at hard questions is the real skill.')
+        ]
+    };
+    const pool = insightPools[goalKind] || insightPools.stability;
+    const insight = pool[pickRotating(`nextgoal_insight_${goalKind}`, pool.length)];
 
     return `
         <div class="nextgoal-icon">🎯</div>
