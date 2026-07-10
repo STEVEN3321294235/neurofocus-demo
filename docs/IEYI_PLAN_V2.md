@@ -7,9 +7,17 @@
 >
 > **剩低嘅工作分兩階段：**
 > - **【階段一 · 重新設計】** D2 Gameplay ✅ **已完成（2026-07-07）** → D1 Results Dashboard ✅ **已完成（2026-07-10，v0 設計稿 → Claude 實作，Training / Challenge 兩版 + 深淺色，詳見 §5）**
-> - **【階段二 · 收尾打磨】** P1 動態畫質 → P2 Web 加靚/現代化 → U1 文案人性化 + Footer → E1 EEG 韌性 → F1 審計（過期檔案/漏洞/風險）
+> - **【階段二 · 收尾打磨】**（2026-07-10 進度）P1 動態畫質 ⬜ 未開始（**建議下一件事**） → P2 加靚 🟡 **已完成一半**（loading 現代化、提示重排、水痕/浮標/海鷗/船身物理打磨；剩 in-game sun glint/flow 一刻 + Home/Setup 過場動畫） → U1 文案 🟡 **主體完成**（全站 sweep + footer 死鏈清；剩隱私政策頁、聯絡 mailto、Steven 逐句 review） → E1 EEG 韌性 ⬜（等 T2 實測筆記） → F1 審計 ⬜
 >
 > **2026-07-10 額外修正（喺 main）**：① Homepage footer 死連結（隱私政策/服務條款/技術支援/聯絡我們，全部 `href="#"`）已移除，留返有真內容嘅版本俾 U1 做。② **Results 頁 refresh 唔再歸零**——一局完會存快照落 localStorage，refresh 後由快照還原真數據（附「一個 session 只計一次」保護，唔會重複入歷史/航海日誌）。
+>
+> **2026-07-10 第二輪（Steven 驗收回饋 + 打磨批次，全部喺 main）**：
+> ③ Results 回饋修正：星星改「今次 ×N + 🏆單場最佳」（唔再誤導性五粒滿分）、黃金時刻卡自帶概念解釋、曲線加 X/Y 軸+格線、趨勢 bar 印數值、時長 chip 顯示真實 mm:ss、挑戰判語按分數分五級、下一個目標按「今場最弱一環」揀＋意義句按目標類型分池輪換（AI 生成 report 決定唔做，保持零外部依賴）。
+> ④ **切換掣單一來源**：語言/深淺色只留 homepage；auth/setup/results 一律跟 homepage 設定。
+> ⑤ 3D 打磨：船尾水痕重造（貼航向嘅連續 wash band，取代亂轉泡沫塊）、航道虛線降透明（0.75→0.5）、**船身跳動根因修復**（sin(t×freq) 變頻導致相位跳格 → 改累積相位＋參數調柔）、浮標加防撞圈/燈罩支架/呼吸光暈＋高段數幾何、海鷗加身體/鳥喙/側傾/滑翔起伏。
+> ⑥ 遊戲內所有彈出提示（星星/航標/開場提示/加速/呼吸前置提示）搬去**螢幕底部**堆疊，唔再遮視線中央；呼吸引導 overlay 不變。
+> ⑦ 入場穿崩修復（loader 同步不透明覆蓋 + 頁面初始隱藏態）＋ Loading 頁現代化（小艇+波浪+品牌+進度 shimmer）。
+> ⑧ 文案 sweep（U1 主體）：詳見 §U1 狀態。
 
 ---
 
@@ -238,7 +246,10 @@ test by forcing a huge pixel ratio via devtools and watching it step down then r
 ```
 **驗收**：開 FPS meter 睇個 L 字——人為加負荷 → 幾秒內逐級落、FPS 回穩；移走負荷 → 慢慢升返 L0；肉眼冇跳格。Windows 機實測前後 FPS。
 
-#### P2 — Web 加靚 / 現代化 / CSS 動畫 redesign（P1 做完先開；建議 TRAE 主力）
+#### P2 — Web 加靚 / 現代化 / CSS 動畫 redesign 🟡 已完成一半（2026-07-10）
+
+> **已做**（Claude，隨 Steven 回饋批次完成）：Loading 頁現代化＋入場穿崩修復；遊戲提示搬底部；船尾水痕重造＋航道虛線調透明；船身跳動修復＋物理調柔；浮標/海鷗精緻化；Results 頁已係全新 v0 設計。
+> **剩低**（跟返原 prompt）：in-game 水面 sun glint / flow-state 一刻（bloom+曝光脈衝）；Home / Setup 嘅 CSS 過場動畫同 hover 微互動打磨（呢部分先係「TRAE 睇住 browser 調」嘅主場）。
 
 **目標**：令成個網站（尤其 Home + Setup + Results）睇落**現代、精緻、吸引到人行過想試**。呢步好睇「即時視覺效果」，所以**建議喺 TRAE 度做**（你可以即刻喺 browser 睇住調）。
 
@@ -265,7 +276,10 @@ quality badge 確認 L0 >= 55 FPS、迫落 L2 見到新效果自動熄。
 ```
 **驗收**：前後截圖對比（Home / Setup / Results 現代化程度、in-game flow 一刻）；FPS meter 企穩；Windows 機唔掉幀；開 prefers-reduced-motion 有 fallback。
 
-#### U1 — 文案人性化 + 符合進度 + Homepage Footer（Claude 起草 → 你逐句 review）
+#### U1 — 文案人性化 + 符合進度 + Homepage Footer 🟡 主體完成（2026-07-10）
+
+> **已做**：全站文案 sweep 已完成並喺 main——Home 誠實化（裝置講法改「以 NeuroSky MindWave 為核心、相機/模擬保底、架構可擴展」；刪走假版本號/假 demo 片/「大數據」等過度宣稱；Alpha/Beta 改「設計框架」語氣；死嘅 AI report 掣改成真入口）、setup/auth 雙語人性化（**清走已移除嘅「書房場景」殘留描述**）、footer 死鏈已刪、Results 文案本身係新寫。
+> **剩低**：① 隱私政策頁（雙語誠實版）＋「聯絡我們」真 mailto（要 Steven 提供 email）；② **Steven 逐句 review** 中英文（尤其 Home 全頁）先算收貨。
 
 ```
 Context: same project — bilingual copy in app/i18n.js (en + hk blocks, keys must match).
