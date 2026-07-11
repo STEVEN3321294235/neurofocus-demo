@@ -75,20 +75,112 @@ function renderBreathingEegFeedback() {
 // not by feel. Averaged over ~0.5s windows.
 let fpsAccumMs = 0;
 let fpsFrames = 0;
+// One shared 500ms FPS accumulator drives BOTH the on-screen meter (DEMO_MODE)
+// and the dynamic-quality controller (always) — no second timer.
 function updateFpsMeter(deltaMs) {
-    const el = document.getElementById('fps-meter');
-    if (!el) return;
-    if (!DEMO_MODE) { if (el.style.display !== 'none') el.style.display = 'none'; return; }
-    if (el.style.display === 'none') el.style.display = '';
     fpsFrames += 1;
     fpsAccumMs += deltaMs;
     if (fpsAccumMs >= 500) {
         const fps = Math.round((fpsFrames * 1000) / fpsAccumMs);
-        el.textContent = `${fps} FPS`;
-        el.dataset.tier = fps >= 55 ? 'good' : fps >= 35 ? 'ok' : 'low';
         fpsAccumMs = 0;
         fpsFrames = 0;
+        onFpsSample(fps);
+        const el = document.getElementById('fps-meter');
+        if (!el) return;
+        if (!DEMO_MODE) { if (el.style.display !== 'none') el.style.display = 'none'; return; }
+        if (el.style.display === 'none') el.style.display = '';
+        el.textContent = `${fps} FPS · L${currentQualityLevel}${qualityMode === 'auto' ? ' A' : ''}`;
+        el.dataset.tier = fps >= 55 ? 'good' : fps >= 35 ? 'ok' : 'low';
     }
+}
+
+// --- Dynamic quality scaling (P1) ---
+// A four-rung ladder driven by measured FPS (auto) or pinned by the player
+// from the in-game settings panel. Every change lands at a frame boundary
+// (applied at the top of animate) and never rebuilds mid-frame.
+//   L0 full profile · L1 pixel ratio ×0.75 · L2 + bloom bypassed ·
+//   L3 pixel ratio ×0.55 + bloom off + wake/splash density halved.
+const QUALITY_PIXEL_SCALE = [1, 0.75, 0.75, 0.55];
+let qualityMode = 'auto';        // 'auto' or a pinned rung index 0-3
+let currentQualityLevel = 0;
+let pendingQualityLevel = null;  // applied at the next frame boundary
+let qualityStepCooldownMs = 0;   // max one step per 3s (auto)
+let lowFpsWindowMs = 0;          // <45fps persistence
+let highFpsWindowMs = 0;         // >55fps persistence
+let qualityBloomBypassed = false;
+let qualityParticleScale = 1;
+let cameraDistanceScale = 1;     // user camera setting: 0.85 near / 1 / 1.2 far
+
+try {
+    const storedQuality = localStorage.getItem('quality_mode');
+    if (['0', '1', '2', '3'].includes(storedQuality)) qualityMode = Number(storedQuality);
+    else qualityMode = 'auto';
+    const storedCam = Number(localStorage.getItem('camera_distance_scale'));
+    if ([0.85, 1, 1.2].includes(storedCam)) cameraDistanceScale = storedCam;
+} catch (e) { /* defaults stand */ }
+
+// Pixel ratio = device profile cap × the active rung's scale. Used everywhere
+// the renderer's pixel ratio is (re)set so resizes respect the ladder.
+function applyRenderScale() {
+    if (!renderer) return;
+    renderer.setPixelRatio(getAdaptiveRenderScale() * QUALITY_PIXEL_SCALE[currentQualityLevel]);
+}
+
+function applyQualityLevel(level) {
+    currentQualityLevel = Math.max(0, Math.min(3, level));
+    qualityBloomBypassed = currentQualityLevel >= 2;
+    qualityParticleScale = currentQualityLevel >= 3 ? 0.5 : 1;
+    if (renderer) {
+        applyRenderScale();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        if (composer) composer.setSize(window.innerWidth, window.innerHeight);
+    }
+}
+
+// Asymmetric windows: quick to step DOWN (3s under 45fps), slow to step back
+// UP (10s over 55fps), at most one step per 3s — prevents oscillation.
+function onFpsSample(fps) {
+    if (!isGameActive) return;
+    qualityStepCooldownMs = Math.max(0, qualityStepCooldownMs - 500);
+    if (qualityMode !== 'auto') return;
+    if (fps < 45) { lowFpsWindowMs += 500; highFpsWindowMs = 0; }
+    else if (fps > 55) { highFpsWindowMs += 500; lowFpsWindowMs = 0; }
+    else { lowFpsWindowMs = 0; highFpsWindowMs = 0; }
+
+    if (qualityStepCooldownMs > 0 || pendingQualityLevel !== null) return;
+    if (lowFpsWindowMs >= 3000 && currentQualityLevel < 3) {
+        pendingQualityLevel = currentQualityLevel + 1;
+    } else if (highFpsWindowMs >= 10000 && currentQualityLevel > 0) {
+        pendingQualityLevel = currentQualityLevel - 1;
+    }
+    if (pendingQualityLevel !== null) {
+        qualityStepCooldownMs = 3000;
+        lowFpsWindowMs = 0;
+        highFpsWindowMs = 0;
+    }
+}
+
+// Settings-panel API (exported): pin a rung or hand control back to auto.
+function setQualityMode(mode) {
+    if (mode === 'auto') {
+        qualityMode = 'auto';
+    } else {
+        const level = Math.max(0, Math.min(3, Number(mode)));
+        qualityMode = level;
+        pendingQualityLevel = level;
+    }
+    lowFpsWindowMs = 0;
+    highFpsWindowMs = 0;
+    try { localStorage.setItem('quality_mode', String(qualityMode)); } catch (e) { /* best-effort */ }
+}
+
+function setCameraDistanceScale(scale) {
+    cameraDistanceScale = [0.85, 1, 1.2].includes(scale) ? scale : 1;
+    try { localStorage.setItem('camera_distance_scale', String(cameraDistanceScale)); } catch (e) { /* best-effort */ }
+}
+
+function getQualitySettings() {
+    return { mode: qualityMode, level: currentQualityLevel, cameraScale: cameraDistanceScale };
 }
 
 // Module handle to the bloom pass so the game loop can escalate it during
@@ -1704,6 +1796,12 @@ const gameLoop = new PrecisionLoop((deltaMs, totalTimeMs) => {
     // Allow loop to run even if game not active (for idle animations/water)
     // if (!isGameActive) return;
 
+    // Quality ladder changes land here, at the frame boundary — never mid-frame.
+    if (pendingQualityLevel !== null) {
+        applyQualityLevel(pendingQualityLevel);
+        pendingQualityLevel = null;
+    }
+
     updateFpsMeter(deltaMs);
 
     // 1. Calculate Delta in Seconds (High Precision)
@@ -1788,7 +1886,9 @@ const gameLoop = new PrecisionLoop((deltaMs, totalTimeMs) => {
     // 3. Render
 
     if (renderer && scene && camera) {
-        if (composer) {
+        // L2+ bypasses the composer (bloom) without tearing it down, so
+        // stepping back up is instant and allocation-free.
+        if (composer && !qualityBloomBypassed) {
             composer.render();
         } else {
             renderer.render(scene, camera);
@@ -2189,7 +2289,7 @@ function updateGameLogic(delta) {
         // aspect so the boat holds a consistent ~65% of the frame everywhere.
         const aspect = window.innerWidth / Math.max(1, window.innerHeight);
         const frameScale = THREE.MathUtils.clamp(1.78 / aspect, 0.95, 1.6);
-        _camOffset.set(17, 11.5, 38).multiplyScalar(frameScale);
+        _camOffset.set(17, 11.5, 38).multiplyScalar(frameScale * cameraDistanceScale);
         _camOffset.applyAxisAngle(_upAxis, -boatYaw * 0.8);
         _camTargetPos.copy(boat.position).add(_camOffset);
         camera.position.lerp(_camTargetPos, 0.06);
@@ -4619,7 +4719,7 @@ function init3DScene() {
         alpha: true,
         powerPreference: 'high-performance'
     }); 
-    renderer.setPixelRatio(getAdaptiveRenderScale());
+    applyRenderScale();
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.setClearColor(0x06101d, 1);
     
@@ -5084,7 +5184,7 @@ function updateParticles(delta, speed) {
         // WIDEN (never lengthen) while fading — a turning boat leaves one
         // continuous curved band of wash, the way a real stern wake spreads.
         trailSpawnAccumM += speed * delta;
-        const trailStepM = 3.2 / Math.max(0.4, PERFORMANCE_PROFILE.particleMultiplier);
+        const trailStepM = 3.2 / Math.max(0.4, PERFORMANCE_PROFILE.particleMultiplier * qualityParticleScale);
         if (trailSpawnAccumM >= trailStepM) {
             trailSpawnAccumM = 0;
             const material = new THREE.MeshBasicMaterial({
@@ -5116,7 +5216,7 @@ function updateParticles(delta, speed) {
 
         // --- System A: Bow Impact (Splash) ---
         // Spawn rate based on speed
-        const splashRate = Math.min(speed * 0.45, 7.5) * PERFORMANCE_PROFILE.particleMultiplier;
+        const splashRate = Math.min(speed * 0.45, 7.5) * PERFORMANCE_PROFILE.particleMultiplier * qualityParticleScale;
         if (Math.random() < splashRate * delta) {
             const material = new THREE.MeshBasicMaterial({
                 map: splashTexture,
@@ -5155,7 +5255,7 @@ function updateParticles(delta, speed) {
 
         // --- System B: Kelvin Wake (V-Shape Stern) ---
         // User Request: Two V-shaped expanding trails
-        const wakeRate = Math.min(speed * 0.7, 12.0) * PERFORMANCE_PROFILE.particleMultiplier;
+        const wakeRate = Math.min(speed * 0.7, 12.0) * PERFORMANCE_PROFILE.particleMultiplier * qualityParticleScale;
         if (Math.random() < wakeRate * delta) {
              // Left and Right Emitters
              [-1, 1].forEach(side => {
@@ -5692,7 +5792,7 @@ function createBalloons() {
 function onWindowResize() {
     camera.aspect = window.innerWidth / window.innerHeight;
     camera.updateProjectionMatrix();
-    renderer.setPixelRatio(getAdaptiveRenderScale());
+    applyRenderScale();
     renderer.setSize(window.innerWidth, window.innerHeight);
     if (isCompactViewport()) {
         composer = null;
@@ -6700,6 +6800,9 @@ export {
     setEEGConnectionState,
     showResults,
     startGameSession,
+    setQualityMode,
+    setCameraDistanceScale,
+    getQualitySettings,
     switchLanguage,
     switchEnvironment,
     updateFocusFromEEG,

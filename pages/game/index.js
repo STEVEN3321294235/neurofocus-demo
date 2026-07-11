@@ -40,7 +40,30 @@ export default {
                         <div class="top-buttons">
                             <button id="btn-back-home-game" data-i18n="back_home">${t('back_home')}</button>
                             <button id="btn-logout" data-i18n="logout">${t('auth_logout')}</button>
+                            <button id="game-settings-btn" type="button" aria-label="${t('settings_quality')}">⚙</button>
                         </div>
+                    </div>
+
+                    <div id="game-settings-panel" style="display: none;">
+                        <div class="settings-group">
+                            <div class="settings-label">${t('settings_quality')}</div>
+                            <div class="settings-options">
+                                <button type="button" data-quality="auto">${t('quality_auto')}</button>
+                                <button type="button" data-quality="0">${t('quality_high')}</button>
+                                <button type="button" data-quality="1">${t('quality_medium')}</button>
+                                <button type="button" data-quality="2">${t('quality_low')}</button>
+                                <button type="button" data-quality="3">${t('quality_lowest')}</button>
+                            </div>
+                        </div>
+                        <div class="settings-group">
+                            <div class="settings-label">${t('settings_camera')}</div>
+                            <div class="settings-options">
+                                <button type="button" data-camera="0.85">${t('camera_near')}</button>
+                                <button type="button" data-camera="1">${t('camera_standard')}</button>
+                                <button type="button" data-camera="1.2">${t('camera_far')}</button>
+                            </div>
+                        </div>
+                        <div class="settings-note">${t('settings_auto_note')}</div>
                     </div>
 
                     <div id="focus-indicator">
@@ -216,6 +239,39 @@ export default {
         });
         runtime.switchLanguage(state.lang);
         runtime.startGameSession();
+
+        // In-game settings: quality rung (or auto) + chase-camera distance.
+        const settingsBtn = root.querySelector('#game-settings-btn');
+        const settingsPanel = root.querySelector('#game-settings-panel');
+        const refreshSettingsUI = () => {
+            const s = runtime.getQualitySettings();
+            root.querySelectorAll('[data-quality]').forEach((b) => {
+                b.classList.toggle('is-active', String(s.mode) === b.dataset.quality);
+            });
+            root.querySelectorAll('[data-camera]').forEach((b) => {
+                b.classList.toggle('is-active', Number(b.dataset.camera) === s.cameraScale);
+            });
+        };
+        if (settingsBtn && settingsPanel) {
+            settingsBtn.addEventListener('click', () => {
+                const open = settingsPanel.style.display !== 'none';
+                settingsPanel.style.display = open ? 'none' : 'block';
+                if (!open) refreshSettingsUI();
+            });
+            settingsPanel.addEventListener('click', (event) => {
+                const q = event.target.closest('[data-quality]');
+                if (q) {
+                    runtime.setQualityMode(q.dataset.quality === 'auto' ? 'auto' : Number(q.dataset.quality));
+                    refreshSettingsUI();
+                    return;
+                }
+                const c = event.target.closest('[data-camera]');
+                if (c) {
+                    runtime.setCameraDistanceScale(Number(c.dataset.camera));
+                    refreshSettingsUI();
+                }
+            });
+        }
 
         const homeButton = root.querySelector('#btn-back-home-game');
         if (homeButton) {

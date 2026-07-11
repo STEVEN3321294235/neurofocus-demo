@@ -153,7 +153,18 @@ const copy = {
         game_training_countdown: 'Countdown',
         game_home_confirm: 'Exit game and return home? Current progress will be lost.',
         game_logout_confirm: 'Logout now? Current progress will be lost.',
-        loader_preparing: 'Preparing your voyage…'
+        loader_preparing: 'Preparing your voyage…',
+        settings_quality: 'Graphics quality',
+        quality_auto: 'Auto',
+        quality_high: 'High',
+        quality_medium: 'Medium',
+        quality_low: 'Low',
+        quality_lowest: 'Lowest',
+        settings_camera: 'Camera distance',
+        camera_near: 'Near',
+        camera_standard: 'Standard',
+        camera_far: 'Far',
+        settings_auto_note: 'Auto steps quality down when the frame rate dips and back up when it recovers.'
     },
     hk: {
         home_eyebrow: 'EEG 專注力訓練',
@@ -307,7 +318,18 @@ const copy = {
         game_training_countdown: '倒計時',
         game_home_confirm: '確定離開遊戲並返回首頁？目前進度會遺失。',
         game_logout_confirm: '確定現在登出？目前進度會遺失。',
-        loader_preparing: '正在準備你嘅航程…'
+        loader_preparing: '正在準備你嘅航程…',
+        settings_quality: '畫質',
+        quality_auto: '自動',
+        quality_high: '高',
+        quality_medium: '中',
+        quality_low: '低',
+        quality_lowest: '最低',
+        settings_camera: '鏡頭距離',
+        camera_near: '近',
+        camera_standard: '標準',
+        camera_far: '遠',
+        settings_auto_note: '自動模式：幀數跌會自動降畫質，回穩會慢慢升返。'
     }
 };
 
