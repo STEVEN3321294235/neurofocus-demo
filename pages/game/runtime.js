@@ -6122,13 +6122,18 @@ function animate() {
         });
     }
 
-    function scheduleBridgeReconnect(delayMs = 1800) {
+    // Exponential backoff (1s → 2s → 4s → 8s, capped at 10s) and NEVER stops
+    // while EEG mode is active: after MAX attempts it keeps retrying at the
+    // cap and just surfaces a "check the bridge window" hint, so a booth
+    // helper restarting the Python bridge is picked up automatically.
+    function scheduleBridgeReconnect() {
         if (!eegModeActive || selectedInputMode !== 'eeg') return;
         if (bridgeConnected) return;
         if (bridgeReconnectTimeoutId) return;
-        if (bridgeReconnectAttempts >= MAX_BRIDGE_RECONNECT_ATTEMPTS) {
-            setEEGConnectionState('warning', langText('已多次嘗試重連 EEG bridge，請確認 Python 視窗仍在執行及頭帶已重新配對。', 'Multiple EEG bridge reconnect attempts were made. Please confirm the Python bridge is still running and the headset has been paired again.'));
-            return;
+
+        const delayMs = Math.min(10000, 1000 * Math.pow(2, Math.min(bridgeReconnectAttempts, 3)));
+        if (bridgeReconnectAttempts === MAX_BRIDGE_RECONNECT_ATTEMPTS) {
+            setEEGConnectionState('warning', langText('重連咗好多次仍未成功——請檢查 Python bridge 視窗仲行緊未、頭帶有冇電。系統會繼續自動重試。', 'Still reconnecting after many attempts — check that the Python bridge window is running and the headset has power. The system keeps retrying automatically.'));
         }
 
         bridgeReconnectAttempts += 1;
