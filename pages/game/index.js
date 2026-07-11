@@ -1,8 +1,8 @@
 import { getState, resetFlowState, setState } from '../../app/state.js';
-import { t } from '../../app/i18n.js?v=2026-06-24-21';
+import { t } from '../../app/i18n.js?v=2026-07-11-1';
 import { logout } from '../../services/authService.js';
-import { disposeMode, syncRuntimeState } from '../../services/eegBridgeService.js?v=2026-06-24-21';
-import { importGameRuntime } from '../../services/runtimeLoader.js?v=2026-06-24-21';
+import { disposeMode, syncRuntimeState } from '../../services/eegBridgeService.js?v=2026-07-11-1';
+import { importGameRuntime } from '../../services/runtimeLoader.js?v=2026-07-11-1';
 
 async function getRuntime() {
     return importGameRuntime('/pages/game/runtime.js');
@@ -63,7 +63,26 @@ export default {
                                 <button type="button" data-camera="1.2">${t('camera_far')}</button>
                             </div>
                         </div>
-                        <div class="settings-note">${t('settings_auto_note')}</div>
+                        <div class="settings-group">
+                            <div class="settings-label">${t('settings_audio')}</div>
+                            <div class="settings-slider-row">
+                                <span class="settings-slider-name">${t('settings_bgm')}</span>
+                                <input type="range" id="setting-bgm-volume" min="0" max="100" step="5" value="100" aria-label="${t('settings_bgm')}">
+                                <span class="settings-slider-value" id="setting-bgm-value">100%</span>
+                            </div>
+                            <div class="settings-slider-row">
+                                <span class="settings-slider-name">${t('settings_sfx')}</span>
+                                <input type="range" id="setting-sfx-volume" min="0" max="100" step="5" value="100" aria-label="${t('settings_sfx')}">
+                                <span class="settings-slider-value" id="setting-sfx-value">100%</span>
+                            </div>
+                        </div>
+                        <div class="settings-group">
+                            <div class="settings-label">${t('settings_display')}</div>
+                            <div class="settings-options">
+                                <button type="button" id="fullscreen-toggle">${t('fullscreen_enter')}</button>
+                            </div>
+                        </div>
+                        <div class="settings-note">${t('settings_paused_note')} ${t('settings_auto_note')}</div>
                     </div>
 
                     <div id="focus-indicator">
@@ -240,9 +259,16 @@ export default {
         runtime.switchLanguage(state.lang);
         runtime.startGameSession();
 
-        // In-game settings: quality rung (or auto) + chase-camera distance.
+        // In-game settings: quality rung (or auto), camera distance, volumes,
+        // fullscreen. Opening the panel pauses the session through the same
+        // pipeline as question-wait/portrait pauses; closing resumes it.
         const settingsBtn = root.querySelector('#game-settings-btn');
         const settingsPanel = root.querySelector('#game-settings-panel');
+        const bgmSlider = root.querySelector('#setting-bgm-volume');
+        const sfxSlider = root.querySelector('#setting-sfx-volume');
+        const bgmValue = root.querySelector('#setting-bgm-value');
+        const sfxValue = root.querySelector('#setting-sfx-value');
+        const fullscreenBtn = root.querySelector('#fullscreen-toggle');
         const refreshSettingsUI = () => {
             const s = runtime.getQualitySettings();
             root.querySelectorAll('[data-quality]').forEach((b) => {
@@ -251,12 +277,20 @@ export default {
             root.querySelectorAll('[data-camera]').forEach((b) => {
                 b.classList.toggle('is-active', Number(b.dataset.camera) === s.cameraScale);
             });
+            if (bgmSlider) { bgmSlider.value = s.bgmVolume; if (bgmValue) bgmValue.textContent = `${s.bgmVolume}%`; }
+            if (sfxSlider) { sfxSlider.value = s.sfxVolume; if (sfxValue) sfxValue.textContent = `${s.sfxVolume}%`; }
+            if (fullscreenBtn) {
+                fullscreenBtn.textContent = document.fullscreenElement ? t('fullscreen_exit') : t('fullscreen_enter');
+            }
         };
         if (settingsBtn && settingsPanel) {
+            const setPanelOpen = (open) => {
+                settingsPanel.style.display = open ? 'block' : 'none';
+                runtime.setSettingsPause(open);
+                if (open) refreshSettingsUI();
+            };
             settingsBtn.addEventListener('click', () => {
-                const open = settingsPanel.style.display !== 'none';
-                settingsPanel.style.display = open ? 'none' : 'block';
-                if (!open) refreshSettingsUI();
+                setPanelOpen(settingsPanel.style.display === 'none');
             });
             settingsPanel.addEventListener('click', (event) => {
                 const q = event.target.closest('[data-quality]');
@@ -271,6 +305,29 @@ export default {
                     refreshSettingsUI();
                 }
             });
+            bgmSlider?.addEventListener('input', () => {
+                runtime.setBgmVolume(Number(bgmSlider.value));
+                if (bgmValue) bgmValue.textContent = `${bgmSlider.value}%`;
+            });
+            sfxSlider?.addEventListener('input', () => {
+                runtime.setSfxVolume(Number(sfxSlider.value));
+                if (sfxValue) sfxValue.textContent = `${sfxSlider.value}%`;
+            });
+            if (fullscreenBtn) {
+                if (!document.documentElement.requestFullscreen) {
+                    fullscreenBtn.closest('.settings-group')?.style.setProperty('display', 'none');
+                } else {
+                    fullscreenBtn.addEventListener('click', async () => {
+                        try {
+                            if (document.fullscreenElement) await document.exitFullscreen();
+                            else await document.documentElement.requestFullscreen();
+                        } catch (e) {
+                            console.warn('Fullscreen toggle failed:', e);
+                        }
+                    });
+                    document.addEventListener('fullscreenchange', refreshSettingsUI);
+                }
+            }
         }
 
         const homeButton = root.querySelector('#btn-back-home-game');

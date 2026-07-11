@@ -164,7 +164,14 @@ const copy = {
         camera_near: 'Near',
         camera_standard: 'Standard',
         camera_far: 'Far',
-        settings_auto_note: 'Auto steps quality down when the frame rate dips and back up when it recovers.'
+        settings_auto_note: 'Auto steps quality down when the frame rate dips and back up when it recovers.',
+        settings_audio: 'Volume',
+        settings_bgm: 'Music',
+        settings_sfx: 'Effects',
+        settings_display: 'Display',
+        fullscreen_enter: 'Enter fullscreen',
+        fullscreen_exit: 'Exit fullscreen',
+        settings_paused_note: 'The game pauses while settings are open.'
     },
     hk: {
         home_eyebrow: 'EEG 專注力訓練',
@@ -329,7 +336,14 @@ const copy = {
         camera_near: '近',
         camera_standard: '標準',
         camera_far: '遠',
-        settings_auto_note: '自動模式：幀數跌會自動降畫質，回穩會慢慢升返。'
+        settings_auto_note: '自動模式：幀數跌會自動降畫質，回穩會慢慢升返。',
+        settings_audio: '音量',
+        settings_bgm: '背景音樂',
+        settings_sfx: '音效',
+        settings_display: '顯示',
+        fullscreen_enter: '進入全螢幕',
+        fullscreen_exit: '退出全螢幕',
+        settings_paused_note: '設定開啟時遊戲會暫停。'
     }
 };
 

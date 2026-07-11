@@ -9,7 +9,7 @@ import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { SMAAPass } from 'three/addons/postprocessing/SMAAPass.js';
 import { setState, getState } from '../../app/state.js';
-import { getCameraFocusScore, getCameraTrackingStatus, stopCameraPreview } from '../../services/focusInputService.js?v=2026-06-24-23';
+import { getCameraFocusScore, getCameraTrackingStatus, stopCameraPreview } from '../../services/focusInputService.js?v=2026-07-11-1';
 import { appendSessionSummary, getSessionHistory, getLocalVoyageLog, appendVoyageLog, getCumulativeCloudDistance } from '../../services/storageService.js';
 import { initVoyage, resetVoyage, updateVoyage, getVoyageStats, getBuoysInWindow, routeXAt, routeYawAt, CHECKPOINT_SPACING } from './voyage.js';
 
@@ -179,8 +179,56 @@ function setCameraDistanceScale(scale) {
     try { localStorage.setItem('camera_distance_scale', String(cameraDistanceScale)); } catch (e) { /* best-effort */ }
 }
 
+// --- Audio volumes (settings panel) ---
+// Percent sliders scale the ORIGINAL mix levels (BGM 0.3, answer sounds 0.8,
+// chime gain 0.1), so 100% sounds exactly as the game always did.
+let bgmVolumePct = 100;
+let sfxVolumePct = 100;
+try {
+    const b = Number(localStorage.getItem('bgm_volume_pct'));
+    if (Number.isFinite(b) && b >= 0 && b <= 100) bgmVolumePct = b;
+    const s = Number(localStorage.getItem('sfx_volume_pct'));
+    if (Number.isFinite(s) && s >= 0 && s <= 100) sfxVolumePct = s;
+} catch (e) { /* defaults stand */ }
+
+function applyAudioVolumes() {
+    if (typeof SOUNDS === 'undefined' || !SOUNDS) return;
+    if (SOUNDS.bgmOcean) SOUNDS.bgmOcean.volume = 0.5 * (bgmVolumePct / 100);
+    if (SOUNDS.bgmNature) SOUNDS.bgmNature.volume = 0.3 * (bgmVolumePct / 100);
+    if (SOUNDS.correct) SOUNDS.correct.volume = 0.8 * (sfxVolumePct / 100);
+    if (SOUNDS.wrong) SOUNDS.wrong.volume = 0.8 * (sfxVolumePct / 100);
+}
+
+function setBgmVolume(pct) {
+    bgmVolumePct = Math.max(0, Math.min(100, Number(pct) || 0));
+    try { localStorage.setItem('bgm_volume_pct', String(bgmVolumePct)); } catch (e) { /* best-effort */ }
+    applyAudioVolumes();
+}
+
+function setSfxVolume(pct) {
+    sfxVolumePct = Math.max(0, Math.min(100, Number(pct) || 0));
+    try { localStorage.setItem('sfx_volume_pct', String(sfxVolumePct)); } catch (e) { /* best-effort */ }
+    applyAudioVolumes();
+}
+
+// --- Settings pause ---
+// While the in-game settings panel is open, the session pauses through the
+// SAME shouldPause pipeline as questions/portrait/EEG-loss (timer freezes,
+// distance stops, breathing timers hold).
+let settingsPauseActive = false;
+
+function setSettingsPause(active) {
+    settingsPauseActive = !!active;
+}
+
 function getQualitySettings() {
-    return { mode: qualityMode, level: currentQualityLevel, cameraScale: cameraDistanceScale };
+    return {
+        mode: qualityMode,
+        level: currentQualityLevel,
+        cameraScale: cameraDistanceScale,
+        bgmVolume: bgmVolumePct,
+        sfxVolume: sfxVolumePct
+    };
 }
 
 // Module handle to the bloom pass so the game loop can escalate it during
@@ -611,6 +659,8 @@ if (SOUNDS.bgmOcean) SOUNDS.bgmOcean.volume = 0.5;
 SOUNDS.bgmNature.volume = 0.3;
 SOUNDS.correct.volume = 0.8;
 SOUNDS.wrong.volume = 0.8;
+// Re-apply the user's stored volume settings on top of the base mix.
+applyAudioVolumes();
 
 const TOTAL_QUESTIONS = 10;
 const INITIAL_AI_TIMEOUT_MS = 8000;
@@ -1934,6 +1984,9 @@ function updateGameLogic(delta) {
         shouldPause = true;
     }
     
+    // Condition 2b: in-game settings panel is open
+    if (settingsPauseActive) shouldPause = true;
+
     // Condition 3: EEG data missing in EEG mode
     if (selectedInputMode === 'eeg' && typeof eegModeActive !== 'undefined' && eegModeActive) {
         if (Date.now() - lastEEGDataTime > 2000) {
@@ -2771,6 +2824,7 @@ function initGameSession() {
     // to history / voyage yet. These flags drive the refresh-safe results path.
     liveSessionInMemory = true;
     sessionResultsCommitted = false;
+    settingsPauseActive = false;
     lastNewRecords = { isNewDist: false, isNewAcc: false, isNewTime: false };
     // Remember which mode is being played so the results page can pick the right
     // layout even after a refresh clears in-memory app state.
@@ -6444,12 +6498,13 @@ function initAudio() {
 
 function playTone(freq, type, duration) {
     if (!audioCtx) return;
+    if (sfxVolumePct <= 0) return; // muted
     if (audioCtx.state === 'suspended') audioCtx.resume();
     const osc = audioCtx.createOscillator();
     const gain = audioCtx.createGain();
     osc.type = type;
     osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
-    gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+    gain.gain.setValueAtTime(0.1 * (sfxVolumePct / 100), audioCtx.currentTime);
     gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
     osc.connect(gain);
     gain.connect(audioCtx.destination);
@@ -6807,6 +6862,9 @@ export {
     startGameSession,
     setQualityMode,
     setCameraDistanceScale,
+    setBgmVolume,
+    setSfxVolume,
+    setSettingsPause,
     getQualitySettings,
     switchLanguage,
     switchEnvironment,

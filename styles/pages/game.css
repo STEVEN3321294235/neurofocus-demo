@@ -42,6 +42,7 @@
 #score-display,
 #streak-display,
 #play-time-display,
+#game-settings-panel,
 #portrait-warning {
     pointer-events: auto;
 }
@@ -1859,4 +1860,34 @@ body.boost-celebrate #focus-indicator {
 
 html[data-platform='windows'] #game-settings-panel {
     backdrop-filter: none;
+}
+
+
+/* Settings panel volume sliders */
+#game-settings-panel .settings-slider-row {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    margin-bottom: 0.45rem;
+}
+
+#game-settings-panel .settings-slider-name {
+    min-width: 3.4rem;
+    font-size: 0.8rem;
+    color: #e2e8f0;
+}
+
+#game-settings-panel .settings-slider-value {
+    min-width: 2.8rem;
+    text-align: right;
+    font-size: 0.78rem;
+    color: #93c5fd;
+    font-variant-numeric: tabular-nums;
+}
+
+#game-settings-panel input[type="range"] {
+    flex: 1;
+    min-width: 0;
+    accent-color: #38bdf8;
+    cursor: pointer;
 }

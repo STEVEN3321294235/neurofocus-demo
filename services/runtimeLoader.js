@@ -1,7 +1,7 @@
 // The DeepSeek API key now lives ONLY on the server (Vercel env var
 // DEEPSEEK_API_KEY, used by /api/questions.js). It must never appear in any
 // client-side file again.
-const MODULE_VERSION = '2026-06-24-23';
+const MODULE_VERSION = '2026-07-11-1';
 
 
 // Clean up any key that older builds persisted into this browser's

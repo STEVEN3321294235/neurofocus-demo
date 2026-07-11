@@ -1,7 +1,7 @@
-import { t } from '../../app/i18n.js?v=2026-06-24-21';
+import { t } from '../../app/i18n.js?v=2026-07-11-1';
 import { getState, setState } from '../../app/state.js';
 import { login, register, logout } from '../../services/authService.js';
-import { syncRuntimeState } from '../../services/eegBridgeService.js?v=2026-06-24-21';
+import { syncRuntimeState } from '../../services/eegBridgeService.js?v=2026-07-11-1';
 
 function renderAuthForm(state) {
     const isLogin = state.authView !== 'register';

@@ -1,7 +1,7 @@
-import { t } from '../../app/i18n.js?v=2026-06-24-21';
+import { t } from '../../app/i18n.js?v=2026-07-11-1';
 import { getState, setState } from '../../app/state.js';
-import { activateEEGMode, activateSimulationMode, disposeMode, syncRuntimeState } from '../../services/eegBridgeService.js?v=2026-06-24-21';
-import { attachCameraPreview, detachCameraPreview, requestCameraPreview, stopCameraPreview } from '../../services/focusInputService.js?v=2026-06-24-23';
+import { activateEEGMode, activateSimulationMode, disposeMode, syncRuntimeState } from '../../services/eegBridgeService.js?v=2026-07-11-1';
+import { attachCameraPreview, detachCameraPreview, requestCameraPreview, stopCameraPreview } from '../../services/focusInputService.js?v=2026-07-11-1';
 
 function renderTestStep(state) {
     return `
