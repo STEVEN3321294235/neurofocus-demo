@@ -2895,7 +2895,20 @@ function initGameSession() {
         clearTimeout(startupTimeoutId);
         startupTimeoutId = null;
     }
-    
+
+    // Startup watchdog (2026-07-11): the variable existed but nothing ever
+    // ARMED it, so a stalled asset/API request or a silent boot exception left
+    // the loader up forever — the "cannot enter the game" hang. If the
+    // countdown hasn't begun within 25s, recover to setup with a clear message.
+    startupTimeoutId = setTimeout(() => {
+        startupTimeoutId = null;
+        if (sessionId !== activeGameSessionId) return;
+        handleStartupFailure(langText(
+            '載入超時（網絡或裝置較慢）。已帶你返回設定頁，請再試一次。',
+            'Loading timed out (slow network or device). Back to setup — please try again.'
+        ));
+    }, 25000);
+
     // Initial Hint Check
     updateSimulationHint();
 
@@ -2936,10 +2949,28 @@ function initGameSession() {
     document.getElementById('question-text').textContent = "";
     document.getElementById('question-options').innerHTML = "";
     
-    // Challenge mode waits for its first playable question batch; training mode starts immediately.
-    const initialQuestionPromise = shouldUseQuestionFlow()
-        ? fetchBatchQuestions(INITIAL_PLAYABLE_QUESTIONS, true)
-        : Promise.resolve();
+    // Challenge-mode question seeding (2026-07-11):
+    // - Real EEG sessions keep the short AI-first window (abortable fetch).
+    // - Simulation/camera sessions are the demo path and must NEVER wait on
+    //   the network: seed instantly from the bilingual local bank, then let
+    //   an AI top-up merge in quietly in the background.
+    // Training mode has no questions at all.
+    let initialQuestionPromise = Promise.resolve();
+    if (shouldUseQuestionFlow()) {
+        if (selectedInputMode === 'eeg') {
+            initialQuestionPromise = fetchBatchQuestions(INITIAL_PLAYABLE_QUESTIONS, true);
+        } else {
+            if (questionBank.length === 0) {
+                questionBank = getFallbackQuestions(INITIAL_PLAYABLE_QUESTIONS);
+                currentQuestionIndex = 0;
+            }
+            setTimeout(() => {
+                if (sessionId !== activeGameSessionId) return;
+                const needed = TOTAL_QUESTIONS - questionBank.length;
+                if (needed > 0) fetchBatchQuestions(needed, false).catch(() => {});
+            }, 4000);
+        }
+    }
 
     const coreAssetPromise = typeof assetsLoadedPromise !== 'undefined'
         ? assetsLoadedPromise
@@ -3315,7 +3346,7 @@ function startFocusSimulation() {
                     amplitude: THREE.MathUtils.randFloat(4.2, 7.2),
                     jitter: THREE.MathUtils.randFloat(1.4, 3.0),
                     duration: Math.round(THREE.MathUtils.randFloat(5, 11)),
-                    detail: langText('未授權相機，正以 20/80 fallback 模擬穩定專注片段。', 'Camera not allowed. Running the 20/80 fallback in a stable focus segment.')
+                    detail: langText('未授權相機，正用內置專注曲線模擬穩定專注片段。', 'Camera not allowed. Built-in focus profile: steady segment.')
                 };
             }
 
@@ -3324,7 +3355,7 @@ function startFocusSimulation() {
                 amplitude: THREE.MathUtils.randFloat(4.5, 8.0),
                 jitter: THREE.MathUtils.randFloat(2.4, 4.2),
                 duration: Math.round(THREE.MathUtils.randFloat(2, 4)),
-                detail: langText('未授權相機，正以 20/80 fallback 模擬短暫失焦片段。', 'Camera not allowed. Running the 20/80 fallback in a short distraction segment.')
+                detail: langText('未授權相機，正用內置專注曲線模擬短暫分心片段。', 'Camera not allowed. Built-in focus profile: brief distraction segment.')
             };
         };
 
@@ -4275,7 +4306,7 @@ async function fetchBatchQuestions(count = 10, isInitial = true) {
     isFetchingQuestion = true;
     lastFetchTime = Date.now();
 
-    updateLoadingStatus(I18N[CONFIG.currentLang].loading_ai_connect);
+    if (isInitial) updateLoadingStatus(I18N[CONFIG.currentLang].loading_ai_connect);
 
     try {
         console.info('[AI] Starting question fetch via proxy', {
@@ -4308,7 +4339,7 @@ async function fetchBatchQuestions(count = 10, isInitial = true) {
             throw new Error(`API Error ${response.status}: ${errText}`);
         }
 
-        updateLoadingStatus(I18N[CONFIG.currentLang].loading_ai_parse);
+        if (isInitial) updateLoadingStatus(I18N[CONFIG.currentLang].loading_ai_parse);
         const data = await response.json();
         if (!data || data.ok === false) {
             throw new Error(data && data.reason ? `Proxy error: ${data.reason}` : "Proxy returned no questions");
@@ -4350,7 +4381,7 @@ async function fetchBatchQuestions(count = 10, isInitial = true) {
             }
         }
         
-        updateLoadingStatus(I18N[CONFIG.currentLang].loading_ai_ready);
+        if (isInitial) updateLoadingStatus(I18N[CONFIG.currentLang].loading_ai_ready);
         return { ok: true, source: 'ai', count: newQuestions.length };
 
     } catch (error) {
@@ -5906,7 +5937,7 @@ function updateModeStatusUI() {
         titleEl.textContent = I18N[CONFIG.currentLang].mode_simulation_title;
         detailEl.textContent = CONFIG.focusSource === 'camera-ready'
             ? langText('相機鏡頭已準備，正在實時觀察你的專注狀態。', 'Camera is ready and actively monitoring your focus state.')
-            : langText('未授權相機，正使用 20/80 fallback 模擬專注片段。', 'Camera not allowed. Using 20/80 fallback focus segments.');
+            : langText('未授權相機，正使用內置專注曲線。', 'Camera not allowed. Using the built-in focus profile.');
         return;
     }
 
@@ -6442,7 +6473,7 @@ function animate() {
             'simulation',
             CONFIG.focusSource === 'camera-ready'
                 ? langText('相機鏡頭已準備。遊戲正透過相機觀察你的專注度。', 'Camera is ready. The game is monitoring your focus via camera.')
-                : langText('未授權相機。Simulation mode 正使用 20/80 fallback 專注片段。', 'Camera not allowed. Simulation mode is using the 20/80 fallback focus segments.')
+                : langText('未授權相機，模擬模式正使用內置專注曲線。', 'Camera not allowed. Simulation is using the built-in focus profile.')
         );
         updateConnectBtn("Simulation Mode", false, true);
         startFocusSimulation();
@@ -6456,7 +6487,7 @@ function animate() {
             if (selectedInputMode === 'simulation') {
                 hintEl.textContent = CONFIG.focusSource === 'camera-ready'
                     ? langText('Camera active · tracking focus', 'Camera active · tracking focus')
-                    : langText('20/80 fallback simulation', '20/80 fallback simulation');
+                    : langText('內置專注曲線模擬', 'Built-in focus profile');
                 hintEl.style.display = 'block';
                 hintEl.style.color = '#fde047';
                 hintEl.classList.add('simulation');
