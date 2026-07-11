@@ -1,4 +1,4 @@
-# NeuroFocus IEYI 計劃 V2（2026-07-06 更新・唯一有效版本）
+# NeuroFocus IEYI 計劃 V2（2026-07-11 更新・唯一有效版本）
 
 > **全 repo 得呢一份 plan。** 展覽 / 答辯嘅參考大全喺另一份 [`docs/EXHIBITION_HANDBOOK.md`](./EXHIBITION_HANDBOOK.md)。
 >
@@ -8,10 +8,10 @@
 > **剩低嘅工作分兩階段：**
 > - **【階段一 · 重新設計】** D2 Gameplay ✅ **已完成（2026-07-07）** → D1 Results Dashboard ✅ **已完成（2026-07-10，v0 設計稿 → Claude 實作，Training / Challenge 兩版 + 深淺色，詳見 §5）**
 > - **【階段二 · 收尾打磨】**（2026-07-10 晚 更新）
->   - **P1 動態畫質 ✅ 完成**：FPS 驅動嘅四級自動降質階梯（L0-L3，跌 45fps 3 秒降級、穩 55fps 10 秒升返，最快 3 秒一步、只喺 frame boundary 切）＋ **遊戲內設定面板**（⚙ 掣：畫質可鎖定任何一級或交返自動；鏡頭距離 近/標準/遠），設定存 localStorage。DEMO_MODE 嘅 FPS meter 會顯示現行等級（如「58 FPS · L1 A」）。
+>   - **P1 動態畫質 ✅ 完成（07-11 擴充版）**：FPS 驅動四級自動階梯（L0-L3）＋遊戲內設定面板——畫質鎖定/自動、鏡頭距離、**BGM/音效音量**、**全螢幕**；開面板＝暫停（正規 pause 管線）。設定全部存 localStorage。
 >   - **P2 加靚 ✅ Claude 部分完成**：頁面過渡 CSS（全站入場 rise-and-fade，遊戲頁除外）已加，連同早前 loading 現代化、提示重排、水痕/浮標/海鷗/船身物理打磨——**Claude scope 收貨**。剩餘（可選、TRAE/Steven 睇住 browser 做）：in-game sun glint / flow 一刻 bloom 脈衝、Home hover 微互動加碼。
 >   - **U1 文案 🟡 主體完成**：全站 sweep 完成。「聯絡我們」**Steven 決定暫時唔做**。**簡體中文：建議賽前唔加**（理據見對話記錄：現有雙語架構係兩語設計，加第三語要掃幾百個字串位；而且而家嘅中文係粵語口語，正式簡中要重寫做書面語先似樣——賽後如要進軍內地市場再做）。剩：隱私政策頁、Steven 逐句 review。
->   - **E1 EEG 韌性 🟡 部分完成**：橋接協議（ThinkGear 同步/checksum/eSense/信號質素映射）已核實正確；serial 斷線自動重掃本身已有；瀏覽器重連改**指數退避＋永不放棄**。**Mac 支援已確認**（bridge 內建 /dev/cu.* 掃描＋權限處理），新增 `start_demo_mac.command` 一鍵啟動。剩（一定要真頭帶先做）：斷線中「凍結 10 秒→順滑轉 fallback」＋ Results 誠實標注斷線時長——**等 T2 筆記**。
+>   - **E1 EEG 韌性 🟡 部分完成**：橋接協議（ThinkGear 同步/checksum/eSense/信號質素映射）已核實正確；serial 斷線自動重掃本身已有；瀏覽器重連改**指數退避＋永不放棄**。**Mac 結論（07-11 修訂）：淨做網站/備援機**——MindWave Mobile 2 喺近年 macOS 實測攞唔到數據，EEG demo 一律 Windows（`start_demo_mac.command` 留做起本地站用）。**⚠️ T2 blocker：Steven 手頭暫時冇 EEG 裝置同 Windows 機**——要盡早問學校/隊友借定，rehearsal 唔可以拖到比賽日先做。剩（要真頭帶）：斷線「凍結→順滑轉 fallback」＋ Results 標注斷線時長。
 >   - **F1 審計 ✅ 報告已出**：見 [`docs/F1_AUDIT.md`](./F1_AUDIT.md)（已修/要 Steven 決定/可接受三類；secrets 掃描乾淨；RLS 核實 SQL 已附；DEMO_MODE 比賽日決定清單）。死 code 清理刻意留到賽後。
 >
 > **2026-07-10 額外修正（喺 main）**：① Homepage footer 死連結（隱私政策/服務條款/技術支援/聯絡我們，全部 `href="#"`）已移除，留返有真內容嘅版本俾 U1 做。② **Results 頁 refresh 唔再歸零**——一局完會存快照落 localStorage，refresh 後由快照還原真數據（附「一個 session 只計一次」保護，唔會重複入歷史/航海日誌）。
@@ -23,6 +23,12 @@
 > ⑥ 遊戲內所有彈出提示（星星/航標/開場提示/加速/呼吸前置提示）搬去**螢幕底部**堆疊，唔再遮視線中央；呼吸引導 overlay 不變。
 > ⑦ 入場穿崩修復（loader 同步不透明覆蓋 + 頁面初始隱藏態）＋ Loading 頁現代化（小艇+波浪+品牌+進度 shimmer）。
 > ⑧ 文案 sweep（U1 主體）：詳見 §U1 狀態。
+>
+> **2026-07-11 第三輪（設定面板完成版 + IEYI 攤位計劃）**：
+> ⑨ **遊戲設定面板修好＋擴充**：根因係面板唔喺 pointer-events 白名單（撳親都穿透落個海）——已修；加**音量滑桿（背景音樂/音效分開）**、**全螢幕切換**；**開設定＝經正規 pause 管線暫停**（計時/距離/呼吸全部凍結）。
+> ⑩ **模組版本號全域 bump（06-24 → 07-11-1）**：六月起冇 bump 過，用戶瀏覽器食舊 cache 係「設定/AI 題目唔跟語言」嘅最可能根因（code 層面已核實：本地題庫雙語齊、Stroop 跟語言、/api/questions 有收 lang 並寫入 prompt）。以後**每次 push 前記得 bump `services/runtimeLoader.js` 嘅 MODULE_VERSION + 全檔 sed**。
+> ⑪ **Mac 結論修訂**：MindWave Mobile 2（藍牙 Classic SPP）喺近年 macOS 實測攞唔到數據（Steven 經驗一致、NeuroSky 停更 macOS 支援）——**EEG demo 一律 Windows；Mac 做網站/備援機**。
+> ⑫ **IEYI 官方攤位 PDF 已摘錄入手冊 Part 11**：07-28 11:00 setup、評審 28 下晝→29 中午、**攤位冇電源**（電量策略）、A0 海報必須（內容計劃已寫）、裝置清單已按官方 checklist 補齊。
 
 ---
 
@@ -47,7 +53,7 @@
 
 ---
 
-## 1. 現狀 snapshot（截至 2026-07-06）
+## 1. 現狀 snapshot（截至 2026-07-11）
 
 | 已完成 | 證據 |
 |--------|------|
@@ -65,6 +71,10 @@
 | **D1 Results Dashboard 重新設計**（v0 → vanilla 實作，兩模式 + 深淺色） | commit `2419836c`（2026-07-10） |
 | Results refresh 唔再歸零（localStorage 快照還原 + 一 session 只計一次） | commit `75591fcb`（2026-07-10） |
 | Homepage footer 死連結移除（留返俾 U1 做真內容版） | commit `696b3203`（2026-07-10） |
+| Results 驗收回饋輪＋3D 打磨＋提示落底＋Loading 重造＋文案 sweep | 2026-07-10 批次（overview ③—⑧） |
+| P1 動態畫質＋遊戲設定面板（畫質/鏡頭/音量/全螢幕/暫停） | 2026-07-10/11（overview P1 + ⑨） |
+| F1 審計報告 | `docs/F1_AUDIT.md`（2026-07-10） |
+| 模組版本號 bump 制度化（cache 剋星） | 2026-07-11（overview ⑩） |
 
 **未做 / 待做**：見 §5 —— 階段二（P1 P2 U1 E1 F1）、人手任務（EEG rehearsal、Vercel 驗證、換 key）。
 
@@ -368,18 +378,21 @@ Constraints: 只改明確安全嘅嘢（刪死 code、修錯處理）；有風�
 
 ---
 
-## 6. 時間表（到 7 月尾）
+## 6. 時間表（2026-07-11 重排；比賽日程已由官方 PDF 確認：**07-28 setup、評審 07-28 下晝 → 07-29 中午**）
+
+> Code 進度大幅超前原計劃（D1/P1/P2/F1 已完成、U1/E1 大部分完成）。剩低嘅關鍵路徑幾乎全部係**人手＋硬件**。
 
 | 時段 | 做乜 |
 |------|------|
-| **07-06 → 07-07** | ✅ D2 全部完成（12 步 + Steven 修訂輪）。並行：T2 rehearsal 開跑、Vercel/DeepSeek 驗證。 |
-| **07-08 → 07-13** | Steven 本機驗收 D2 → Stitch 出 D1 設計稿（Training / Challenge 兩版）→ D1 實作（數據綁定、雙語、響應式）。 |
-| **07-17 → 07-19** | P1 動態畫質。 |
-| **07-20 → 07-23** | P2 Web 加靚（TRAE 主力；如 FPS 容許先考慮精選細模型替換島/燈塔）。 |
-| **07-24 → 07-27** | U1 文案 + Footer（你逐句 review）→ E1 EEG 韌性（用 T2 筆記）。 |
-| **07-28 → 07-31** | F1 審計 → code freeze。完整 rehearsal ×2、跨裝置 QA、故障演練（EEG 斷→Simulation、無網→local fallback）。唔加新功能。 |
+| ✅ 已完成（07-06 → 07-11） | D2、D1、P1（連設定面板）、P2 Claude scope、U1 主體、E1 邏輯層、F1 報告——全部喺 main |
+| **07-12 → 07-15** | 🔴 **借定 Windows 機＋攞返 EEG 裝置**（而家手頭兩樣都冇，係最大 blocker）；Steven 本機驗收 07-10/11 兩批改動；Vercel/DeepSeek 四步驗證；Supabase RLS 用 F1 條 SQL 核實 |
+| **07-16 → 07-20** | **T2 實機 rehearsal ×5**（Windows＋MindWave，記斷線筆記）→ 筆記交 Claude 做 E1 收尾（斷線凍結→fallback＋Results 標注）；同步整 **A0 海報**（內容計劃見手冊 Part 11）＋ A4 傳單 |
+| **07-21 → 07-24** | U1 收尾：隱私政策頁＋Steven 逐句 review 全站文案；（可選）P2 加碼位；海報送印 |
+| **07-25 → 07-27** | **Code freeze（07-25）**——之後唔加新功能。完整 rehearsal ×2、跨裝置 QA、故障演練（EEG 斷→Simulation、無網→本地 fallback）、DEMO_MODE 開關拍板、所有裝置電量策略準備（攤位冇電源！見手冊 Part 11） |
+| **07-27 晚** | 裝置全部叉滿、AAA 電池換新、海報＋物資裝箱（清單：手冊 Part 11） |
+| **07-28 → 07-29** | 🏁 比賽：11:00 setup → 評審期輪更留守＋輪流去維修區充電 |
 
-**時間唔夠就保呢啲**：T2（現場風險）+ D2-1～6（核心循環+畫質）+ P1（流暢度）+ E1（EEG 韌性）。D2-9～10、P2 加靚同 F1 可以壓縮。
+**時間唔夠就保呢啲**：T2 rehearsal（現場風險最大）＋ E1 收尾（要 T2 筆記）＋ A0 海報（官方必須）。隱私政策頁同 P2 加碼位可以犧牲。
 
 ---
 
