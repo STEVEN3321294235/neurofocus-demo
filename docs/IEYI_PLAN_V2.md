@@ -7,7 +7,12 @@
 >
 > **剩低嘅工作分兩階段：**
 > - **【階段一 · 重新設計】** D2 Gameplay ✅ **已完成（2026-07-07）** → D1 Results Dashboard ✅ **已完成（2026-07-10，v0 設計稿 → Claude 實作，Training / Challenge 兩版 + 深淺色，詳見 §5）**
-> - **【階段二 · 收尾打磨】**（2026-07-10 進度）P1 動態畫質 ⬜ 未開始（**建議下一件事**） → P2 加靚 🟡 **已完成一半**（loading 現代化、提示重排、水痕/浮標/海鷗/船身物理打磨；剩 in-game sun glint/flow 一刻 + Home/Setup 過場動畫） → U1 文案 🟡 **主體完成**（全站 sweep + footer 死鏈清；剩隱私政策頁、聯絡 mailto、Steven 逐句 review） → E1 EEG 韌性 ⬜（等 T2 實測筆記） → F1 審計 ⬜
+> - **【階段二 · 收尾打磨】**（2026-07-10 晚 更新）
+>   - **P1 動態畫質 ✅ 完成**：FPS 驅動嘅四級自動降質階梯（L0-L3，跌 45fps 3 秒降級、穩 55fps 10 秒升返，最快 3 秒一步、只喺 frame boundary 切）＋ **遊戲內設定面板**（⚙ 掣：畫質可鎖定任何一級或交返自動；鏡頭距離 近/標準/遠），設定存 localStorage。DEMO_MODE 嘅 FPS meter 會顯示現行等級（如「58 FPS · L1 A」）。
+>   - **P2 加靚 ✅ Claude 部分完成**：頁面過渡 CSS（全站入場 rise-and-fade，遊戲頁除外）已加，連同早前 loading 現代化、提示重排、水痕/浮標/海鷗/船身物理打磨——**Claude scope 收貨**。剩餘（可選、TRAE/Steven 睇住 browser 做）：in-game sun glint / flow 一刻 bloom 脈衝、Home hover 微互動加碼。
+>   - **U1 文案 🟡 主體完成**：全站 sweep 完成。「聯絡我們」**Steven 決定暫時唔做**。**簡體中文：建議賽前唔加**（理據見對話記錄：現有雙語架構係兩語設計，加第三語要掃幾百個字串位；而且而家嘅中文係粵語口語，正式簡中要重寫做書面語先似樣——賽後如要進軍內地市場再做）。剩：隱私政策頁、Steven 逐句 review。
+>   - **E1 EEG 韌性 🟡 部分完成**：橋接協議（ThinkGear 同步/checksum/eSense/信號質素映射）已核實正確；serial 斷線自動重掃本身已有；瀏覽器重連改**指數退避＋永不放棄**。**Mac 支援已確認**（bridge 內建 /dev/cu.* 掃描＋權限處理），新增 `start_demo_mac.command` 一鍵啟動。剩（一定要真頭帶先做）：斷線中「凍結 10 秒→順滑轉 fallback」＋ Results 誠實標注斷線時長——**等 T2 筆記**。
+>   - **F1 審計 ✅ 報告已出**：見 [`docs/F1_AUDIT.md`](./F1_AUDIT.md)（已修/要 Steven 決定/可接受三類；secrets 掃描乾淨；RLS 核實 SQL 已附；DEMO_MODE 比賽日決定清單）。死 code 清理刻意留到賽後。
 >
 > **2026-07-10 額外修正（喺 main）**：① Homepage footer 死連結（隱私政策/服務條款/技術支援/聯絡我們，全部 `href="#"`）已移除，留返有真內容嘅版本俾 U1 做。② **Results 頁 refresh 唔再歸零**——一局完會存快照落 localStorage，refresh 後由快照還原真數據（附「一個 session 只計一次」保護，唔會重複入歷史/航海日誌）。
 >
@@ -218,7 +223,7 @@ curl -s -X POST "https://<你嘅-app>.vercel.app/api/questions" \
 
 ### 🛠️ 階段二 — 收尾打磨
 
-#### P1 — 動態畫質 scaling（流暢度安全網，要最先做）
+#### P1 — 動態畫質 scaling ✅ 完成（2026-07-10；四級自動階梯 + 遊戲內設定面板〔畫質鎖定/自動 + 鏡頭距離〕；驗收方法照下面原文）
 
 ```
 Context: NeuroFocus, no-build vanilla-JS + Three.js. Run `node server.js`,
@@ -246,7 +251,7 @@ test by forcing a huge pixel ratio via devtools and watching it step down then r
 ```
 **驗收**：開 FPS meter 睇個 L 字——人為加負荷 → 幾秒內逐級落、FPS 回穩；移走負荷 → 慢慢升返 L0；肉眼冇跳格。Windows 機實測前後 FPS。
 
-#### P2 — Web 加靚 / 現代化 / CSS 動畫 redesign 🟡 已完成一半（2026-07-10）
+#### P2 — Web 加靚 / 現代化 / CSS 動畫 redesign ✅ Claude 部分完成（2026-07-10；頁面過渡 CSS 已加，餘項可選）
 
 > **已做**（Claude，隨 Steven 回饋批次完成）：Loading 頁現代化＋入場穿崩修復；遊戲提示搬底部；船尾水痕重造＋航道虛線調透明；船身跳動修復＋物理調柔；浮標/海鷗精緻化；Results 頁已係全新 v0 設計。
 > **剩低**（跟返原 prompt）：in-game 水面 sun glint / flow-state 一刻（bloom+曝光脈衝）；Home / Setup 嘅 CSS 過場動畫同 hover 微互動打磨（呢部分先係「TRAE 睇住 browser 調」嘅主場）。
@@ -305,7 +310,7 @@ Verification: 逐頁撳晒 footer 每個 link；切語言逐頁重讀所有改�
 ```
 **驗收**：你（Steven）逐句過中英文先准 push——尤其 Home 裝置講法、Footer 每個按鈕、隱私政策內容；Claude 核對雙語 key 有齊 + 冇死 link。
 
-#### E1 — EEG 韌性 + 作用（要先做完 T2 rehearsal，有真實斷線筆記先入 prompt；Claude 寫、真頭帶測）
+#### E1 — EEG 韌性 🟡 部分完成（重連指數退避＋永不放棄已入；協議已核實；Mac launcher 已加。凍結→fallback＋Results 斷線標注等 T2 真頭帶筆記先做）
 
 ```
 Context: same project. EEG path: NeuroSky MindWave -> eeg_bridge.py (local WebSocket)
@@ -328,7 +333,7 @@ as before; test by killing/restarting eeg_bridge.py mid-session with the game ru
 ```
 **驗收**：遊戲中途 kill bridge → 船唔跳崖、chip 顯示 reconnecting、10 秒後順滑轉 fallback；重啟 bridge → 自動接返、速度冇突變；Results 誠實標注斷咗幾耐。**呢個一定要用真頭帶再實測一次。**
 
-#### F1 — 審計：過期檔案 / 漏洞 / 風險（最後掃底；Claude 做）
+#### F1 — 審計 ✅ 報告已出（2026-07-10，見 docs/F1_AUDIT.md；死 code 清理留賽後）
 
 ```
 Context: same project, everything on main. Before code freeze, do a full audit and

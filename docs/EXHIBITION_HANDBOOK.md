@@ -169,6 +169,8 @@ graph TD
 
 **1b. 入場零穿崩 + 現代 Loading（2026-07-10）**：入 game 一刻 loader 會**同步不透明覆蓋**（頁面初始已帶隱藏態），唔會再見到一兩幀原始 HUD/背景；Loading 頁重新設計（小艇浮喺波浪線 + 品牌字 + 進度 shimmer，純 transform/背景動畫，弱機都平）。
 
+**1b2. 遊戲內設定面板（2026-07-10 P1）**：右上 ⚙ 掣開設定——畫質（自動 / 高L0 / 中L1 / 低L2 / 最低L3）＋鏡頭距離（近/標準/遠），設定會記住。自動模式下 FPS 跌會自動降級、回穩升返；DEMO_MODE 嘅 FPS meter 顯示現行等級（評判想睇技術深度可以指住佢講）。
+
 **1c. 遊戲提示一律喺螢幕底（2026-07-10）**：摘星/航標/開場提示/加速/呼吸前置提示全部改為由**底部中央**升起（分四層堆疊唔會互疊），唔遮玩家視線中央；呼吸引導 overlay 維持原樣。
 
 **2. 固定寬度數字 HUD**：`updateDigitDisplay` 把每個數字放入固定闊度 `.digit-box`（`tabular-nums`），令 speed 由「1.1」跳到「10.0」時 **HUD 唔會抖動**。
@@ -292,6 +294,8 @@ Windows laptop 做現場 demo 機：本地 Python EEG bridge + 本地站 `http:/
 
 ### 一次性準備
 1. 裝 Python 3　2. 裝 Node.js　3. Windows 藍牙配對 `MindWave Mobile 2`　4. 雙擊 `install_eeg_bridge_windows.bat`。
+
+> **Mac 都用得（2026-07-10 確認）**：bridge 內建 macOS 序列埠掃描（/dev/cu.* → 優先 /dev/tty.*）＋權限錯誤提示。步驟：裝 Python3/Node → `pip3 install -r requirements-eeg-bridge.txt` → 藍牙配對 MindWave → **雙擊 `start_demo_mac.command`**（第一次要右掣→打開）。如序列埠被拒，去 系統設定→私隱與安全性→藍牙 授權 Terminal。
 
 ### 開場步驟
 1. 插電　2. Windows 電源模式設 `Best performance`　3. 開瀏覽器硬件加速　4. 關 Teams / OneDrive 同步 / Discord / 多餘分頁　5. 開頭帶　6. 雙擊 `start_2a_demo_windows.bat`　7. 等兩個視窗（EEG Bridge + Local Site）　8. 瀏覽器開 `http://localhost:8000/#home`　9. Setup 測 `EEG Device`，唔得就即切 `Simulation`。
