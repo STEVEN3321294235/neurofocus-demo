@@ -192,3 +192,21 @@ ul {
         flex-direction: column;
     }
 }
+
+/* --- Page-enter transition (P2) ---
+   Every routed page mounts with one soft rise-and-fade. The game page is
+   excluded: it choreographs its own presentation states (hidden → countdown
+   → live) and must never double-animate. Transform/opacity only, so it is
+   cheap even on the Windows demo machine. */
+@keyframes page-enter {
+    from { opacity: 0; transform: translateY(14px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.page:not(.page-game) {
+    animation: page-enter 0.38s cubic-bezier(0.22, 0.8, 0.3, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .page:not(.page-game) { animation: none; }
+}
