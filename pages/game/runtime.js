@@ -3065,6 +3065,14 @@ function initGameSession() {
         requestAnimationFrame(() => {
             requestAnimationFrame(() => {
                 hideTransitionLoader();
+                // Boot has succeeded: disarm the startup watchdog NOW. Leaving
+                // it to the countdown-completion callback (~4s later) creates a
+                // race where a slow ~25s boot gets yanked back to setup
+                // mid-countdown by its own watchdog.
+                if (startupTimeoutId) {
+                    clearTimeout(startupTimeoutId);
+                    startupTimeoutId = null;
+                }
                 setGamePresentationState('countdown');
 
                 startCountdown(() => {
