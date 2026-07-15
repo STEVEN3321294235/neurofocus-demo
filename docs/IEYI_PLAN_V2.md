@@ -1,11 +1,12 @@
-# NeuroFocus IEYI 計劃 V2（2026-07-11 更新・唯一有效版本）
+# NeuroFocus IEYI 計劃 V2（2026-07-15 更新・唯一有效版本）
 
 > **全 repo 得呢一份 plan。** 展覽 / 答辯嘅參考大全喺另一份 [`docs/EXHIBITION_HANDBOOK.md`](./EXHIBITION_HANDBOOK.md)。
 >
 > **一句總覽**：後端 / 登入 / key 安全 / 證據鏈 / EEG 放大 / UI reskin / 書房移除 / repo 清潔 / 文件整合 —— 全部已完成並喺 `main`。
 > Repo 而家**只有一條 `main` branch**，Claude 同 TRAE 都直接喺 `main` 做嘢。
 >
-> **剩低嘅工作分兩階段：**
+> **剩低嘅工作分三條線：**
+> - **【新立項 · D3 學習模式】（2026-07-15，最高優先 code 任務）**：負責老師要求做「紙本 vs 平台」對照實驗 → 新增第三個 Session 目標「學習模式」（閱讀＋測驗＋兩階段數據＋CSV 匯出），訓練/挑戰模式一行 code 都唔郁。詳見 §5 D3。**賽前要完成埋 2–3 個學生嘅 pilot 實驗**，所以時間表以佢做骨幹重排（見 §6）。
 > - **【階段一 · 重新設計】** D2 Gameplay ✅ **已完成（2026-07-07）** → D1 Results Dashboard ✅ **已完成（2026-07-10，v0 設計稿 → Claude 實作，Training / Challenge 兩版 + 深淺色，詳見 §5）**
 > - **【階段二 · 收尾打磨】**（2026-07-10 晚 更新）
 >   - **P1 動態畫質 ✅ 完成（07-11 擴充版）**：FPS 驅動四級自動階梯（L0-L3）＋遊戲內設定面板——畫質鎖定/自動、鏡頭距離、**BGM/音效音量**、**全螢幕**；開面板＝暫停（正規 pause 管線）。設定全部存 localStorage。
@@ -29,6 +30,14 @@
 > ⑩ **模組版本號全域 bump（06-24 → 07-11-1）**：六月起冇 bump 過，用戶瀏覽器食舊 cache 係「設定/AI 題目唔跟語言」嘅最可能根因（code 層面已核實：本地題庫雙語齊、Stroop 跟語言、/api/questions 有收 lang 並寫入 prompt）。以後**每次 push 前記得 bump `services/runtimeLoader.js` 嘅 MODULE_VERSION + 全檔 sed**。
 > ⑪ **Mac 結論修訂**：MindWave Mobile 2（藍牙 Classic SPP）喺近年 macOS 實測攞唔到數據（Steven 經驗一致、NeuroSky 停更 macOS 支援）——**EEG demo 一律 Windows；Mac 做網站/備援機**。
 > ⑫ **IEYI 官方攤位 PDF 已摘錄入手冊 Part 11**：07-28 11:00 setup、評審 28 下晝→29 中午、**攤位冇電源**（電量策略）、A0 海報必須（內容計劃已寫）、裝置清單已按官方 checklist 補齊。
+>
+> **2026-07-11 深夜 第四輪（「無法進入遊戲」修復，Steven 截圖回報）**：
+> ⑬ **啟動看門狗真正接上**：舊 code 宣告咗個 startup timeout 但從來冇 arm——任何一個載入請求 hang 死（網絡慢/CDN 卡住）就會**無限 Loading**。而家入場 25 秒未 boot 完 → 自動收隊、彈雙語提示、帶返 Setup 頁再試；boot 成功一刻即解除（唔會誤殺慢機開場倒數）。
+> ⑭ **Simulation／相機模式唔再等 AI 題**：載入唔再有「準備題庫」呢步——本地題庫**即秒**入場，AI 題 4 秒後靜靜哋喺背景補上（夠題就自動換用）；EEG 模式先保留「AI 優先、8 秒可中斷」嘅等待。效果：模擬模式由「等 AI 慢就卡」變成幾秒內必入場。
+>
+> **2026-07-12 → 07-15 第五輪（老師實驗 → D3 學習模式立項）**：
+> ⑮ 負責老師開會要求做**對照實驗**（紙本讀 vs 平台讀，同卷測驗，比較成績＋介入後恢復時間）→ 定案做**第三個 Session 目標「學習模式」**（詳見 §5 D3）：閱讀器（每頁 3 分鐘上限、可提早跳下一節）、海景無船背景、溫習/答題兩階段數據斬開、CSV 匯出、編號式學生 ID（S01/S02/S03）。**實驗計分用 AI 預先生成＋老師審核＋鎖死嘅固定卷**（AI 每次生成必然唔同，唔鎖卷實驗就唔公平）。
+> ⑯ 手冊 Box Breathing 描述修正（Steven 直接喺 GitHub 改）：呼吸引導係一輪 4-4-4（12 秒），舊文案寫「兩輪」唔啱——已對返 code 核實（`interventionDurationMs: 12000`）。
 
 ---
 
@@ -53,7 +62,7 @@
 
 ---
 
-## 1. 現狀 snapshot（截至 2026-07-11）
+## 1. 現狀 snapshot（截至 2026-07-15）
 
 | 已完成 | 證據 |
 |--------|------|
@@ -75,8 +84,11 @@
 | P1 動態畫質＋遊戲設定面板（畫質/鏡頭/音量/全螢幕/暫停） | 2026-07-10/11（overview P1 + ⑨） |
 | F1 審計報告 | `docs/F1_AUDIT.md`（2026-07-10） |
 | 模組版本號 bump 制度化（cache 剋星） | 2026-07-11（overview ⑩） |
+| 「無法進入遊戲」修復：25s 啟動看門狗＋boot 成功即解除 | commits `bae88fe2`+`e270e3d1`（2026-07-11） |
+| Simulation/相機載入唔等 AI 題（本地題庫即秒入場、AI 背景補充） | commit `bae88fe2`（2026-07-11） |
+| D3 學習模式立項（老師對照實驗 → 第三 Session 目標；未動工） | commit `741de330`（2026-07-15） |
 
-**未做 / 待做**：見 §5 —— 階段二（P1 P2 U1 E1 F1）、人手任務（EEG rehearsal、Vercel 驗證、換 key）。
+**未做 / 待做**：見 §5 —— **D3 學習模式（D3-1 → D3-6，未動工）**、階段二收尾（U1 隱私政策頁＋逐句 review、E1 要真頭帶嗰部分）、人手任務（🔴 借 Windows 機＋EEG 裝置、T2 rehearsal、Vercel 驗證、RLS 核實、A0 海報）。
 
 > 註：`pages/game/focusGates.js` 已於 2026-07-06（D2-0）**移除**——佢嘅「離散事件」角色由 D2 新設計嘅「心流充能摘星」取代（見 §5）。
 
@@ -98,7 +110,8 @@ git push origin main
 
 - Vercel 見到 `main` 有新 commit 會自動 deploy（去 Vercel dashboard → Deployments 睇轉綠）。
 - **確認同步**：`git fetch` 之後比較 `git log -1 --oneline` 同 `git log -1 --oneline origin/main`，兩個 hash 一樣 = 同步。
-- 🔴 **鐵律**：同一時間**只可以一邊**（Claude 或 TRAE）改嘢，尤其係 `pages/game/runtime.js`（5000+ 行大檔）。兩邊同時改必撞、必亂。
+- 🔴 **鐵律**：同一時間**只可以一邊**（Claude 或 TRAE）改嘢，尤其係 `pages/game/runtime.js`（接近 7000 行大檔）。兩邊同時改必撞、必亂。
+- 🔴 **第二鐵律（2026-07-11 起）**：**每次 push 前 bump 模組版本號**——`services/runtimeLoader.js` 嘅 `MODULE_VERSION` 改成當日日期（例：`2026-07-15-1`），再全檔 sed 換埋各檔案 hardcode 嘅 `?v=` 查詢字串。唔 bump = 用戶食舊 cache，會出「改咗但睇唔到」嘅怪 bug（07-11 「語言唔跟」件事就係咁）。
 
 ---
 
@@ -214,7 +227,7 @@ curl -s -X POST "https://<你嘅-app>.vercel.app/api/questions" \
 > **Steven 人手驗收指引**（本機）：`git pull origin main` → `node server.js` → Simulation 訓練模式玩一場（睇：航道彎位、能量環摘星、分心起霧+漂航、呼吸撥霧、經過航標、右下海圖、FPS meter 企穩）；再玩一場挑戰模式（題目照舊、無星環、左下精簡卡）。EEG 黃金時刻要頭帶或者 console 打 `EEG_APP.debug.setGolden(true)`。
 > **DEMO_MODE debug 掣**（俾攤位/測試用，console）：`EEG_APP.debug.earnStar() / setGloom(0-1或null) / triggerBreathing() / setGolden(true/false/null) / teleport(米數)`。
 
-#### D3 — 學習模式 Study Mode（2026-07-11 立項；老師實驗需求 → 第三個 Session 目標）
+#### D3 — 學習模式 Study Mode（2026-07-15 立項；老師實驗需求 → 第三個 Session 目標；⏳ 未動工＝而家最高優先 code 任務）
 
 > **背景**：負責老師要求做對照實驗證明平台有效（手稿已文字化如下）。呢個模式係**新增第三選項**，訓練/挑戰模式一行 code 都唔郁（比賽 demo 保命符）。
 
@@ -404,6 +417,8 @@ Constraints: 只改明確安全嘅嘢（刪死 code、修錯處理）；有風�
 
 ### 👤 人手任務（非 code，同 code 並行做）
 
+- 🔴 **T0 — 借 Windows 機＋EEG 裝置**（最優先，已過原定 07-15 限期）：問學校/隊友借；冇呢兩樣，T2/E1 全部郁唔到。
+- **T1-D3 — 實驗人手配套**（跟住 D3 build 並行）：① 同老師確認「同材料同卷」設計；② 攞材料一（淺）/材料二（深）畀 Claude 入庫；③ 老師審核 AI 預生成卷並鎖死；④ 招 2–3 個學生＋定實驗日（07-21 → 07-24 窗口）；⑤ 分配編號 S01/S02/S03（唔收真名/email）。
 - **T2 — EEG 實機 rehearsal**（越早越好）：比賽用嗰部 Windows 戴 MindWave 行完整流程 ≥5 次，記低每次連接用幾耐、幾時斷、斷喺邊步、點救返。試埋極端情況（長頭髮、出汗、圍觀人多藍牙干擾、連玩 30 分鐘）。寫成一頁「斷線急救卡」。**呢啲筆記係 E1 prompt 嘅輸入。**
 - **Vercel + DeepSeek 驗證**：見 §4。
 - **提醒隊友換 DeepSeek key**：見 §4 步驟 4。
@@ -411,21 +426,22 @@ Constraints: 只改明確安全嘅嘢（刪死 code、修錯處理）；有風�
 
 ---
 
-## 6. 時間表（2026-07-11 重排；比賽日程已由官方 PDF 確認：**07-28 setup、評審 07-28 下晝 → 07-29 中午**）
+## 6. 時間表（2026-07-15 重排；比賽日程已由官方 PDF 確認：**07-28 setup、評審 07-28 下晝 → 07-29 中午**；code freeze **07-25** 不變）
 
-> Code 進度大幅超前原計劃（D1/P1/P2/F1 已完成、U1/E1 大部分完成）。剩低嘅關鍵路徑幾乎全部係**人手＋硬件**。
+> 今次重排嘅骨幹係 **D3 學習模式＋賽前 pilot 實驗**（老師要求）。距離比賽 13 日、距離 code freeze 10 日——D3 六步要喺 freeze 前完成，實驗要喺 freeze 前後跑完先出到 CSV 數據。同時 🔴 **借 Windows 機＋EEG 裝置**仍然係未解決嘅最大 blocker（07-12→15 原定完成，未有回報）。
 
 | 時段 | 做乜 |
 |------|------|
-| ✅ 已完成（07-06 → 07-11） | D2、D1、P1（連設定面板）、P2 Claude scope、U1 主體、E1 邏輯層、F1 報告——全部喺 main |
-| **07-12 → 07-15** | 🔴 **借定 Windows 機＋攞返 EEG 裝置**（而家手頭兩樣都冇，係最大 blocker）；Steven 本機驗收 07-10/11 兩批改動；Vercel/DeepSeek 四步驗證；Supabase RLS 用 F1 條 SQL 核實 |
-| **07-16 → 07-20** | **T2 實機 rehearsal ×5**（Windows＋MindWave，記斷線筆記）→ 筆記交 Claude 做 E1 收尾（斷線凍結→fallback＋Results 標注）；同步整 **A0 海報**（內容計劃見手冊 Part 11）＋ A4 傳單 |
-| **07-21 → 07-24** | U1 收尾：隱私政策頁＋Steven 逐句 review 全站文案；（可選）P2 加碼位；海報送印 |
+| ✅ 已完成（07-06 → 07-15） | D2、D1、P1（連設定面板）、P2 Claude scope、U1 主體、E1 邏輯層、F1 報告、入場 hang 修復、模擬即秒載入、D3 立項——全部喺 main |
+| **07-15 → 07-18** | **Claude：D3-1 → D3-3**（Setup 第三選項＋學科選擇 → 閱讀器 → 閱讀期監測＋數據；隱藏 flag 後面，逐步 commit）。**Steven（並行）**：🔴 **借 Windows 機＋EEG（已過原定限期，最優先）**；同老師確認「同材料同卷」設計＋攞材料一/材料二；Vercel/DeepSeek 四步驗證；Supabase RLS 用 F1 條 SQL 核實 |
+| **07-18 → 07-21** | **Claude：D3-4 → D3-6**（固定審核卷＋Study Results＋CSV＋開閘）。**Steven**：老師審核 AI 預生成卷並鎖死；招 2–3 個學生、定實驗日；**T2 實機 rehearsal ×5**（有機＋頭帶就即開始，記斷線筆記）；起草 **A0 海報**（內容計劃見手冊 Part 11） |
+| **07-21 → 07-24** | 🧪 **跑 pilot 實驗（2–3 學生，紙本組 vs 平台組，出 CSV）**——結果入海報「證據」區＋答辯口徑（誠實講 n 細）；E1 收尾（要 T2 筆記：斷線凍結→fallback＋Results 標注）；U1 收尾：隱私政策頁＋Steven 逐句 review；海報送印 |
 | **07-25 → 07-27** | **Code freeze（07-25）**——之後唔加新功能。完整 rehearsal ×2、跨裝置 QA、故障演練（EEG 斷→Simulation、無網→本地 fallback）、DEMO_MODE 開關拍板、所有裝置電量策略準備（攤位冇電源！見手冊 Part 11） |
 | **07-27 晚** | 裝置全部叉滿、AAA 電池換新、海報＋物資裝箱（清單：手冊 Part 11） |
 | **07-28 → 07-29** | 🏁 比賽：11:00 setup → 評審期輪更留守＋輪流去維修區充電 |
 
-**時間唔夠就保呢啲**：T2 rehearsal（現場風險最大）＋ E1 收尾（要 T2 筆記）＋ A0 海報（官方必須）。隱私政策頁同 P2 加碼位可以犧牲。
+**時間唔夠就保呢啲（順序）**：① T2 rehearsal（現場風險最大）＋ E1 收尾（要 T2 筆記）；② A0 海報（官方必須）；③ D3 pilot 實驗（老師要求——實在跑唔切就 D3 做完 demo 到、實驗改為賽後補做，同老師預早講）。隱私政策頁同 P2 加碼位可以犧牲。
+**實驗如果排唔到學生**：最少搵隊友/同學做 1–2 場「流程綵排」出樣板 CSV，確保比賽日答辯有嘢畀評判睇（標明係 pilot 綵排數據）。
 
 ---
 

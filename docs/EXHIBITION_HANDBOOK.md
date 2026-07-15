@@ -7,7 +7,7 @@
 > 本手冊由以下舊文件整合而成（已全部併入，並**更新到 2026-07 sprint 後嘅最新狀態**）：
 > `PROJECT_ANALYSIS.md`、`README.md`、`EXHIBITION_EXECUTION_BRIEF`、`GAMEPLAY_UPGRADE_CONFIRMATION`、`UI_FLOWCHART`、`WINDOWS_2A_DEPLOYMENT_SOP`、`TRAE_HANDOFF_PROMPT_WINDOWS`、`debug-windows-home-fps`。
 >
-> 最後整合日期：**2026-07-11**
+> 最後整合日期：**2026-07-15**
 
 ---
 
@@ -51,10 +51,11 @@
 系統有**兩層模式**：先揀「練咩」，再揀「用咩訊號」。
 
 ### 第一層：任務模式（練咩）
-> 兩個模式**都喺同一個海洋場景、玩法一致**，分別只在於挑戰模式會加入題目壓力。（2026-07 已把訓練模式一度試過嘅「書房場景」移除，統一用海洋。）
+> 訓練/挑戰兩個模式**都喺同一個海洋場景、玩法一致**，分別只在於挑戰模式會加入題目壓力。（2026-07 已把訓練模式一度試過嘅「書房場景」移除，統一用海洋。）第三個「學習模式」建置中（見下）。
 
 - **訓練模式**：專注航行，**不出題**，主打穩定維持專注。沿一條**無限彎曲航道**航行：專注先揸得住個舵（分心船會漂離航道）、穩住專注 25 秒摘一粒**心流星**、每 500m 經過一個**航標**、天氣即時反映腦狀態（分心起霧、復原放晴）。最適合台上展示（流程最清、最穩、旁觀者一眼睇明）。
 - **挑戰模式**：加入 **Stroop 題 + 邏輯題**，主打「一邊做任務、一邊維持專注」，貼近真實生活。最適合台下俾評判親身感受「做 task 時大腦容易亂」。
+- **學習模式（🚧 2026-07-15 立項，建置中，隱藏 flag 收起未上正式站）**：第三個選項，對應負責老師嘅**紙本 vs 平台對照實驗**——揀學科（首發生物，兩級深度）→ **閱讀階段**（sub-topic 分頁閱讀器，每頁最多 3 分鐘可提早跳；背景係同一片天空海景但**無船無航道**；天氣共感/呼吸介入/三路訊號輸入照用）→ **答題階段**（AI 預先生成＋老師審核鎖死嘅固定卷）→ **Study Results**（溫習/答題兩階段數據斬開＋CSV 匯出，學生用編號 S01/S02/S03 唔收真名）。詳見 plan §5 D3。**比賽 demo 唔倚賴佢**：訓練/挑戰模式一行 code 都冇郁。
 
 ### 第二層：訊號來源模式（用咩訊號）
 - **Real EEG**：MindWave 頭帶讀 EEG → 本地 `eeg_bridge.py` → WebSocket → 前端。**wow factor 最高、最吸引評判**；風險最高（藍牙 / COM port / 權限）。
@@ -118,7 +119,7 @@ graph LR
 | `services/storageService.js` | localStorage + **跨 session 歷史讀寫** |
 | `services/runtimeLoader.js` | 版本號 query string + 動態 import runtime（降快取干擾） |
 | `services/focusInputService.js` | 相機專注偵測（MediaPipe FaceLandmarker） |
-| `pages/game/runtime.js` | **全專案核心引擎**（6000+ 行）：Three.js 場景、航行物理（航向+慣性）、心流充能摘星、天氣共感、黃金時刻、題目、focus 更新、呼吸介入、simulation profile、bridge reconnect、results、audio、performance profile、**自適應門檻**、**FPS meter** |
+| `pages/game/runtime.js` | **全專案核心引擎**（接近 7000 行）：Three.js 場景、航行物理（航向+慣性）、心流充能摘星、天氣共感、黃金時刻、題目、focus 更新、呼吸介入、simulation profile、bridge reconnect、results、audio、performance profile、**自適應門檻**、**FPS meter** |
 | `pages/game/voyage.js` | **航程系統**：無限不規則彎曲航道（發光虛線）、航標浮塔 checkpoint（浮沉+燈頭脈動+海鷗）、航海圖數據 |
 | `eeg_bridge.py` | 本地硬體橋：掃 COM port、揀 MindWave、解析 attention/meditation/signal、WebSocket 廣播 |
 | `styles/**` | UI 外觀、Liquid Glass、dark mode、各頁樣式 |
@@ -166,7 +167,12 @@ graph TD
     I --> J[淡出 Overlay 0.5s]
     J --> K[開始 game loop + HUD]
 ```
-用 `Promise.all` 確保題目 + 船模型**兩者都 ready** 先開場，避免 3D「pop-in」。
+用 `Promise.all` 確保資產**全部 ready** 先開場，避免 3D「pop-in」。
+
+**1a2. 題目載入分流＋啟動看門狗（2026-07-11 修復「無法進入遊戲」）**：
+- **Simulation／相機模式**：載入**唔等 AI 題**——本地題庫即秒seed入場，AI 題 4 秒後喺背景補上（成功就自動換用，失敗照玩本地題）。效果：模擬模式幾秒內必入場，唔會因為 AI 慢而卡 Loading。
+- **EEG 模式**：保留「AI 優先、最多等 8 秒、可中斷」——真頭帶 demo 值得等一陣攞 AI 題。
+- **啟動看門狗**：入場 25 秒仲未 boot 完（例如某個資產請求 hang 死）→ 自動放棄、雙語提示「載入超時」、帶返 Setup 頁重試；boot 成功一刻即解除，唔會誤殺慢機嘅開場倒數。**唔會再出現「無限 Loading」**。
 
 **1b. 入場零穿崩 + 現代 Loading（2026-07-10）**：入 game 一刻 loader 會**同步不透明覆蓋**（頁面初始已帶隱藏態），唔會再見到一兩幀原始 HUD/背景；Loading 頁重新設計（小艇浮喺波浪線 + 品牌字 + 進度 shimmer，純 transform/背景動畫，弱機都平）。
 
@@ -272,7 +278,7 @@ graph TD
   A：用戶過度緊張/太散時，規律呼吸可短時間重置節奏，更易回到穩定專注。而且佢唔綁死某一輸入模式，係接喺所有偵測機制後面嘅統一介入層。
 
 - **Q：你哋點證明真係有效？**（最常問，要答得好）
-  A：現階段已做到**即時神經回饋 + 呼吸介入 + 單次 session 量化 + 跨 session 前後對比同恢復趨勢**——即係唔止畀你睇一次，仲畀你睇多次之間有冇進步。至於嚴謹長期成效，下一步會做**前後測、對照組、持續追蹤**。現階段定位係**訓練平台原型**，唔係已完成臨床驗證嘅醫療產品。
+  A：現階段已做到**即時神經回饋 + 呼吸介入 + 單次 session 量化 + 跨 session 前後對比同恢復趨勢**——即係唔止畀你睇一次，仲畀你睇多次之間有冇進步。另外我哋喺老師指導下做緊一個**小型對照 pilot**：用新嘅「學習模式」，同一份材料、同一份老師審核嘅測驗卷，比較「紙本溫習」同「平台溫習」兩組嘅測驗成績＋介入後拉返專注嘅時間（如果賽前完成會展示 CSV 數據；n 只有 2–3 個學生，我哋會誠實講呢個係 pilot、唔係正式研究）。至於嚴謹長期成效，下一步會做**更大樣本前後測、對照組、持續追蹤**。現階段定位係**訓練平台原型**，唔係已完成臨床驗證嘅醫療產品。
 
 - **Q：呢個係咪醫療產品？**
   A：目前唔係。定位係教育/訓練/神經回饋原型，幫用戶建立自我覺察同專注調節能力。
@@ -315,7 +321,7 @@ Windows laptop 做現場 demo 機：本地 Python EEG bridge + 本地站 `http:/
 - **症狀**（2026-06-23 記錄）：Windows 首頁得 ~20–31 FPS，iPad 遊戲頁 ~45 FPS。
 - **根因**：Windows 整合 GPU 對**層疊 glassmorphism blur、大陰影卡片、image filter、loop 浮動/雷達動畫**特別食力（`devicePixelRatio` 只 0.9375，唔係 DPR 問題;亦確認首頁冇提早 import 遊戲 runtime）。
 - **已套用修法**：加 `html[data-platform="windows"]` flag，Windows 首頁**關掉** blur filter、hover 放大、重 image filter、連續浮動/雷達動畫;遊戲有 performance profile（降 DPR / 陰影 / 後製 / 粒子）。
-- **下一步**（見 plan P1）：動態畫質 scaling——FPS 一跌自動降質、回穩再升。FPS meter 已有（`DEMO_MODE` 後面）。
+- **已完成（P1，2026-07-11）**：動態畫質 scaling 已上線——FPS 跌自動逐級降質（L0→L3）、回穩再升；遊戲內 ⚙ 設定面板可以手動鎖級／較音量／全螢幕。FPS meter（`DEMO_MODE` 後面）會顯示現行等級。弱機到攤位直接較「低/最低」仲順便慳電（Part 11 電量策略）。
 
 ### 緊急清單
 新 AAA 電池、清潔額頭 sensor 接觸、重開 `start_2a_demo_windows.bat`、bridge 失敗即用 Simulation。
@@ -336,7 +342,7 @@ Windows laptop 做現場 demo 機：本地 Python EEG bridge + 本地站 `http:/
 
 ### 劣勢與風險（Cons，要收窄）
 1. **真 EEG 路徑脆弱**：硬件/藍牙/serial/bridge/權限/瀏覽器任一環都可能出錯。→ 靠 rehearsal + Simulation 備援;未來引入更多 sensor（camera / eye-tracking / HRV）。
-2. **長期療效實證仍未建立**：雖然已有跨 session 歷史，但未有正式前後測 / 對照組 / longitudinal study。→ 對外把「長期改善」定位為 **roadmap**，唔好講成已完成。
+2. **長期療效實證仍未建立**：雖然已有跨 session 歷史，但未有正式前後測 / 對照組 / longitudinal study。→ 對外把「長期改善」定位為 **roadmap**；賽前計劃中嘅學習模式 pilot（n≈2–3）可以做「第一步證據」，但要誠實講 n 細、係 pilot 唔係研究。
 3. **單通道 EEG 語義限制**：消費級 attention/meditation，非研究級多通道。→ 講成訓練輸入 + 展示，唔好講成完整腦狀態診斷。
 4. **Simulation 易被誤會造假**：→ 對外必須明確講係展示 + 備援路徑。
 5. **科學敘事要精準**：Alpha/Beta 唔好講到太絕對。→ 用「設計框架」語氣。
