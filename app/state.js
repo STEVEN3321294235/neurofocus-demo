@@ -11,7 +11,9 @@ const state = {
     difficulty: null,
     cameraConsent: 'unknown',
     focusSource: 'simulation-fallback',
-    environment: 'ocean'
+    environment: 'ocean',
+    studySubject: null,
+    studyDepth: null
 };
 
 const listeners = new Set();
@@ -42,6 +44,8 @@ export function resetFlowState() {
         authView: 'login',
         cameraConsent: 'unknown',
         focusSource: 'simulation-fallback',
-        environment: 'ocean'
+        environment: 'ocean',
+        studySubject: null,
+        studyDepth: null
     });
 }

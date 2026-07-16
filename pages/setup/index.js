@@ -1,9 +1,22 @@
-import { t } from '../../app/i18n.js?v=2026-07-11-1';
+import { t } from '../../app/i18n.js?v=2026-07-16-1';
 import { getState, setState } from '../../app/state.js';
-import { activateEEGMode, activateSimulationMode, disposeMode, syncRuntimeState } from '../../services/eegBridgeService.js?v=2026-07-11-1';
-import { attachCameraPreview, detachCameraPreview, requestCameraPreview, stopCameraPreview } from '../../services/focusInputService.js?v=2026-07-11-1';
+import { activateEEGMode, activateSimulationMode, disposeMode, syncRuntimeState } from '../../services/eegBridgeService.js?v=2026-07-16-1';
+import { attachCameraPreview, detachCameraPreview, requestCameraPreview, stopCameraPreview } from '../../services/focusInputService.js?v=2026-07-16-1';
+
+// Study Mode ships visible-but-locked (Steven's call, 2026-07-16): the card is
+// on the live site as a roadmap teaser while D3 is built. Flip the localStorage
+// flag below to '1' (devtools console) to develop/test the flow; D3-6 removes
+// the lock for everyone.
+function isStudyModeUnlocked() {
+    try {
+        return localStorage.getItem('nf_study_dev_unlock') === '1';
+    } catch (e) {
+        return false;
+    }
+}
 
 function renderTestStep(state) {
+    const studyLocked = !isStudyModeUnlocked();
     return `
         <div class="setup-card">
             <h2>${t('setup_test_title')}</h2>
@@ -17,6 +30,11 @@ function renderTestStep(state) {
                     <strong>${t('setup_test_challenge')}</strong>
                     <span>${t('setup_test_challenge_desc')}</span>
                 </button>
+                <button type="button" class="option-card option-study ${studyLocked ? 'is-locked' : ''}" data-test-mode="study" ${studyLocked ? 'disabled aria-disabled="true"' : ''}>
+                    ${studyLocked ? `<span class="option-card-badge">${t('setup_test_study_locked')}</span>` : ''}
+                    <strong>${t('setup_test_study')}</strong>
+                    <span>${t('setup_test_study_desc')}</span>
+                </button>
             </div>
             <div class="mode-helper-card">
                 <div class="mode-helper-title">${t('setup_test_helper_title')}</div>
@@ -24,6 +42,58 @@ function renderTestStep(state) {
             </div>
             <div class="setup-footer-actions">
                 <button type="button" class="secondary-btn" data-back-auth>${t('setup_back')}</button>
+            </div>
+        </div>
+    `;
+}
+
+function renderSubjectStep() {
+    return `
+        <div class="setup-card">
+            <h2>${t('setup_subject_title')}</h2>
+            <p>${t('setup_subject_desc')}</p>
+            <div class="setup-option-grid subject-grid">
+                <button type="button" class="option-card option-safe" data-subject="biology">
+                    <strong>${t('setup_subject_biology')}</strong>
+                    <span>${t('setup_subject_biology_desc')}</span>
+                </button>
+                <button type="button" class="option-card option-study is-locked" disabled aria-disabled="true">
+                    <span class="option-card-badge">${t('setup_subject_locked_badge')}</span>
+                    <strong>${t('setup_subject_chemistry')}</strong>
+                </button>
+                <button type="button" class="option-card option-study is-locked" disabled aria-disabled="true">
+                    <span class="option-card-badge">${t('setup_subject_locked_badge')}</span>
+                    <strong>${t('setup_subject_physics')}</strong>
+                </button>
+                <button type="button" class="option-card option-study is-locked" disabled aria-disabled="true">
+                    <span class="option-card-badge">${t('setup_subject_locked_badge')}</span>
+                    <strong>${t('setup_subject_history')}</strong>
+                </button>
+            </div>
+            <div class="setup-footer-actions">
+                <button type="button" class="secondary-btn" data-back-test-step>${t('setup_back')}</button>
+            </div>
+        </div>
+    `;
+}
+
+function renderDepthStep() {
+    return `
+        <div class="setup-card">
+            <h2>${t('setup_depth_title')}</h2>
+            <p>${t('setup_depth_desc')}</p>
+            <div class="setup-option-grid">
+                <button type="button" class="option-card option-safe" data-depth="foundation">
+                    <strong>${t('setup_depth_foundation')}</strong>
+                    <span>${t('setup_depth_foundation_desc')}</span>
+                </button>
+                <button type="button" class="option-card option-danger" data-depth="advanced">
+                    <strong>${t('setup_depth_advanced')}</strong>
+                    <span>${t('setup_depth_advanced_desc')}</span>
+                </button>
+            </div>
+            <div class="setup-footer-actions">
+                <button type="button" class="secondary-btn" data-back-subject>${t('setup_back')}</button>
             </div>
         </div>
     `;
@@ -205,10 +275,15 @@ function renderCameraStep(state) {
 export default {
     render() {
         const state = getState();
-        const flowDifficultyLabel = state.testMode === 'challenge' ? t('setup_flow_diff') : t('setup_flow_enter');
-        const flowEnterLabel = state.testMode === 'challenge'
-            ? t('setup_flow_enter')
-            : t('setup_training_length');
+        const isStudyFlow = state.testMode === 'study';
+        const flowModeLabel = isStudyFlow ? t('setup_flow_subject') : t('setup_flow_mode');
+        const flowCameraLabel = isStudyFlow ? t('setup_flow_mode') : t('setup_flow_camera');
+        const flowDifficultyLabel = isStudyFlow
+            ? t('setup_flow_camera')
+            : (state.testMode === 'challenge' ? t('setup_flow_diff') : t('setup_flow_enter'));
+        const flowEnterLabel = isStudyFlow
+            ? t('setup_flow_study_enter')
+            : (state.testMode === 'challenge' ? t('setup_flow_enter') : t('setup_training_length'));
         return `
             <main class="page page-setup">
                 <section class="page-shell narrow-shell setup-layout setup-layout-compact">
@@ -222,13 +297,17 @@ export default {
                         </header>
                         <div class="setup-flow-inline">
                             <span>01 ${t('setup_flow_goal')}</span>
-                            <span>02 ${t('setup_flow_mode')}</span>
-                            <span>03 ${t('setup_flow_camera')}</span>
+                            <span>02 ${flowModeLabel}</span>
+                            <span>03 ${flowCameraLabel}</span>
                             <span>04 ${flowDifficultyLabel}</span>
                             <span>05 ${flowEnterLabel}</span>
                         </div>
                         ${state.setupStep === 'test'
                             ? renderTestStep(state)
+                            : state.setupStep === 'subject'
+                                ? renderSubjectStep()
+                            : state.setupStep === 'depth'
+                                ? renderDepthStep()
                             : state.setupStep === 'training'
                                 ? renderTrainingStep(state)
                             : state.setupStep === 'difficulty'
@@ -280,10 +359,11 @@ export default {
         if (backTest) {
             backTest.addEventListener('click', async () => {
                 stopCameraPreview();
+                const isStudy = getState().testMode === 'study';
                 await syncRuntimeState({
                     user: getState().currentUser,
                     lang: getState().lang,
-                    difficulty: null,
+                    difficulty: isStudy ? 'study' : null,
                     inputMode: 'idle',
                     focusSource: 'simulation-fallback',
                     cameraConsent: 'unknown',
@@ -291,9 +371,9 @@ export default {
                     trainingDurationSec: getState().trainingDurationSec
                 });
                 setState({
-                    setupStep: 'test',
+                    setupStep: isStudy ? 'depth' : 'test',
                     inputMode: 'idle',
-                    difficulty: null,
+                    difficulty: isStudy ? 'study' : null,
                     cameraConsent: 'unknown',
                     focusSource: 'simulation-fallback'
                 });
@@ -328,21 +408,25 @@ export default {
 
         root.querySelectorAll('[data-test-mode]').forEach((button) => {
             button.addEventListener('click', async () => {
+                if (button.disabled || button.classList.contains('is-locked')) return;
                 const testMode = button.dataset.testMode;
+                const initialDifficulty = testMode === 'training' ? 'training' : (testMode === 'study' ? 'study' : null);
                 setState({
                     testMode,
                     environment: 'ocean',
-                    setupStep: 'mode',
+                    setupStep: testMode === 'study' ? 'subject' : 'mode',
                     trainingDurationSec: 180,
-                    difficulty: testMode === 'training' ? 'training' : null,
+                    difficulty: initialDifficulty,
                     inputMode: 'idle',
                     cameraConsent: 'unknown',
-                    focusSource: 'simulation-fallback'
+                    focusSource: 'simulation-fallback',
+                    studySubject: null,
+                    studyDepth: null
                 });
                 await syncRuntimeState({
                     user: getState().currentUser,
                     lang: getState().lang,
-                    difficulty: testMode === 'training' ? 'training' : null,
+                    difficulty: initialDifficulty,
                     inputMode: 'idle',
                     focusSource: 'simulation-fallback',
                     cameraConsent: 'unknown',
@@ -352,6 +436,74 @@ export default {
                 router.refresh();
             });
         });
+
+        // Study Mode: subject -> depth -> signal source. The two extra steps
+        // only exist for testMode 'study'; everything after reuses the shared
+        // mode/camera steps.
+        root.querySelectorAll('[data-subject]').forEach((button) => {
+            button.addEventListener('click', () => {
+                if (button.disabled) return;
+                setState({ studySubject: button.dataset.subject, setupStep: 'depth' });
+                router.refresh();
+            });
+        });
+
+        root.querySelectorAll('[data-depth]').forEach((button) => {
+            button.addEventListener('click', async () => {
+                setState({ studyDepth: button.dataset.depth, setupStep: 'mode' });
+                await syncRuntimeState({
+                    user: getState().currentUser,
+                    lang: getState().lang,
+                    difficulty: 'study',
+                    inputMode: 'idle',
+                    focusSource: 'simulation-fallback',
+                    cameraConsent: 'unknown',
+                    testMode: 'study',
+                    studySubject: getState().studySubject,
+                    studyDepth: getState().studyDepth
+                });
+                router.refresh();
+            });
+        });
+
+        const backTestStep = root.querySelector('[data-back-test-step]');
+        if (backTestStep) {
+            backTestStep.addEventListener('click', () => {
+                setState({ setupStep: 'test', studySubject: null, studyDepth: null });
+                router.refresh();
+            });
+        }
+
+        const backSubject = root.querySelector('[data-back-subject]');
+        if (backSubject) {
+            backSubject.addEventListener('click', () => {
+                setState({ setupStep: 'subject', studyDepth: null });
+                router.refresh();
+            });
+        }
+
+        // Study Mode has no difficulty/duration step: once the signal source is
+        // settled (EEG confirmed, or camera allowed/denied), it goes straight
+        // into the reading session.
+        const launchStudyGame = async () => {
+            if (getState().inputMode === 'simulation') {
+                await activateSimulationMode();
+            }
+            await syncRuntimeState({
+                user: getState().currentUser,
+                lang: getState().lang,
+                difficulty: 'study',
+                inputMode: getState().inputMode,
+                focusSource: getState().focusSource,
+                cameraConsent: getState().cameraConsent,
+                testMode: 'study',
+                trainingDurationSec: getState().trainingDurationSec,
+                studySubject: getState().studySubject,
+                studyDepth: getState().studyDepth
+            });
+            setState({ difficulty: 'study' });
+            router.navigate('game');
+        };
 
         root.querySelectorAll('[data-mode]').forEach((button) => {
             button.addEventListener('click', async () => {
@@ -381,7 +533,9 @@ export default {
                                         focusSource: 'eeg',
                                         cameraConsent: 'unknown'
                                     });
-                                    if (getState().testMode === 'challenge') {
+                                    if (getState().testMode === 'study') {
+                                        await launchStudyGame();
+                                    } else if (getState().testMode === 'challenge') {
                                         router.refresh();
                                     } else {
                                         await syncRuntimeState({
@@ -415,6 +569,10 @@ export default {
                             focusSource: 'eeg',
                             cameraConsent: 'unknown'
                         });
+                        if (getState().testMode === 'study') {
+                            await launchStudyGame();
+                            return;
+                        }
                         if (getState().testMode === 'training') {
                             await syncRuntimeState({
                                 user: getState().currentUser,
@@ -531,7 +689,9 @@ export default {
                     focusSource: 'simulation-fallback',
                     setupStep: getState().testMode === 'challenge' ? 'difficulty' : 'training'
                 });
-                if (getState().testMode === 'challenge') {
+                if (getState().testMode === 'study') {
+                    await launchStudyGame();
+                } else if (getState().testMode === 'challenge') {
                     router.refresh();
                 } else {
                     await syncRuntimeState({
@@ -553,6 +713,10 @@ export default {
         if (cameraContinueBtn) {
             cameraContinueBtn.addEventListener('click', async () => {
                 setState({ setupStep: getState().testMode === 'challenge' ? 'difficulty' : 'training' });
+                if (getState().testMode === 'study') {
+                    await launchStudyGame();
+                    return;
+                }
                 await syncRuntimeState({
                     user: getState().currentUser,
                     lang: getState().lang,

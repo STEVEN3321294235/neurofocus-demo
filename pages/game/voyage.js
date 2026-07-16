@@ -306,6 +306,14 @@ export function updateVoyage({ boatZ = 0, elapsedMs = 0, deltaSec = 0, active = 
     return event;
 }
 
+// Study Mode (D3) reads on an open sea with no boat and no route: hide every
+// voyage object (lane dashes, buoys, their gulls) without tearing them down,
+// so training/challenge sessions in the same page-load get them back intact.
+export function setVoyageVisible(visible = true) {
+    for (const dash of laneDashes) dash.visible = visible;
+    for (const buoy of buoys) buoy.group.visible = visible;
+}
+
 export function getVoyageStats(boatZ = 0) {
     let next = null;
     for (const buoy of buoys) {

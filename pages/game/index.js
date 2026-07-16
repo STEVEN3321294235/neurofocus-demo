@@ -1,8 +1,8 @@
 import { getState, resetFlowState, setState } from '../../app/state.js';
-import { t } from '../../app/i18n.js?v=2026-07-11-1';
+import { t } from '../../app/i18n.js?v=2026-07-16-1';
 import { logout } from '../../services/authService.js';
-import { disposeMode, syncRuntimeState } from '../../services/eegBridgeService.js?v=2026-07-11-1';
-import { importGameRuntime } from '../../services/runtimeLoader.js?v=2026-07-11-1';
+import { disposeMode, syncRuntimeState } from '../../services/eegBridgeService.js?v=2026-07-16-1';
+import { importGameRuntime } from '../../services/runtimeLoader.js?v=2026-07-16-1';
 
 async function getRuntime() {
     return importGameRuntime('/pages/game/runtime.js');
@@ -83,6 +83,26 @@ export default {
                             </div>
                         </div>
                         <div class="settings-note">${t('settings_paused_note')} ${t('settings_auto_note')}</div>
+                    </div>
+
+                    <!-- Study Mode reader (D3-2): right-hand rounded panel. All
+                         text inside is runtime-driven; body stays blank until
+                         the real material lands in studyMaterials.js. -->
+                    <div id="study-reader" style="display: none;">
+                        <div class="study-reader-head">
+                            <span id="study-reader-subject" class="study-reader-chip"></span>
+                            <span id="study-reader-progress" class="study-reader-chip subtle"></span>
+                        </div>
+                        <div class="study-reader-timer">
+                            <div id="study-page-timer-label" class="study-reader-timer-label"></div>
+                            <div id="study-page-timer-value">03:00</div>
+                        </div>
+                        <h3 id="study-reader-title"></h3>
+                        <div id="study-reader-body"></div>
+                        <div class="study-reader-actions">
+                            <button type="button" id="study-next-btn"></button>
+                            <div id="study-quiz-note" style="display: none;"></div>
+                        </div>
                     </div>
 
                     <div id="focus-indicator">
@@ -254,6 +274,8 @@ export default {
             cameraConsent: state.cameraConsent,
             testMode: state.testMode,
             trainingDurationSec: state.trainingDurationSec,
+            studySubject: state.studySubject,
+            studyDepth: state.studyDepth,
             onResults: () => router.navigate('results')
         });
         runtime.switchLanguage(state.lang);

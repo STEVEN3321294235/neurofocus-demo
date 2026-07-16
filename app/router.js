@@ -1,5 +1,5 @@
 import { setState } from './state.js';
-import { importVersionedModule } from '../services/runtimeLoader.js?v=2026-07-11-1';
+import { importVersionedModule } from '../services/runtimeLoader.js?v=2026-07-16-1';
 
 const pageModulePaths = {
     home: '/pages/home/index.js',

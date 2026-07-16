@@ -9,9 +9,10 @@ import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { SMAAPass } from 'three/addons/postprocessing/SMAAPass.js';
 import { setState, getState } from '../../app/state.js';
-import { getCameraFocusScore, getCameraTrackingStatus, stopCameraPreview } from '../../services/focusInputService.js?v=2026-07-11-1';
+import { getCameraFocusScore, getCameraTrackingStatus, stopCameraPreview } from '../../services/focusInputService.js?v=2026-07-16-1';
 import { appendSessionSummary, getSessionHistory, getLocalVoyageLog, appendVoyageLog, getCumulativeCloudDistance } from '../../services/storageService.js';
-import { initVoyage, resetVoyage, updateVoyage, getVoyageStats, getBuoysInWindow, routeXAt, routeYawAt, CHECKPOINT_SPACING } from './voyage.js';
+import { initVoyage, resetVoyage, updateVoyage, getVoyageStats, getBuoysInWindow, routeXAt, routeYawAt, CHECKPOINT_SPACING, setVoyageVisible } from './voyage.js';
+import { getStudyMaterial, STUDY_PAGE_LIMIT_MS } from './studyMaterials.js';
 
 // DEMO_MODE shows the raw EEG channels (attention / meditation / signal) for
 // the competition booth. Flip to false in a future product build to hide the
@@ -248,6 +249,8 @@ const CONFIG = {
     difficulty: "easy",
     testMode: "challenge",
     trainingDurationSec: 180,
+    studySubject: 'biology',
+    studyDepth: 'foundation',
     focusSource: 'simulation-fallback',
     cameraConsent: 'unknown',
     score: 0,
@@ -296,7 +299,14 @@ function isTrainingMode() {
 }
 
 function isChallengeMode() {
-    return !isTrainingMode();
+    return CONFIG.testMode === 'challenge';
+}
+
+// Study Mode (D3): read material on an open sea (no boat), then quiz. The
+// reading phase has no sailing and no question flow; the quiz phase (D3-4)
+// will reuse the challenge question HUD.
+function isStudyMode() {
+    return CONFIG.testMode === 'study';
 }
 
 function shouldUseQuestionFlow() {
@@ -306,6 +316,158 @@ function shouldUseQuestionFlow() {
 function getTrainingSessionDurationMs() {
     return Math.max(30, Math.min(1800, Number(CONFIG.trainingDurationSec || DEFAULT_TRAINING_DURATION_SEC))) * 1000;
 }
+
+// --- Study Mode reading engine (D3-2) -------------------------------------
+// The reader lives in a rounded panel on the RIGHT of the screen. Each page
+// gets at most STUDY_PAGE_LIMIT_MS of reading time; the per-page countdown is
+// driven off CONFIG.accumulatedPlayTime, which only accrues while the session
+// is unpaused — so the settings panel, breathing interventions, portrait
+// warnings and camera loss all freeze the page timer through the exact same
+// pause pipeline as every other clock in the game.
+
+const STUDY_SUBJECT_LABELS = { biology: { hk: '生物', en: 'Biology' } };
+const STUDY_DEPTH_LABELS = {
+    foundation: { hk: '基礎', en: 'Foundation' },
+    advanced: { hk: '進階', en: 'Advanced' }
+};
+
+let studySession = null;
+
+function studyLabel(map, key) {
+    const entry = map[key] || {};
+    return entry[CONFIG.currentLang] || entry.hk || String(key || '');
+}
+
+function resetStudySession() {
+    studySession = null;
+    const panel = document.getElementById('study-reader');
+    if (panel) {
+        panel.style.display = 'none';
+        panel.classList.remove('is-critical');
+    }
+}
+
+function initStudySession() {
+    const material = getStudyMaterial(CONFIG.studySubject, CONFIG.studyDepth);
+    studySession = {
+        pages: material.pages,
+        index: 0,
+        pageStartPlayMs: 0,
+        pageTimes: [],
+        quizRequested: false
+    };
+    const panel = document.getElementById('study-reader');
+    if (panel) panel.style.display = 'flex';
+    const timerLabel = document.getElementById('study-page-timer-label');
+    if (timerLabel) timerLabel.textContent = langText('本頁剩餘時間', 'Time left on this page');
+    const nextBtn = document.getElementById('study-next-btn');
+    if (nextBtn && nextBtn.dataset.bound !== '1') {
+        nextBtn.dataset.bound = '1';
+        nextBtn.addEventListener('click', () => {
+            if (!isGameActive || CONFIG.isPaused) return;
+            advanceStudyPage(false);
+        });
+    }
+    paintStudyPage();
+}
+
+function paintStudyPage() {
+    if (!studySession) return;
+    const page = studySession.pages[studySession.index];
+    if (!page) return;
+
+    const subjectChip = document.getElementById('study-reader-subject');
+    if (subjectChip) {
+        subjectChip.textContent = `${studyLabel(STUDY_SUBJECT_LABELS, CONFIG.studySubject)} · ${studyLabel(STUDY_DEPTH_LABELS, CONFIG.studyDepth)}`;
+    }
+    const progress = document.getElementById('study-reader-progress');
+    if (progress) {
+        progress.textContent = langText(
+            `第 ${studySession.index + 1} / ${studySession.pages.length} 頁`,
+            `Page ${studySession.index + 1} / ${studySession.pages.length}`
+        );
+    }
+    const title = document.getElementById('study-reader-title');
+    if (title) title.textContent = page.title?.[CONFIG.currentLang] || page.title?.hk || '';
+    // Body is intentionally blank until the reviewed material lands in
+    // studyMaterials.js — textContent keeps whatever arrives injection-safe.
+    const body = document.getElementById('study-reader-body');
+    if (body) body.textContent = page.content?.[CONFIG.currentLang] || page.content?.hk || '';
+
+    const isLastPage = studySession.index >= studySession.pages.length - 1;
+    const nextBtn = document.getElementById('study-next-btn');
+    if (nextBtn) {
+        nextBtn.textContent = isLastPage
+            ? langText('進行測驗', 'Start Quiz')
+            : langText('下一頁', 'Next Page');
+        nextBtn.disabled = false;
+        nextBtn.classList.toggle('is-quiz', isLastPage);
+    }
+    const note = document.getElementById('study-quiz-note');
+    if (note) note.style.display = 'none';
+    const panel = document.getElementById('study-reader');
+    if (panel) panel.classList.remove('is-critical');
+    renderStudyPageTimer(STUDY_PAGE_LIMIT_MS);
+}
+
+function renderStudyPageTimer(remainingMs) {
+    const el = document.getElementById('study-page-timer-value');
+    if (!el) return;
+    // formatTime treats 0 as "no value" ('—'); an expired page timer must read
+    // as a real 00:00 instead.
+    const clamped = Math.max(0, remainingMs);
+    const text = clamped <= 0 ? '00:00' : GAME_STATS.formatTime(clamped).substring(0, 5);
+    if (CONFIG.isPaused) {
+        el.innerHTML = `<span class="material-symbols-outlined pause-icon" style="font-size: 1.1em; vertical-align: text-bottom; margin-right: 4px; color: inherit; text-shadow: inherit;">pause_circle</span>${text}`;
+    } else {
+        updateDigitDisplay(el, text);
+    }
+}
+
+function advanceStudyPage(auto = false) {
+    if (!studySession || studySession.quizRequested) return;
+    const elapsed = Math.max(0, (CONFIG.accumulatedPlayTime || 0) - studySession.pageStartPlayMs);
+    studySession.pageTimes.push({ index: studySession.index, elapsedMs: Math.round(elapsed), autoAdvanced: auto });
+
+    if (studySession.index >= studySession.pages.length - 1) {
+        requestStudyQuiz();
+        return;
+    }
+    studySession.index += 1;
+    studySession.pageStartPlayMs = CONFIG.accumulatedPlayTime || 0;
+    paintStudyPage();
+}
+
+// D3-2 boundary: the reading phase is complete here. D3-4 replaces this notice
+// with the real quiz phase (boat + challenge-style question HUD + fixed paper).
+function requestStudyQuiz() {
+    if (!studySession) return;
+    studySession.quizRequested = true;
+    renderStudyPageTimer(0);
+    const nextBtn = document.getElementById('study-next-btn');
+    if (nextBtn) nextBtn.disabled = true;
+    const note = document.getElementById('study-quiz-note');
+    if (note) {
+        note.textContent = langText(
+            '閱讀階段完成。測驗階段建置中——審核測驗卷會喺下一步接上。',
+            'Reading phase complete. The quiz phase is under construction — the reviewed paper connects here next.'
+        );
+        note.style.display = 'block';
+    }
+}
+
+function updateStudyReader() {
+    if (!isStudyMode() || !studySession || studySession.quizRequested || !isGameActive) return;
+    const elapsed = Math.max(0, (CONFIG.accumulatedPlayTime || 0) - studySession.pageStartPlayMs);
+    const remaining = Math.max(0, STUDY_PAGE_LIMIT_MS - elapsed);
+    renderStudyPageTimer(remaining);
+    const panel = document.getElementById('study-reader');
+    if (panel) panel.classList.toggle('is-critical', remaining / STUDY_PAGE_LIMIT_MS <= 0.2);
+    if (remaining <= 0) {
+        advanceStudyPage(true);
+    }
+}
+// --- end Study Mode reading engine -----------------------------------------
 
 function isCompactViewport() {
     return window.innerWidth < 800 || window.innerHeight < 500;
@@ -1359,7 +1521,7 @@ function voyageCardV(x, centreX) {
 function renderVoyageCard(force = false) {
     const card = document.getElementById('voyage-card');
     if (!card) return;
-    const show = isGameActive;
+    const show = isGameActive && !isStudyMode();
     const displayValue = show ? '' : 'none';
     if (card.style.display !== displayValue) card.style.display = displayValue;
     if (!show || !boat) return;
@@ -2151,6 +2313,7 @@ function updateGameLogic(delta) {
 
             renderFlowCharge();
             renderVoyageCard();
+            updateStudyReader();
 
             const distEl = document.getElementById('distance-value');
             if (distEl) {
@@ -2192,7 +2355,9 @@ function updateGameLogic(delta) {
         }
     }
     
-    if (boat) {
+    // Study Mode: no hull in the water — skip helm physics, wake, voyage and
+    // chase-camera work entirely. The sea/sky/weather below still follow focus.
+    if (boat && !isStudyMode()) {
         // --- Helm: heading physics ---
         // Steering authority comes from focus. Focused: the helm answers and
         // the boat tracks the winding route. Distracted: the helm goes light
@@ -2291,7 +2456,7 @@ function updateGameLogic(delta) {
         );
     }
 
-    if (boat) {
+    if (boat && !isStudyMode()) {
         // 4. Boat Physics (SPEEDBOAT REALISM)
         const timeVal = performance.now() / 1000;
         const maxSpeedMPS = CONFIG.MAX_SHIP_SPEED / 3.6;
@@ -2839,20 +3004,27 @@ function initGameSession() {
     lastFetchTime = 0;
     fallbackQuestionCursor = loadFallbackQuestionCursor();
     trainingAnalytics = createTrainingAnalytics();
-    // Cumulative voyage totals (cloud when signed in, local otherwise).
-    loadVoyageTotals().catch(() => {});
-    // Teach the core mapping as play begins (after the entry countdown).
-    setTimeout(showOnboardingCue, 3500);
-    setTimeout(showVoyageContinuationCue, 13000);
+    resetStudySession();
+    if (isStudyMode()) {
+        initStudySession();
+    } else {
+        // Cumulative voyage totals (cloud when signed in, local otherwise).
+        loadVoyageTotals().catch(() => {});
+        // Teach the core mapping as play begins (after the entry countdown).
+        setTimeout(showOnboardingCue, 3500);
+        setTimeout(showVoyageContinuationCue, 13000);
+    }
     // Personalize thresholds from recent history (resolves within the first
     // moments of play; defaults apply until then and for new players).
     resolveAdaptiveFocusTraining().catch(() => {});
     hideBreathingPrompt();
     hideBreathingIntervention();
     updateLoadingStatus(
-        isTrainingMode()
-            ? langText('正在校準專注訓練場景與感測流程...', 'Calibrating the focus training scene and sensors...')
-            : I18N[CONFIG.currentLang].preparing_game
+        isStudyMode()
+            ? langText('正在準備閱讀版面與專注監測...', 'Preparing the reader and focus monitoring...')
+            : isTrainingMode()
+                ? langText('正在校準專注訓練場景與感測流程...', 'Calibrating the focus training scene and sensors...')
+                : I18N[CONFIG.currentLang].preparing_game
     );
 
     // Re-attach the existing WebGL canvas when the SPA remounts the game page.
@@ -2939,7 +3111,13 @@ function initGameSession() {
     
     setGamePresentationState('hidden');
 
-    showTransitionLoader(langText('正在校準場景、題庫與渲染品質...', 'Calibrating scene, challenge set, and render quality...'));
+    showTransitionLoader(
+        isStudyMode()
+            ? langText('正在準備海景、閱讀版面與渲染品質...', 'Preparing the sea, the reader, and render quality...')
+            : isTrainingMode()
+                ? langText('正在校準場景與渲染品質...', 'Calibrating scene and render quality...')
+                : langText('正在校準場景、題庫與渲染品質...', 'Calibrating scene, challenge set, and render quality...')
+    );
 
     // Initial Load: keep question panel hidden until countdown finishes
     const qPanel = document.getElementById('question-panel');
@@ -2991,6 +3169,12 @@ function initGameSession() {
         boat.position.x = routeXAt(boat.position.z);
         boatYaw = routeYawAt(boat.position.z);
         boat.rotation.y = -boatYaw;
+
+        // Study Mode reads on an open sea: same sky/water/weather, but no
+        // hull, no route dashes, no buoys. Everything stays in the scene
+        // (hidden) so a training/challenge run afterwards gets them back.
+        boat.visible = !isStudyMode();
+        setVoyageVisible(!isStudyMode());
 
         attachRendererToCanvasHost();
         const canvasHost = document.getElementById('canvas-container');
@@ -4198,6 +4382,7 @@ function getDifficultyProfile() {
 function applySessionModeUI() {
     // Lets CSS reposition shared HUD pieces (voyage card) per mode.
     document.body.classList.toggle('challenge-session', isChallengeMode());
+    document.body.classList.toggle('study-session', isStudyMode());
     const questionPanel = document.getElementById('question-panel');
     const scoreDisplay = document.getElementById('score-display');
     const streakDisplay = document.getElementById('streak-display');
@@ -4205,6 +4390,23 @@ function applySessionModeUI() {
     const playTimeDisplay = document.getElementById('play-time-display');
     const trainingCountdownDisplay = document.getElementById('training-countdown-display');
     const trainingCountdownValue = document.getElementById('training-countdown-value');
+    const speedDisplay = document.getElementById('speed-display');
+    const distanceDisplay = document.getElementById('distance-display');
+    const studyReader = document.getElementById('study-reader');
+
+    // Sailing readouts exist in every mode except Study (no boat to read out).
+    if (speedDisplay) speedDisplay.style.display = isStudyMode() ? 'none' : '';
+    if (distanceDisplay) distanceDisplay.style.display = isStudyMode() ? 'none' : '';
+    if (studyReader && !isStudyMode()) studyReader.style.display = 'none';
+
+    if (isStudyMode()) {
+        if (questionPanel) questionPanel.style.display = 'none';
+        if (scoreDisplay) scoreDisplay.style.display = 'none';
+        if (streakDisplay) streakDisplay.style.display = 'none';
+        if (playTimeDisplay) playTimeDisplay.style.display = 'none';
+        if (trainingCountdownDisplay) trainingCountdownDisplay.style.display = 'none';
+        return;
+    }
 
     if (isTrainingMode()) {
         if (questionPanel) questionPanel.style.display = 'none';
@@ -6588,6 +6790,8 @@ function configureRuntime(options = {}) {
         difficulty = CONFIG.difficulty,
         testMode = CONFIG.testMode,
         trainingDurationSec = CONFIG.trainingDurationSec,
+        studySubject = CONFIG.studySubject,
+        studyDepth = CONFIG.studyDepth,
         inputMode = selectedInputMode,
         focusSource = CONFIG.focusSource,
         cameraConsent = CONFIG.cameraConsent,
@@ -6597,8 +6801,10 @@ function configureRuntime(options = {}) {
     CONFIG.currentUser = user || null;
     CONFIG.currentLang = lang || CONFIG.currentLang;
     CONFIG.difficulty = difficulty || CONFIG.difficulty;
-    CONFIG.testMode = ['training', 'challenge'].includes(testMode) ? testMode : CONFIG.testMode;
+    CONFIG.testMode = ['training', 'challenge', 'study'].includes(testMode) ? testMode : CONFIG.testMode;
     CONFIG.trainingDurationSec = Math.max(30, Math.min(1800, Number(trainingDurationSec || CONFIG.trainingDurationSec || DEFAULT_TRAINING_DURATION_SEC)));
+    CONFIG.studySubject = studySubject || CONFIG.studySubject;
+    CONFIG.studyDepth = studyDepth || CONFIG.studyDepth;
     CONFIG.focusSource = focusSource || CONFIG.focusSource;
     CONFIG.cameraConsent = cameraConsent || CONFIG.cameraConsent;
     if (['idle', 'simulation', 'eeg'].includes(inputMode)) {
@@ -6625,6 +6831,8 @@ function disposeGameSession() {
     activeGameSessionId += 1;
     isGameActive = false;
     document.body.classList.remove('challenge-session');
+    document.body.classList.remove('study-session');
+    resetStudySession();
     stopBGM();
     clearStroopTimer();
 
