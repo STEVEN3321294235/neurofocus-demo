@@ -43,6 +43,31 @@ body.light-mode .page-setup {
     overflow: hidden;
 }
 
+/* Setup fills the screen instead of a narrow 760px card (Steven, 2026-07-17):
+   wider container, lighter frame, so at a normal window size nothing scrolls.
+   Scales with viewport. */
+.page-setup .page-shell,
+.page-setup .setup-panel-compact {
+    max-width: min(96vw, 1440px);
+    width: 100%;
+}
+
+.page-setup .setup-panel {
+    padding: clamp(1.1rem, 2.2vw, 2rem) clamp(1.2rem, 3vw, 2.6rem);
+    border-color: rgba(148, 163, 184, 0.14);
+}
+
+/* On a roomy screen the three goal cards sit in ONE row (shorter → no scroll);
+   depth/mode steps keep their own column counts. */
+@media (min-width: 900px) {
+    .setup-option-grid:has([data-test-mode='study']) {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+    .setup-option-grid:has([data-test-mode='study']) [data-test-mode='study'] {
+        grid-column: auto;
+    }
+}
+
 .setup-flow-inline {
     display: flex;
     flex-wrap: wrap;

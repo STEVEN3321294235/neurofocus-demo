@@ -1,7 +1,7 @@
-import { t } from '../../app/i18n.js?v=2026-07-16-3';
+import { t } from '../../app/i18n.js?v=2026-07-17-1';
 import { getState, setState } from '../../app/state.js';
-import { activateEEGMode, activateSimulationMode, disposeMode, syncRuntimeState } from '../../services/eegBridgeService.js?v=2026-07-16-3';
-import { attachCameraPreview, detachCameraPreview, requestCameraPreview, stopCameraPreview } from '../../services/focusInputService.js?v=2026-07-16-3';
+import { activateEEGMode, activateSimulationMode, disposeMode, syncRuntimeState } from '../../services/eegBridgeService.js?v=2026-07-17-1';
+import { attachCameraPreview, detachCameraPreview, requestCameraPreview, stopCameraPreview } from '../../services/focusInputService.js?v=2026-07-17-1';
 
 // Study Mode is live (D3 complete, 2026-07-16). The card is fully enterable;
 // only the extra subjects (Chemistry/Physics/History) stay locked until their

@@ -9,7 +9,7 @@ import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { SMAAPass } from 'three/addons/postprocessing/SMAAPass.js';
 import { setState, getState } from '../../app/state.js';
-import { getCameraFocusScore, getCameraTrackingStatus, stopCameraPreview } from '../../services/focusInputService.js?v=2026-07-16-3';
+import { getCameraFocusScore, getCameraTrackingStatus, stopCameraPreview } from '../../services/focusInputService.js?v=2026-07-17-1';
 import { appendSessionSummary, getSessionHistory, getLocalVoyageLog, appendVoyageLog, getCumulativeCloudDistance } from '../../services/storageService.js';
 import { initVoyage, resetVoyage, updateVoyage, getVoyageStats, getBuoysInWindow, routeXAt, routeYawAt, CHECKPOINT_SPACING, setVoyageVisible } from './voyage.js';
 import { getStudyMaterial, STUDY_PAGE_LIMIT_MS, STUDY_PAGE_MIN_MS } from './studyMaterials.js';
@@ -1514,6 +1514,14 @@ function showBreathingPrompt(message = langText('請留意呼吸，慢慢將注�
     const textEl = document.getElementById('breathing-prompt-text');
     if (!promptEl) return;
 
+    // Don't let a flavour cue sit under the breathing prompt (they share the
+    // bottom stack); hide the onboarding/voyage cue while the prompt is up.
+    const cue = document.getElementById('onboarding-cue');
+    if (cue && cue.classList.contains('is-in')) {
+        cue.classList.remove('is-in');
+        setTimeout(() => { if (!cue.classList.contains('is-in')) cue.style.display = 'none'; }, 600);
+    }
+
     if (textEl) textEl.textContent = message;
     promptEl.style.display = 'flex';
     promptEl.classList.add('active');
@@ -1637,6 +1645,15 @@ function stopBreathingIntervention() {
 function celebrateBoost() {
     playCorrectSound();
     document.body.classList.add('boost-celebrate');
+
+    // Study reading: the big centred flash would cover the reader, so show a
+    // compact bottom cue instead (positioned clear of the reader by CSS).
+    if (isStudyReading()) {
+        setTimeout(() => document.body.classList.remove('boost-celebrate'), FOCUS_TRAINING.boostDurationMs);
+        showTransientCue(langText('🌤 霧散返喇！專注回穩', '🌤 The mist is parting — focus restored'), 3000);
+        return;
+    }
+
     const flash = document.getElementById('boost-flash');
     const flashText = document.getElementById('boost-flash-text');
     if (flash && flashText) {
@@ -4484,6 +4501,27 @@ function buildStudyCsv(report) {
     return `${header}\n${row}\n`;
 }
 
+function getStoredUserEmail() {
+    try { return localStorage.getItem('nf_user_email') || ''; } catch (e) { return ''; }
+}
+
+// Exposed to the results page: produce a PDF by capturing the page via the
+// browser's print-to-PDF. Stamps the student's username + email into a
+// print-only header first, and expands any collapsed answer-review cards so
+// everything (incl. the charts) shows in the export. No external library.
+function exportStudyPdf() {
+    const nameEl = document.getElementById('print-student-name');
+    const emailEl = document.getElementById('print-student-email');
+    const dateEl = document.getElementById('print-date');
+    if (nameEl) nameEl.textContent = CONFIG.currentUser || '—';
+    if (emailEl) emailEl.textContent = getStoredUserEmail() || '—';
+    if (dateEl) dateEl.textContent = new Date().toLocaleString();
+    // Expand collapsed wrong-answer review cards so they print in full.
+    document.querySelectorAll('.review-item').forEach((el) => el.classList.add('is-open'));
+    // Let the DOM settle, then hand off to the browser's print dialog.
+    setTimeout(() => { try { window.print(); } catch (e) { console.warn('print failed', e); } }, 60);
+}
+
 // Exposed to the results page: trigger a local CSV download.
 function exportStudyCsv() {
     if (!lastStudyReport) return;
@@ -4641,21 +4679,29 @@ async function renderHistoryTrend() {
     }
 
     // Each bar carries its exact value as a label so the numbers are readable
-    // without hovering.
-    const bars = (values, formatter) => {
+    // without hovering. A genuine zero (e.g. a focused session with no
+    // distraction to recover from) is shown as a muted "—" so it doesn't look
+    // like missing data.
+    const bars = (values, formatter, zeroIsNoData = false) => {
         const max = Math.max(...values, 1);
         return values.map((v, i) => {
             const ratio = Math.max(0.06, v / max);
             const isLatest = i === values.length - 1;
-            return `<div class="dash-bar-wrap" title="${formatter(v)}">
-                <span class="dash-bar-value ${isLatest ? 'is-latest' : ''}">${formatter(v)}</span>
-                <div class="dash-bar ${isLatest ? 'is-latest' : ''}" style="height:${Math.round(ratio * 82)}%"></div>
+            const isZero = zeroIsNoData && !(v > 0);
+            const label = isZero ? '—' : formatter(v);
+            return `<div class="dash-bar-wrap" title="${label}">
+                <span class="dash-bar-value ${isLatest ? 'is-latest' : ''} ${isZero ? 'is-muted' : ''}">${label}</span>
+                <div class="dash-bar ${isLatest ? 'is-latest' : ''} ${isZero ? 'is-muted' : ''}" style="height:${Math.round(ratio * 82)}%"></div>
             </div>`;
         }).join('');
     };
 
-    const focusValues = history.map((s) => Math.max(0, Math.min(100, s.focusedRatio || 0)));
-    const recoveryValues = history.map((s) => Math.max(0, (s.avgRecoveryMs || 0) / 1000));
+    // Keep only sessions that actually recorded a focus number, so old/partial
+    // rows can't render as a confusing 0% bar.
+    const usable = history.filter((s) => Number.isFinite(Number(s.focusedRatio)));
+    const trendHistory = usable.length >= 2 ? usable : history;
+    const focusValues = trendHistory.map((s) => Math.max(0, Math.min(100, Number(s.focusedRatio) || 0)));
+    const recoveryValues = trendHistory.map((s) => Math.max(0, (Number(s.avgRecoveryMs) || 0) / 1000));
 
     // Headline: is the player recovering faster than their own recent average?
     let headline = '';
@@ -4697,7 +4743,7 @@ async function renderHistoryTrend() {
                 <div class="dash-bars">${bars(recoveryValues, (v) => `${v.toFixed(1)}s`, true)}</div>
             </div>
         </div>
-        <p class="dash-trend-note">${langText(`最近 ${history.length} 局，最右邊係今次。`, `Last ${history.length} sessions; rightmost is this one.`)}</p>`;
+        <p class="dash-trend-note">${langText(`最近 ${trendHistory.length} 局，最右邊係今次。恢復時間 0 = 嗰局冇分心要救。`, `Last ${trendHistory.length} sessions; rightmost is this one. Recovery 0 = no distraction to recover from.`)}</p>`;
 }
 
 // Alias for compatibility if needed, but we should use ROUTER
@@ -7514,6 +7560,7 @@ export {
     renderSessionDashboard,
     renderHistoryTrend,
     exportStudyCsv,
+    exportStudyPdf,
     setEEGConnectionState,
     showResults,
     startGameSession,

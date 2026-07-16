@@ -39,6 +39,7 @@ export async function login({ email, password }) {
         // SDK unreachable (offline booth demo): local fallback session.
         const username = normalizedEmail.split('@')[0];
         setCurrentUser(username);
+        rememberUserEmail(normalizedEmail);
         return { username, offline: true };
     }
 
@@ -53,6 +54,7 @@ export async function login({ email, password }) {
         }
         const username = displayNameFrom(data.user, normalizedEmail);
         setCurrentUser(username);
+        rememberUserEmail(normalizedEmail);
         return { username, offline: false };
     } catch (error) {
         if (error.code) throw error;
@@ -60,6 +62,7 @@ export async function login({ email, password }) {
             // No network at all (offline booth demo): local fallback session.
             const username = normalizedEmail.split('@')[0];
             setCurrentUser(username);
+            rememberUserEmail(normalizedEmail);
             return { username, offline: true };
         }
         throw authError('invalid_credentials');
@@ -77,6 +80,7 @@ export async function register({ username, email, password }) {
     if (!supabase) {
         // SDK unreachable (offline): register locally so the demo continues.
         setCurrentUser(normalizedUsername);
+        rememberUserEmail(normalizedEmail);
         return { username: normalizedUsername, offline: true };
     }
     if (normalizedPassword.length < 6) throw authError('weak_password');
@@ -110,14 +114,25 @@ export async function register({ username, email, password }) {
     }
 }
 
+// Remember the login email locally so exports (study PDF/CSV) can label who the
+// session belongs to. Best-effort; never blocks auth.
+const USER_EMAIL_KEY = 'nf_user_email';
+export function rememberUserEmail(email) {
+    try { localStorage.setItem(USER_EMAIL_KEY, String(email || '')); } catch (e) { /* best-effort */ }
+}
+export function getUserEmail() {
+    try { return localStorage.getItem(USER_EMAIL_KEY) || ''; } catch (e) { return ''; }
+}
+
 export function logout() {
     getSupabase().then((supabase) => supabase?.auth.signOut()).catch(() => {});
     clearCurrentUser();
+    try { localStorage.removeItem(USER_EMAIL_KEY); } catch (e) { /* best-effort */ }
 }
 
 export function getSessionUser() {
     const username = getCurrentUser();
-    return username ? { username } : null;
+    return username ? { username, email: getUserEmail() } : null;
 }
 
 // Supabase user id (uuid) for the currently signed-in cloud session, or null

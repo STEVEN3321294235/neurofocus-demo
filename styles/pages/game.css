@@ -158,7 +158,23 @@
     font-size: var(--game-hud-font);
     letter-spacing: 0.06em;
     text-transform: uppercase;
-    gap: 0.75rem;
+    gap: 0.5rem;
+    white-space: nowrap;
+    min-width: 0;
+}
+
+/* Keep the readout (%, km/h, distance) always visible: the label name shrinks
+   and truncates first, then the focus-zone chip; the value never shrinks. This
+   stops long states like "DISTRACTED" from pushing the percentage off-panel. */
+.label > span:first-child {
+    flex: 0 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.label > span:last-child {
+    flex: 0 0 auto;
     white-space: nowrap;
 }
 
@@ -313,17 +329,24 @@
     --study-accent-soft: rgba(34, 211, 238, 0.14);
     --study-accent-line: rgba(34, 211, 238, 0.3);
 
+    /* Serif reading face + a size scale that grows with the viewport, so the
+       whole reader (title, notes, terms) scales together on big and small
+       screens. --sr-fs is the base body size everything else is derived from. */
+    --sr-fs: clamp(1.02rem, 0.82rem + 0.72vw, 1.42rem);
+    --font-read: 'EB Garamond', Georgia, 'Songti SC', 'Noto Serif TC', 'Noto Serif CJK TC', serif;
+
     position: absolute;
-    right: 1rem;
+    right: clamp(0.75rem, 1.4vw, 1.6rem);
     top: 50%;
     transform: translateY(-50%);
-    /* ~60% of the screen, but never wide enough to reach the left HUD. */
-    width: min(60vw, calc(100vw - var(--game-side-panel-width) - 4rem));
-    height: min(78vh, 38rem);
+    /* Fill most of the free space to the right of the HUD (taller + wider than
+       before), but never wide enough to reach the left HUD. */
+    width: min(66vw, calc(100vw - var(--game-side-panel-width) - 3rem));
+    height: min(90vh, 52rem);
     display: flex;
     flex-direction: column;
-    gap: 0.6rem;
-    padding: 1.15rem 1.25rem 1.2rem;
+    gap: clamp(0.5rem, 0.9vh, 0.9rem);
+    padding: clamp(1.1rem, 1.6vw, 1.8rem) clamp(1.2rem, 1.8vw, 2rem);
     border-radius: 24px;
     background: var(--study-surface);
     border: 1px solid var(--study-border);
@@ -331,6 +354,7 @@
         inset 0 1px 0 rgba(255, 255, 255, 0.06),
         0 24px 52px rgba(2, 8, 23, 0.42);
     color: var(--study-text);
+    font-family: var(--font-read);
     backdrop-filter: blur(20px) saturate(128%);
     -webkit-backdrop-filter: blur(20px) saturate(128%);
 }
@@ -360,9 +384,10 @@ body.light-mode #study-reader {
 }
 
 .study-reader-chip {
-    padding: 0.2rem 0.62rem;
+    font-family: var(--font-main);
+    padding: 0.24rem 0.7rem;
     border-radius: 999px;
-    font-size: 0.72rem;
+    font-size: calc(var(--sr-fs) * 0.66);
     letter-spacing: 0.05em;
     color: var(--study-accent);
     background: var(--study-accent-soft);
@@ -413,48 +438,54 @@ body.light-mode #study-reader {
 }
 
 .study-reader-topic {
-    font-size: 0.74rem;
-    letter-spacing: 0.04em;
+    font-family: var(--font-tech);
+    font-size: calc(var(--sr-fs) * 0.62);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
     color: var(--study-accent);
     font-weight: 600;
 }
 
 #study-reader-title {
     margin: 0;
-    font-size: 1.05rem;
+    font-size: calc(var(--sr-fs) * 1.32);
     font-weight: 700;
     color: var(--study-heading);
     letter-spacing: 0.01em;
+    line-height: 1.25;
 }
 
-/* Notes-style body: comfortable reading column, clear heading/term/bullet
-   hierarchy so it reads like study notes rather than a wall of text. */
+/* Notes-style body: comfortable serif reading column, clear heading/term/
+   bullet hierarchy so it reads like study notes rather than a wall of text.
+   Everything is sized off --sr-fs so it scales with the viewport. */
 #study-reader-body {
     flex: 1;
     min-height: 0;
     overflow-y: auto;
-    padding: 0.35rem 0.55rem 0.35rem 0.2rem;
-    font-family: var(--font-body, inherit);
-    font-size: 0.95rem;
-    line-height: 1.7;
+    padding: 0.4rem 0.7rem 0.4rem 0.25rem;
+    font-family: var(--font-read);
+    font-size: var(--sr-fs);
+    line-height: 1.72;
     color: var(--study-text);
     border-radius: 12px;
 }
 
-#study-reader-body > * { margin: 0 0 0.7rem; }
+#study-reader-body > * { margin: 0 0 0.85em; }
 #study-reader-body > *:last-child { margin-bottom: 0.2rem; }
 
 .study-block-lead {
-    font-size: 0.98rem;
+    font-size: calc(var(--sr-fs) * 1.04);
     color: var(--study-text);
     font-weight: 500;
+    font-style: italic;
 }
 
 .study-block-heading {
-    margin-top: 0.2rem;
-    font-size: 0.9rem;
+    margin-top: 0.3em;
+    font-family: var(--font-tech);
+    font-size: calc(var(--sr-fs) * 0.82);
     font-weight: 700;
-    letter-spacing: 0.03em;
+    letter-spacing: 0.04em;
     text-transform: uppercase;
     color: var(--study-accent);
 }
@@ -464,21 +495,21 @@ body.light-mode #study-reader {
 }
 
 .study-block-list {
-    margin: 0 0 0.7rem;
-    padding-left: 1.2rem;
+    margin: 0 0 0.85em;
+    padding-left: 1.3em;
     list-style: disc;
 }
 
 .study-block-list li {
-    margin-bottom: 0.35rem;
+    margin-bottom: 0.4em;
     color: var(--study-text);
 }
 
 .study-block-term {
     display: grid;
-    grid-template-columns: minmax(6.5rem, 34%) 1fr;
-    gap: 0.2rem 0.8rem;
-    padding: 0.45rem 0.6rem;
+    grid-template-columns: minmax(7rem, 32%) 1fr;
+    gap: 0.25em 0.9em;
+    padding: 0.55em 0.75em;
     border-radius: 10px;
     background: var(--study-inset);
     border: 1px solid var(--study-border);
@@ -491,16 +522,16 @@ body.light-mode #study-reader {
 
 .study-term-def {
     color: var(--study-text-soft);
-    font-size: 0.9rem;
+    font-size: calc(var(--sr-fs) * 0.94);
 }
 
 .study-block-note {
-    padding: 0.55rem 0.75rem;
+    padding: 0.65em 0.85em;
     border-radius: 10px;
     border-left: 3px solid var(--study-accent);
     background: var(--study-accent-soft);
     color: var(--study-text);
-    font-size: 0.9rem;
+    font-size: calc(var(--sr-fs) * 0.96);
 }
 
 .study-reader-actions {
@@ -511,13 +542,14 @@ body.light-mode #study-reader {
 
 #study-next-btn {
     width: 100%;
-    min-height: 46px;
-    padding: 0.72rem 1rem;
+    min-height: clamp(46px, 6vh, 60px);
+    padding: 0.8rem 1rem;
     border-radius: 14px;
     border: 1px solid rgba(34, 211, 238, 0.42);
     background: linear-gradient(180deg, rgba(34, 211, 238, 0.22), rgba(14, 116, 144, 0.3));
     color: #e6fbff;
-    font-size: 0.95rem;
+    font-family: var(--font-main);
+    font-size: calc(var(--sr-fs) * 0.94);
     font-weight: 600;
     letter-spacing: 0.03em;
     cursor: pointer;
@@ -561,13 +593,15 @@ body.light-mode #study-next-btn.is-quiz {
    the sea (and the left HUD) stay visible. */
 @media (max-width: 820px), (max-height: 560px) {
     #study-reader {
+        /* smaller base size on phones; the clamp still scales it smoothly */
+        --sr-fs: clamp(0.9rem, 0.7rem + 1vw, 1.1rem);
         right: 0.6rem;
-        width: min(58vw, calc(100vw - var(--game-side-panel-width) - 2rem));
-        height: min(84vh, 32rem);
+        width: min(60vw, calc(100vw - var(--game-side-panel-width) - 1.5rem));
+        height: min(90vh, 34rem);
         padding: 0.85rem 0.9rem 0.9rem;
         border-radius: 18px;
     }
-    #study-reader-body { font-size: 0.9rem; line-height: 1.62; }
+    #study-reader-body { line-height: 1.62; }
     .study-block-term { grid-template-columns: 1fr; gap: 0.1rem; }
 }
 
@@ -1138,20 +1172,23 @@ body.light-mode #study-next-btn.is-quiz {
         0 0 46px rgba(250, 204, 21, 0.22);
 }
 
+/* Breathing overlay can sit over the light study reader, so every text piece
+   carries a strong dark halo to stay readable on light OR dark backgrounds. */
 .breathing-kicker {
     font-family: var(--font-tech);
     font-size: 0.78rem;
     letter-spacing: 0.22em;
     text-transform: uppercase;
-    color: rgba(253, 224, 71, 0.92);
+    color: rgba(253, 224, 71, 0.96);
+    text-shadow: 0 2px 10px rgba(0, 0, 0, 0.85), 0 0 4px rgba(0, 0, 0, 0.7);
 }
 
 .breathing-title {
     margin-top: 0.6rem;
     font-size: clamp(1.35rem, 3vw, 1.8rem);
     font-weight: 700;
-    color: #f8fafc;
-    text-shadow: 0 2px 12px rgba(0, 0, 0, 0.45);
+    color: #ffffff;
+    text-shadow: 0 2px 16px rgba(0, 0, 0, 0.9), 0 0 6px rgba(0, 0, 0, 0.8), 0 0 2px rgba(0, 0, 0, 0.9);
 }
 
 .breathing-phase {
@@ -1159,15 +1196,15 @@ body.light-mode #study-next-btn.is-quiz {
     font-family: var(--font-tech);
     font-size: clamp(1.1rem, 2.4vw, 1.35rem);
     color: #fde68a;
-    -webkit-text-stroke: 0.5px rgba(255, 255, 255, 0.72);
-    text-shadow: 0 2px 10px rgba(0, 0, 0, 0.55), 0 0 14px rgba(250, 204, 21, 0.26);
+    -webkit-text-stroke: 0.6px rgba(0, 0, 0, 0.55);
+    text-shadow: 0 2px 14px rgba(0, 0, 0, 0.9), 0 0 6px rgba(0, 0, 0, 0.75), 0 0 16px rgba(250, 204, 21, 0.3);
 }
 
 .breathing-helper {
     margin-top: 0.65rem;
-    color: rgba(226, 232, 240, 0.82);
+    color: #f1f5f9;
     line-height: 1.55;
-    text-shadow: 0 2px 10px rgba(15, 23, 42, 0.22);
+    text-shadow: 0 2px 14px rgba(0, 0, 0, 0.9), 0 0 5px rgba(0, 0, 0, 0.7);
 }
 
 #focus-value,
@@ -1952,10 +1989,15 @@ body.challenge-session #voyage-card #voyage-log-line {
 #focus-zone-chip {
     padding: 0.1rem 0.55rem;
     border-radius: 999px;
-    font-size: 0.72rem;
+    font-size: calc(var(--game-hud-font-sm, 0.72rem) * 0.94);
     font-weight: 700;
     letter-spacing: 0.05em;
-    margin-right: 0.4rem;
+    margin-right: 0.3rem;
+    flex: 0 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 #focus-zone-chip.zone-low { background: rgba(245, 158, 11, 0.18); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.5); }
@@ -1983,6 +2025,33 @@ body.challenge-session #voyage-card #voyage-log-line {
 }
 
 #onboarding-cue.is-in { opacity: 1; }
+
+/* Study reading: the reader fills the right side, so keep transient cues in the
+   free strip to the LEFT of it — bottom-anchored, single line, clear of the
+   notes. (The big centred boost flash is swapped for this cue in study mode.) */
+body.study-session #onboarding-cue {
+    left: clamp(0.75rem, 1.4vw, 1.6rem);
+    right: auto;
+    bottom: calc(env(safe-area-inset-bottom, 0px) + 1rem);
+    transform: none;
+    text-align: left;
+    max-width: calc(100vw - min(66vw, calc(100vw - var(--game-side-panel-width) - 3rem)) - clamp(1.5rem, 3.2vw, 3.4rem));
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-size: 0.9rem;
+}
+
+body.study-session #breathing-prompt {
+    left: clamp(0.75rem, 1.4vw, 1.6rem);
+    right: auto;
+    bottom: calc(env(safe-area-inset-bottom, 0px) + 4rem);
+    transform: none;
+    max-width: calc(100vw - min(66vw, calc(100vw - var(--game-side-panel-width) - 3rem)) - clamp(1.5rem, 3.2vw, 3.4rem));
+}
+body.study-session #breathing-prompt.active {
+    animation: none;
+}
 
 #boost-flash {
     position: fixed;

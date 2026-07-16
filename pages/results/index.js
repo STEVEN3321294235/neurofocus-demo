@@ -1,7 +1,7 @@
-import { t } from '../../app/i18n.js?v=2026-07-16-3';
+import { t } from '../../app/i18n.js?v=2026-07-17-1';
 import { getState, resetFlowState, setState } from '../../app/state.js';
-import { disposeMode, syncRuntimeState } from '../../services/eegBridgeService.js?v=2026-07-16-3';
-import { importGameRuntime } from '../../services/runtimeLoader.js?v=2026-07-16-3';
+import { disposeMode, syncRuntimeState } from '../../services/eegBridgeService.js?v=2026-07-17-1';
+import { importGameRuntime } from '../../services/runtimeLoader.js?v=2026-07-17-1';
 
 async function getRuntime() {
     return importGameRuntime('/pages/game/runtime.js');
@@ -33,6 +33,17 @@ export default {
                             </div>
                         </div>
 
+                        <!-- Print-only header: student identity for the PDF export
+                             (hidden on screen, shown when printing). -->
+                        <div class="results-print-header" aria-hidden="true">
+                            <div class="print-title">NeuroFocus — ${t('results_title')}</div>
+                            <div class="print-meta">
+                                <span>${t('game_player')}：<strong id="print-student-name">—</strong></span>
+                                <span>Email：<strong id="print-student-email">—</strong></span>
+                                <span id="print-date"></span>
+                            </div>
+                        </div>
+
                         <!-- 1. Hero verdict (painted by runtime) -->
                         <section class="results-hero" id="results-hero"></section>
 
@@ -58,8 +69,10 @@ export default {
                             <div id="dash-focus-curve"></div>
                         </section>
 
-                        <!-- 5. Progress trend -->
-                        <section class="results-card">
+                        <!-- 5. Progress trend (hidden in Study Mode: study data
+                             lives in the reading/quiz cards + CSV, not this
+                             training/challenge cross-session history). -->
+                        <section class="results-card" id="results-trend-card">
                             <div class="results-card-head">
                                 <div>
                                     <h2>${t('dash_trend_title')}</h2>
@@ -75,6 +88,7 @@ export default {
                         <!-- 7. Actions -->
                         <div class="results-actions">
                             <button type="button" class="results-btn-primary" id="btn-restart">${t('play_again')}</button>
+                            <button type="button" class="results-btn-secondary" id="btn-export-pdf">${t('results_export_pdf')}</button>
                             <button type="button" class="results-btn-secondary" id="btn-export-csv" style="display: none;">${t('results_export_csv')}</button>
                             <button type="button" class="results-btn-secondary" id="btn-home">${t('back_home')}</button>
                         </div>
@@ -108,6 +122,10 @@ export default {
             if (!btn) return;
             const item = btn.closest('.review-item');
             if (item) item.classList.toggle('is-open');
+        });
+
+        root.querySelector('#btn-export-pdf')?.addEventListener('click', () => {
+            try { runtime.exportStudyPdf(); } catch (e) { console.warn('PDF export failed', e); }
         });
 
         root.querySelector('#btn-export-csv')?.addEventListener('click', () => {

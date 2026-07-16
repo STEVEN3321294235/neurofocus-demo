@@ -48,6 +48,13 @@
 > ㉒ **D3-6**：學習模式**正式站解鎖**（額外學科維持鎖住）；reading→quiz→results→CSV 全流程 headless 深淺色實測 ✅。
 > ㉓ **教材（老師提供，已數碼化）**：生物「細胞膜與物質運輸」——基礎（初中，4 sub-topic）＋進階（高中，4 sub-topic＋延伸節），雙語筆記，各 **10 條**審核 MC（老師卷 8 條＋補 2 條同標準）。存 `pages/game/studyMaterials.js`，老師可直接審核/取代。
 > ㉔ **同批打磨（Steven 07-16 指示）**：每頁最短閱讀 60 秒→**15 秒**；學習模式設定面板**刪走鏡頭距離＋音量**兩組；Setup **移除頂部引導步驟**、電腦上**拉闊**、學科**每行一個**、目標說明**加返學習模式**；**Auth 手機置中**＋短螢幕遊戲 HUD 微調。模組版本 `2026-07-16-3`。
+>
+> **2026-07-17 第七輪（Steven 六點回饋打磨）**：
+> ㉕ **閱讀器**：字體改**襯線（EB Garamond + CJK serif）**、放大（`--sr-fs` clamp 隨螢幕縮放，全部標題/內文/名詞/掣一齊 scale）、面板**拉高拉闊**（`min(66vw, …)` × `min(90vh, 52rem)`）；呼吸介面文字**加深色 halo 陰影**（喺白色閱讀器上都睇得清）。
+> ㉖ **HUD 修復**：Focus 標籤三格（名稱＋狀態 chip＋%）加 flex 收縮規則——「DISTRACTED」再長都唔會逼走 %（名稱先縮、chip 再縮、% 永遠見）；彈出提示防重疊（呼吸提示出現時收起航程 cue；學習模式大 boost flash 改成細 cue、擺去閱讀器左邊唔遮）。
+> ㉗ **Setup 拉闊**：`.setup-panel-compact` 由 **760px → min(96vw, 1440px)**（實測 1512 螢幕面板 1440px、目標卡三欄一行、唔使捲）；框感減淡。
+> ㉘ **Results**：跨場趨勢圖 0 值改顯示「—」（＝嗰局冇分心要救，唔係漏數據）＋過濾冇 focus 數字嘅舊 row；**學習模式隱藏跨場趨勢卡**（study 數據喺溫習/答題卡＋匯出，唔喺 training/challenge 歷史）；新增**「匯出 PDF」**（用瀏覽器 print-to-PDF 直接 capture 成頁、含**用戶名＋email**頁首、圖表照印、自動展開答錯卡）——login/register 會記住 email 俾匯出用；CSV 仍保留做原始數據。
+> ㉙ **紙本教材**：新增 `docs/STUDY_MATERIALS_PRINT.md`——由 `scripts/gen_materials_md.mjs` 程式生成，同平台版逐字一致，實驗紙本組直接印。模組版本 `2026-07-17-1`。
 
 ---
 
@@ -311,6 +318,7 @@ curl -s -X POST "https://<你嘅-app>.vercel.app/api/questions" \
 - **基礎（初中）**：細胞膜差異透性、擴散、滲透、主動運輸（4 sub-topic＋導論頁）＋ **10 條**審核 MC。
 - **進階（高中）**：流動鑲嵌模型、滲透對動植物差異、氣體交換擴散、植物滲透支撐（4 sub-topic）＋**延伸節（運輸能量比較、表面積體積比）**＋ **10 條**審核 MC。
 - 全部**雙語（中/英）**、筆記式結構、MC 跟遊戲題目 schema（4 選項＋正解＋解釋）。老師卷原本各 8 條，補足到 10 條同標準。**老師可直接審核或整份換走**（改同一個檔案即得，唔使郁其他 code）。
+- 📄 **紙本版（實驗紙本組用）**：`docs/STUDY_MATERIALS_PRINT.md` 係由 `scripts/gen_materials_md.mjs` **程式自動生成**，同平台版**逐字一致**（筆記＋MC＋答案），直接打印就得。改咗 `studyMaterials.js` 之後重新生成：`node scripts/gen_materials_md.mjs > docs/STUDY_MATERIALS_PRINT.md`。
 
 **依賴/待辦（人手，非 code）**：① 老師確認卷設計（同材料同卷 **＋ 兩組係咪都喺平台答卷**——見上面公平性提醒）＋審核教材同 MC；② 若要用其他科目/課題，提供材料換入 `studyMaterials.js`；③ 定實驗日期＋招 2–3 個學生（留 buffer 出 CSV）。
 **讓路**：P2 剩餘美化、隱私政策頁排 D3 之後。
