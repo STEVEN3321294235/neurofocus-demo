@@ -1,7 +1,8 @@
-import { t } from '../../app/i18n.js?v=2026-07-17-1';
+import { t } from '../../app/i18n.js?v=2026-07-17-2';
 import { getState, resetFlowState, setState } from '../../app/state.js';
-import { disposeMode, syncRuntimeState } from '../../services/eegBridgeService.js?v=2026-07-17-1';
-import { importGameRuntime } from '../../services/runtimeLoader.js?v=2026-07-17-1';
+import { disposeMode, syncRuntimeState } from '../../services/eegBridgeService.js?v=2026-07-17-2';
+import { importGameRuntime } from '../../services/runtimeLoader.js?v=2026-07-17-2';
+import { syncUserEmail } from '../../services/authService.js';
 
 async function getRuntime() {
     return importGameRuntime('/pages/game/runtime.js');
@@ -115,6 +116,9 @@ export default {
         runtime.renderResults();
         runtime.renderSessionDashboard();
         runtime.renderHistoryTrend().catch(() => {});
+        // Backfill the login email so the PDF export header can show it, even
+        // for users who signed in before we started storing it.
+        syncUserEmail().catch(() => {});
 
         // Answer-review cards expand/collapse on click (challenge mode).
         root.querySelector('#results-achievements')?.addEventListener('click', (event) => {

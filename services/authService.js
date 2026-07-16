@@ -124,6 +124,19 @@ export function getUserEmail() {
     try { return localStorage.getItem(USER_EMAIL_KEY) || ''; } catch (e) { return ''; }
 }
 
+// Backfill the remembered email from the live Supabase session — covers users
+// who signed in before the email was being stored. Best-effort, returns the
+// email either way.
+export async function syncUserEmail() {
+    try {
+        const supabase = await getSupabase();
+        const { data } = (await supabase?.auth.getSession()) || {};
+        const email = data?.session?.user?.email;
+        if (email) rememberUserEmail(email);
+    } catch (e) { /* offline / no session: keep whatever we have */ }
+    return getUserEmail();
+}
+
 export function logout() {
     getSupabase().then((supabase) => supabase?.auth.signOut()).catch(() => {});
     clearCurrentUser();

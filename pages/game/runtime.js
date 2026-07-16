@@ -9,7 +9,7 @@ import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { SMAAPass } from 'three/addons/postprocessing/SMAAPass.js';
 import { setState, getState } from '../../app/state.js';
-import { getCameraFocusScore, getCameraTrackingStatus, stopCameraPreview } from '../../services/focusInputService.js?v=2026-07-17-1';
+import { getCameraFocusScore, getCameraTrackingStatus, stopCameraPreview } from '../../services/focusInputService.js?v=2026-07-17-2';
 import { appendSessionSummary, getSessionHistory, getLocalVoyageLog, appendVoyageLog, getCumulativeCloudDistance } from '../../services/storageService.js';
 import { initVoyage, resetVoyage, updateVoyage, getVoyageStats, getBuoysInWindow, routeXAt, routeYawAt, CHECKPOINT_SPACING, setVoyageVisible } from './voyage.js';
 import { getStudyMaterial, STUDY_PAGE_LIMIT_MS, STUDY_PAGE_MIN_MS } from './studyMaterials.js';
@@ -543,18 +543,23 @@ function updateStudyNextButton(elapsedMs) {
     const nextBtn = document.getElementById('study-next-btn');
     if (!nextBtn || !studySession) return;
     const isLastPage = studySession.index >= studySession.pages.length - 1;
-    nextBtn.classList.toggle('is-quiz', isLastPage);
     const lockRemainingMs = STUDY_PAGE_MIN_MS - elapsedMs;
+    let label;
+    let disabled;
     if (lockRemainingMs > 0) {
-        nextBtn.disabled = true;
+        disabled = true;
         const secs = Math.ceil(lockRemainingMs / 1000);
-        nextBtn.textContent = langText(`請先閱讀（${secs} 秒）`, `Keep reading (${secs}s)`);
+        label = langText(`請先閱讀（${secs} 秒）`, `Keep reading (${secs}s)`);
     } else {
-        nextBtn.disabled = false;
-        nextBtn.textContent = isLastPage
-            ? langText('進行測驗', 'Start Quiz')
-            : langText('下一頁', 'Next Page');
+        disabled = false;
+        label = isLastPage ? langText('進行測驗', 'Start Quiz') : langText('下一頁', 'Next Page');
     }
+    // Only touch the DOM when something actually changes (called ~50x/sec).
+    if (nextBtn.dataset.k === label) return;
+    nextBtn.dataset.k = label;
+    nextBtn.classList.toggle('is-quiz', isLastPage);
+    nextBtn.disabled = disabled;
+    nextBtn.textContent = label;
 }
 
 function renderStudyPageTimer(remainingMs) {
@@ -564,6 +569,11 @@ function renderStudyPageTimer(remainingMs) {
     // as a real 00:00 instead.
     const clamped = Math.max(0, remainingMs);
     const text = clamped <= 0 ? '00:00' : GAME_STATS.formatTime(clamped).substring(0, 5);
+    // Skip the DOM rebuild when nothing visibly changed — this runs ~50x/sec but
+    // the shown value only changes once a second.
+    const key = (CONFIG.isPaused ? 'P' : '') + text;
+    if (el.dataset.k === key) return;
+    el.dataset.k = key;
     if (CONFIG.isPaused) {
         el.innerHTML = `<span class="material-symbols-outlined pause-icon" style="font-size: 1.1em; vertical-align: text-bottom; margin-right: 4px; color: inherit; text-shadow: inherit;">pause_circle</span>${text}`;
     } else {
@@ -2336,7 +2346,10 @@ const gameLoop = new PrecisionLoop((deltaMs, totalTimeMs) => {
         }
         
         if (progress >= 1.0) {
-            // envState.isTransitioning = false; // Keep updating subtly is fine, or stop to save perf
+            // Stop the transition once complete — otherwise this whole block
+            // (boat.traverse + every light/water lerp) keeps running every frame
+            // forever after the first theme switch, quietly costing FPS.
+            envState.isTransitioning = false;
         }
     }
 
@@ -2381,16 +2394,39 @@ function updateDigitDisplay(element, text) {
     element.innerHTML = html;
 }
 
+// The portrait warning is driven purely by CSS media queries. Cache whether it
+// is showing via matchMedia (updated on change/resize) so the per-frame pause
+// check doesn't call getComputedStyle — that forces a synchronous style recalc
+// every single frame, which measurably costs FPS.
+let portraitBlockActive = false;
+function updatePortraitBlockState() {
+    try {
+        portraitBlockActive =
+            window.matchMedia('(orientation: portrait)').matches ||
+            window.matchMedia('(max-aspect-ratio: 11/10) and (max-width: 900px)').matches;
+    } catch (e) {
+        portraitBlockActive = false;
+    }
+}
+if (typeof window !== 'undefined' && window.matchMedia) {
+    updatePortraitBlockState();
+    ['(orientation: portrait)', '(max-aspect-ratio: 11/10) and (max-width: 900px)'].forEach((q) => {
+        const mq = window.matchMedia(q);
+        (mq.addEventListener ? mq.addEventListener.bind(mq, 'change') : mq.addListener?.bind(mq))?.(updatePortraitBlockState);
+    });
+    window.addEventListener('resize', updatePortraitBlockState);
+    window.addEventListener('orientationchange', updatePortraitBlockState);
+}
+
 function updateGameLogic(delta) {
     // Check Pause Conditions
     let shouldPause = false;
-    
+
     // Condition 1: Question missing but waiting
     if (isWaitingForQuestions) shouldPause = true;
-    
-    // Condition 2: Screen issue (portrait warning)
-    const warningEl = document.getElementById('portrait-warning');
-    if (warningEl && window.getComputedStyle(warningEl).display !== 'none') {
+
+    // Condition 2: Screen issue (portrait warning) — cached, no per-frame reflow.
+    if (portraitBlockActive) {
         shouldPause = true;
     }
     

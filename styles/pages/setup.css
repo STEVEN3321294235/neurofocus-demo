@@ -520,3 +520,69 @@ body.light-mode .page-setup {
     background: color-mix(in srgb, var(--primary-color) 22%, transparent);
     box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary-color) 14%, transparent);
 }
+
+/* --- Setup top-right settings menu (reset data / delete account) --------- */
+.setup-header {
+    justify-content: space-between;
+    align-items: flex-start;
+}
+
+.setup-settings {
+    position: relative;
+    flex: 0 0 auto;
+}
+
+.setup-settings-btn {
+    width: 2.6rem;
+    height: 2.6rem;
+    border-radius: 999px;
+    border: 1px solid var(--panel-border);
+    background: var(--field-bg, rgba(255, 255, 255, 0.06));
+    color: var(--text-color);
+    font-size: 1.2rem;
+    cursor: pointer;
+    transition: transform 0.2s ease, background-color 0.2s ease;
+}
+.setup-settings-btn:hover { transform: rotate(20deg); background: var(--field-bg-hover, rgba(255, 255, 255, 0.12)); }
+
+.setup-settings-menu {
+    position: absolute;
+    top: 3rem;
+    right: 0;
+    z-index: 40;
+    width: min(20rem, 84vw);
+    padding: 0.6rem;
+    border-radius: var(--radius-md, 16px);
+    border: 1px solid var(--panel-border);
+    background: var(--panel-bg);
+    box-shadow: var(--shadow-soft, 0 24px 60px rgba(2, 8, 23, 0.4));
+    backdrop-filter: blur(18px);
+}
+
+.setup-settings-menu-title {
+    padding: 0.3rem 0.6rem 0.5rem;
+    font-size: 0.78rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+}
+
+.setup-settings-item {
+    display: block;
+    width: 100%;
+    text-align: left;
+    padding: 0.7rem 0.75rem;
+    border-radius: 12px;
+    border: 1px solid transparent;
+    background: transparent;
+    color: var(--text-color);
+    cursor: pointer;
+    transition: background-color 0.18s ease, border-color 0.18s ease;
+}
+.setup-settings-item + .setup-settings-item { margin-top: 0.25rem; }
+.setup-settings-item strong { display: block; font-size: 0.95rem; }
+.setup-settings-item span { display: block; margin-top: 0.15rem; font-size: 0.8rem; color: var(--text-muted); }
+.setup-settings-item:hover { background: rgba(148, 163, 184, 0.1); border-color: var(--panel-border); }
+.setup-settings-item.is-danger strong { color: #f87171; }
+.setup-settings-item.is-danger:hover { background: rgba(248, 113, 113, 0.1); border-color: rgba(248, 113, 113, 0.4); }
+.setup-settings-item:disabled { opacity: 0.6; cursor: default; }

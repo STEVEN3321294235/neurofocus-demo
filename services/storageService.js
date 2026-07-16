@@ -38,6 +38,45 @@ export function clearCurrentUser() {
     localStorage.removeItem(STORAGE_KEYS.user);
 }
 
+// --- Data management (Setup settings menu) --------------------------------
+// Local keys that hold a player's PROGRESS/RESULTS (not their preferences or
+// login). Cleared on "reset all data" and "delete account".
+const GAME_DATA_KEYS = [
+    'session_history', 'voyage_log', 'last_session_snapshot_v1',
+    'best_distance', 'best_accuracy', 'best_time', 'best_session_stars',
+    'quality_mode', 'camera_distance_scale', 'bgm_volume_pct', 'sfx_volume_pct',
+    'last_session_mode', 'last_session_difficulty', 'nf_study_dev_unlock'
+];
+
+async function deleteCloudHistory() {
+    const { supabase, userId } = await getCloudSession();
+    if (supabase && userId) {
+        try { await supabase.from('session_history').delete().eq('user_id', userId); } catch (e) { /* best-effort */ }
+    }
+}
+
+// Wipe the player's game data (local progress/history + cloud session rows),
+// keeping their login + language/theme preferences.
+export async function resetAllData() {
+    GAME_DATA_KEYS.forEach((k) => { try { localStorage.removeItem(k); } catch (e) { /* best-effort */ } });
+    await deleteCloudHistory();
+}
+
+// Delete the account's data and sign out. Note: removing the Supabase AUTH
+// user itself needs a privileged server call, so client-side we delete all of
+// the user's stored data + end the session (the practical "delete my account"
+// for this prototype). Also clears the remembered email + username locally.
+export async function deleteAccountData() {
+    await deleteCloudHistory();
+    GAME_DATA_KEYS.forEach((k) => { try { localStorage.removeItem(k); } catch (e) { /* best-effort */ } });
+    try { localStorage.removeItem('nf_user_email'); } catch (e) { /* best-effort */ }
+    try {
+        const supabase = await getSupabase();
+        await supabase?.auth.signOut();
+    } catch (e) { /* best-effort */ }
+    clearCurrentUser();
+}
+
 // --- Cross-session history (Supabase when signed in, localStorage fallback) ---
 //
 // Summary shape (camelCase in JS, snake_case in the DB):

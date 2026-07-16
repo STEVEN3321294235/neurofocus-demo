@@ -55,6 +55,12 @@
 > ㉗ **Setup 拉闊**：`.setup-panel-compact` 由 **760px → min(96vw, 1440px)**（實測 1512 螢幕面板 1440px、目標卡三欄一行、唔使捲）；框感減淡。
 > ㉘ **Results**：跨場趨勢圖 0 值改顯示「—」（＝嗰局冇分心要救，唔係漏數據）＋過濾冇 focus 數字嘅舊 row；**學習模式隱藏跨場趨勢卡**（study 數據喺溫習/答題卡＋匯出，唔喺 training/challenge 歷史）；新增**「匯出 PDF」**（用瀏覽器 print-to-PDF 直接 capture 成頁、含**用戶名＋email**頁首、圖表照印、自動展開答錯卡）——login/register 會記住 email 俾匯出用；CSV 仍保留做原始數據。
 > ㉙ **紙本教材**：新增 `docs/STUDY_MATERIALS_PRINT.md`——由 `scripts/gen_materials_md.mjs` 程式生成，同平台版逐字一致，實驗紙本組直接印。模組版本 `2026-07-17-1`。
+>
+> **2026-07-17 第八輪（Steven 四點回饋・效能急救）**：
+> ㉚ **閱讀器高度**：由「垂直置中（`top:50%`＋translateY）＋固定 `min(90vh,52rem)` 高」改成**上下錨定**（`top: clamp(4.4rem,7vh,6rem)`、`bottom: clamp(0.75rem,1.6vh,1.6rem)`）——面板永遠喺頂列**按鈕下面**、唔再遮住右上角掣，同時食滿剩餘高度。
+> ㉛ **⚡ FPS 急跌急救（最高畫質由 120 跌到有時 <60）**：查出三個**逐幀**成本源並修好——(a) 主題切換後 `envState.isTransitioning` 冇 set 返 `false`，令一段**重 per-frame lerp ＋ boat.traverse 永遠行落去** → progress 滿咗即 stop；(b) 暫停檢查每幀 `getComputedStyle(warningEl)` **強制同步 style recalc** → 改用 `matchMedia` cache（`portraitBlockActive`，只喺 resize/orientation 時更新）；(c) 閱讀器 `backdrop-filter: blur(20px)` 罩住 66vw×90vh 動畫場景**每幀 GPU 重算** → 收細到 `blur(7px)`＋加厚面板底色補償。另外學習頁計時器/下一頁掣加 `dataset` 去重，唔再每 tick 重砌 DOM。
+> ㉜ **匯出 PDF 補 email**：`authService` 新增 `nf_user_email`（login/register 都記低）＋ `syncUserEmail()`（舊用戶由 Supabase session 回填），Results 頁首而家真係印到登入 email。
+> ㉝ **Setup 右上設定選單**：齒輪掣 → **重設所有數據**（清進度/歷史/結果＋雲端 session rows，保留登入＋語言/主題）＋**刪除帳戶**（清晒數據＋email＋登出＋返主頁）；兩個都有中文確認彈窗，`storageService` 加 `resetAllData()`/`deleteAccountData()`。模組版本 `2026-07-17-2`。全部 headless 實測 ✅（Setup 選單 12/12、遊戲 4 秒 render loop 零錯）。
 
 ---
 

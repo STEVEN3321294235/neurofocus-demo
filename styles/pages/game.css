@@ -318,8 +318,9 @@
    Theme tokens keep the two modes in sync.
 --------------------------------------------------------------------------- */
 #study-reader {
-    /* dark (default) frosted tokens */
-    --study-surface: rgba(9, 18, 32, 0.58);
+    /* dark (default) frosted tokens — surface is fairly opaque so a small blur
+       radius still looks like frosted glass without the per-frame blur cost. */
+    --study-surface: rgba(9, 18, 32, 0.86);
     --study-border: rgba(148, 163, 184, 0.22);
     --study-inset: rgba(23, 39, 62, 0.5);
     --study-text: #e7f1fb;
@@ -337,12 +338,13 @@
 
     position: absolute;
     right: clamp(0.75rem, 1.4vw, 1.6rem);
-    top: 50%;
-    transform: translateY(-50%);
-    /* Fill most of the free space to the right of the HUD (taller + wider than
-       before), but never wide enough to reach the left HUD. */
+    /* Anchor below the top bar and above the bottom edge so the reader never
+       covers the top-right buttons and always fits the free vertical space. */
+    top: clamp(4.4rem, 7vh, 6rem);
+    bottom: clamp(0.75rem, 1.6vh, 1.6rem);
+    /* Fill most of the free space to the right of the HUD, but never wide
+       enough to reach the left HUD. */
     width: min(66vw, calc(100vw - var(--game-side-panel-width) - 3rem));
-    height: min(90vh, 52rem);
     display: flex;
     flex-direction: column;
     gap: clamp(0.5rem, 0.9vh, 0.9rem);
@@ -355,13 +357,16 @@
         0 24px 52px rgba(2, 8, 23, 0.42);
     color: var(--study-text);
     font-family: var(--font-read);
-    backdrop-filter: blur(20px) saturate(128%);
-    -webkit-backdrop-filter: blur(20px) saturate(128%);
+    /* A light blur is enough — a big backdrop-filter over the animating scene
+       is a per-frame GPU cost, so keep the radius small and lean on a more
+       opaque surface instead (restores FPS during reading). */
+    backdrop-filter: blur(7px) saturate(118%);
+    -webkit-backdrop-filter: blur(7px) saturate(118%);
 }
 
 /* Light mode: white frosted panel, dark ink. */
 body.light-mode #study-reader {
-    --study-surface: rgba(255, 255, 255, 0.66);
+    --study-surface: rgba(248, 251, 255, 0.9);
     --study-border: rgba(148, 163, 184, 0.3);
     --study-inset: rgba(255, 255, 255, 0.72);
     --study-text: #1e293b;
@@ -596,8 +601,9 @@ body.light-mode #study-next-btn.is-quiz {
         /* smaller base size on phones; the clamp still scales it smoothly */
         --sr-fs: clamp(0.9rem, 0.7rem + 1vw, 1.1rem);
         right: 0.6rem;
+        top: 4rem;
+        bottom: 0.7rem;
         width: min(60vw, calc(100vw - var(--game-side-panel-width) - 1.5rem));
-        height: min(90vh, 34rem);
         padding: 0.85rem 0.9rem 0.9rem;
         border-radius: 18px;
     }
@@ -1539,9 +1545,8 @@ html[data-platform='windows'] .breathing-prompt-pill {
         width: min(20rem, calc(100vw - 1.5rem));
     }
     #study-reader {
-        top: 0.5rem;
-        transform: none;
-        height: calc(100vh - 1rem);
+        top: 3.4rem;
+        bottom: 0.5rem;
     }
     #focus-indicator {
         top: 3.9rem;

@@ -1,7 +1,8 @@
-import { t } from '../../app/i18n.js?v=2026-07-17-1';
+import { t } from '../../app/i18n.js?v=2026-07-17-2';
 import { getState, setState } from '../../app/state.js';
-import { activateEEGMode, activateSimulationMode, disposeMode, syncRuntimeState } from '../../services/eegBridgeService.js?v=2026-07-17-1';
-import { attachCameraPreview, detachCameraPreview, requestCameraPreview, stopCameraPreview } from '../../services/focusInputService.js?v=2026-07-17-1';
+import { activateEEGMode, activateSimulationMode, disposeMode, syncRuntimeState } from '../../services/eegBridgeService.js?v=2026-07-17-2';
+import { attachCameraPreview, detachCameraPreview, requestCameraPreview, stopCameraPreview } from '../../services/focusInputService.js?v=2026-07-17-2';
+import { resetAllData, deleteAccountData } from '../../services/storageService.js';
 
 // Study Mode is live (D3 complete, 2026-07-16). The card is fully enterable;
 // only the extra subjects (Chemistry/Physics/History) stay locked until their
@@ -279,11 +280,25 @@ export default {
             <main class="page page-setup">
                 <section class="page-shell setup-layout setup-layout-compact">
                     <div class="setup-panel setup-panel-compact">
-                        <header class="page-header">
+                        <header class="page-header setup-header">
                             <div>
                                 <span class="eyebrow">Setup</span>
                                 <h1>${t('setup_title')}</h1>
                                 <p class="page-support">${t('game_player')}：${state.currentUser || '-'}</p>
+                            </div>
+                            <div class="setup-settings">
+                                <button type="button" class="setup-settings-btn" id="setup-settings-btn" aria-label="${t('setup_settings')}" aria-haspopup="true" aria-expanded="false">⚙</button>
+                                <div class="setup-settings-menu" id="setup-settings-menu" style="display: none;">
+                                    <div class="setup-settings-menu-title">${t('setup_data_menu_title')}</div>
+                                    <button type="button" class="setup-settings-item" data-reset-data>
+                                        <strong>${t('setup_reset_data')}</strong>
+                                        <span>${t('setup_reset_data_desc')}</span>
+                                    </button>
+                                    <button type="button" class="setup-settings-item is-danger" data-delete-account>
+                                        <strong>${t('setup_delete_account')}</strong>
+                                        <span>${t('setup_delete_account_desc')}</span>
+                                    </button>
+                                </div>
                             </div>
                         </header>
                         ${state.setupStep === 'test'
@@ -321,6 +336,50 @@ export default {
             cameraConsent: state.cameraConsent,
             testMode: state.testMode
         });
+
+        // --- Top-right settings menu: reset data / delete account ---
+        const settingsBtn = root.querySelector('#setup-settings-btn');
+        const settingsMenu = root.querySelector('#setup-settings-menu');
+        if (settingsBtn && settingsMenu) {
+            const closeMenu = () => {
+                settingsMenu.style.display = 'none';
+                settingsBtn.setAttribute('aria-expanded', 'false');
+            };
+            settingsBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const open = settingsMenu.style.display === 'none';
+                settingsMenu.style.display = open ? 'block' : 'none';
+                settingsBtn.setAttribute('aria-expanded', String(open));
+            });
+            // Click outside closes the menu.
+            document.addEventListener('click', (e) => {
+                if (!settingsMenu.contains(e.target) && e.target !== settingsBtn) closeMenu();
+            });
+
+            const resetBtn = root.querySelector('[data-reset-data]');
+            resetBtn?.addEventListener('click', async () => {
+                if (!window.confirm(t('setup_reset_data_confirm'))) return;
+                resetBtn.disabled = true;
+                const label = resetBtn.querySelector('strong');
+                const orig = label ? label.textContent : '';
+                if (label) label.textContent = t('setup_working');
+                try { await resetAllData(); } catch (e) { /* best-effort */ }
+                if (label) label.textContent = orig;
+                resetBtn.disabled = false;
+                closeMenu();
+                window.alert(t('setup_reset_done'));
+            });
+
+            const deleteBtn = root.querySelector('[data-delete-account]');
+            deleteBtn?.addEventListener('click', async () => {
+                if (!window.confirm(t('setup_delete_account_confirm'))) return;
+                deleteBtn.disabled = true;
+                try { await deleteAccountData(); } catch (e) { /* best-effort */ }
+                setState({ currentUser: null });
+                window.alert(t('setup_delete_done'));
+                router.navigate('home');
+            });
+        }
 
         const backAuth = root.querySelector('[data-back-auth]');
         if (backAuth) {
