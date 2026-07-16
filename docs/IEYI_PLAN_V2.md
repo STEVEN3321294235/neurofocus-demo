@@ -1,4 +1,4 @@
-# NeuroFocus IEYI 計劃 V2（2026-07-15 更新・唯一有效版本）
+# NeuroFocus IEYI 計劃 V2（2026-07-16 更新・唯一有效版本）
 
 > **全 repo 得呢一份 plan。** 展覽 / 答辯嘅參考大全喺另一份 [`docs/EXHIBITION_HANDBOOK.md`](./EXHIBITION_HANDBOOK.md)。
 >
