@@ -1,385 +1,403 @@
 // Study Mode reading materials (D3).
 //
-// These are PRE-MADE, teacher-reviewable materials for the pilot experiment
-// (Steven's request, 2026-07-16). Subject: Biology, topic "The Cell".
-//   - foundation = junior-secondary (初中) depth
-//   - advanced   = senior-secondary (高中) depth, same topic, deeper.
-// Each material is a set of note-style pages plus a preset multiple-choice
-// quiz. Page 1 always introduces the topic and what the reader will cover.
+// Subject: Biology — "Cell Membrane & Transport". Content is the teacher-
+// provided material (2026-07-16), digitised into note-style bilingual pages
+// plus reviewed multiple-choice papers.
+//   - foundation = 材料一 (AB groups), junior-secondary depth, 4 sub-topics.
+//   - advanced   = 材料二 (CD groups), senior-secondary depth, deeper, with an
+//     extra synthesis section added for a bit more challenge.
+// Each material's first page is an overview ("what this lesson covers"); the
+// preset quiz has 10 reviewed MCQs (the teacher paper's 8, plus 2 written to
+// the same standard to reach 10). All text is bilingual { hk, en }.
 //
-// Content is authored as structured BLOCKS (not raw HTML), so the reader can
-// render clean, notes-like formatting (headings, bullet points, key-term
-// definitions) while staying injection-safe — every block is turned into DOM
-// text nodes, never innerHTML.
+// Content is authored as structured BLOCKS (never raw HTML), rendered into DOM
+// text nodes so the reader shows clean notes while staying injection-safe.
 //
 // Block shapes (all text is { hk, en }):
-//   { type: 'lead',    text }                     -> intro line under the title
-//   { type: 'heading', text }                     -> sub-heading inside a page
-//   { type: 'para',    text }                     -> paragraph
-//   { type: 'list',    items: [text, ...] }       -> bullet list
-//   { type: 'term',    term, def }                -> key term + definition row
-//   { type: 'note',    text }                     -> highlighted takeaway box
+//   { type: 'lead',    text }
+//   { type: 'heading', text }
+//   { type: 'para',    text }
+//   { type: 'list',    items: [text, ...] }
+//   { type: 'term',    term, def }
+//   { type: 'note',    text }
 //
 // Quiz shape (matches the game's validated question schema, bilingual):
 //   { question, options: { hk:[4], en:[4] }, answer: 0-3, explanation }
 
 export const STUDY_PAGE_LIMIT_MS = 3 * 60 * 1000; // teacher's cap: 3 min / page
-export const STUDY_PAGE_MIN_MS = 60 * 1000;       // must read >= 1 min / page
+export const STUDY_PAGE_MIN_MS = 15 * 1000;       // must read >= 15s / page
 
 const BIOLOGY_FOUNDATION = {
-    topic: { hk: '細胞：生命的基本單位', en: 'The Cell: Life’s Basic Unit' },
+    topic: { hk: '細胞膜與物質運輸（基礎）', en: 'Cell Membrane & Transport (Foundation)' },
     pages: [
         {
             title: { hk: '第 1 節 · 這一課學什麼', en: 'Section 1 · What This Lesson Covers' },
             blocks: [
                 { type: 'lead', text: {
-                    hk: '這份筆記介紹「細胞」——所有生物體的基本組成單位。讀完你會知道細胞是什麼、動物細胞與植物細胞有何分別，以及細胞裡各部分負責什麼工作。',
-                    en: 'These notes introduce the cell — the basic building block of every living thing. By the end you will know what a cell is, how animal and plant cells differ, and what each part inside a cell does.'
+                    hk: '這份筆記講「細胞膜與物質運輸」——細胞怎樣控制物質進出。讀完你會明白差異透性、擴散、滲透與主動運輸四個概念。',
+                    en: 'These notes cover the cell membrane and transport — how cells control what moves in and out. You will understand four ideas: differential permeability, diffusion, osmosis, and active transport.'
                 } },
                 { type: 'heading', text: { hk: '本課大綱', en: 'Lesson Outline' } },
                 { type: 'list', items: [
-                    { hk: '細胞是什麼、為什麼重要（細胞學說）', en: 'What a cell is and why it matters (cell theory)' },
-                    { hk: '動物細胞 vs 植物細胞的結構', en: 'Structure of animal vs plant cells' },
-                    { hk: '主要胞器（細胞內的小器官）的功能', en: 'The jobs of the main organelles' },
-                    { hk: '物質如何進出細胞（擴散入門）', en: 'How substances move in and out (intro to diffusion)' }
+                    { hk: '細胞膜的差異透性', en: 'Differential permeability of the membrane' },
+                    { hk: '擴散', en: 'Diffusion' },
+                    { hk: '滲透', en: 'Osmosis' },
+                    { hk: '主動運輸', en: 'Active transport' }
                 ] },
                 { type: 'note', text: {
-                    hk: '重點：無論是一隻貓、一棵樹，還是你自己，身體都是由數以萬億計的細胞組成。',
-                    en: 'Key idea: whether a cat, a tree, or you, the body is built from trillions of cells.'
+                    hk: '重點：細胞膜是「守門員」，控制哪些物質可以進出細胞。',
+                    en: 'Key idea: the cell membrane is a “gatekeeper” controlling what may enter or leave the cell.'
                 } }
             ]
         },
         {
-            title: { hk: '第 2 節 · 細胞是什麼', en: 'Section 2 · What Is a Cell' },
+            title: { hk: '第 2 節 · 細胞膜的差異透性', en: 'Section 2 · Differential Permeability' },
             blocks: [
                 { type: 'para', text: {
-                    hk: '細胞是能夠維持生命的最小單位。有些生物（如細菌）只有一個細胞；像人類這樣的生物則由許多細胞組成。',
-                    en: 'A cell is the smallest unit that can carry out life. Some organisms (like bacteria) are a single cell; organisms like humans are made of many cells.'
-                } },
-                { type: 'heading', text: { hk: '細胞學說（三個要點）', en: 'Cell Theory (Three Points)' } },
-                { type: 'list', items: [
-                    { hk: '所有生物都由細胞組成。', en: 'All living things are made of cells.' },
-                    { hk: '細胞是生物結構與功能的基本單位。', en: 'The cell is the basic unit of structure and function.' },
-                    { hk: '新的細胞由已存在的細胞分裂而來。', en: 'New cells come from existing cells dividing.' }
-                ] },
-                { type: 'term', term: { hk: '顯微鏡', en: 'Microscope' }, def: {
-                    hk: '細胞太細小，肉眼看不見，要用顯微鏡放大才能觀察。',
-                    en: 'Cells are too small to see with the naked eye; a microscope magnifies them so we can observe them.'
-                } }
-            ]
-        },
-        {
-            title: { hk: '第 3 節 · 動物細胞 vs 植物細胞', en: 'Section 3 · Animal vs Plant Cells' },
-            blocks: [
-                { type: 'para', text: {
-                    hk: '動物細胞與植物細胞有許多共通部分，但植物細胞多了三樣東西，讓植物能站立並自行製造食物。',
-                    en: 'Animal and plant cells share many parts, but plant cells have three extra features that let plants stand up and make their own food.'
-                } },
-                { type: 'heading', text: { hk: '兩者都有', en: 'Both Have' } },
-                { type: 'list', items: [
-                    { hk: '細胞膜——包住細胞、控制物質進出', en: 'Cell membrane — surrounds the cell, controls what enters and leaves' },
-                    { hk: '細胞質——進行化學反應的膠狀物質', en: 'Cytoplasm — jelly-like fluid where reactions happen' },
-                    { hk: '細胞核——控制中心，內含遺傳資訊', en: 'Nucleus — control centre holding genetic information' }
-                ] },
-                { type: 'heading', text: { hk: '只有植物細胞有', en: 'Only Plant Cells Have' } },
-                { type: 'list', items: [
-                    { hk: '細胞壁——堅硬外層，提供支撐與形狀', en: 'Cell wall — rigid outer layer giving support and shape' },
-                    { hk: '葉綠體——進行光合作用、製造食物', en: 'Chloroplast — carries out photosynthesis to make food' },
-                    { hk: '大液泡——儲存水分與養分、維持細胞飽滿', en: 'Large vacuole — stores water and nutrients, keeps the cell firm' }
-                ] },
-                { type: 'note', text: {
-                    hk: '記法：植物細胞「多壁、多綠、多水泡」。',
-                    en: 'Memory hook: plant cells add a wall, chloroplasts, and a big vacuole.'
-                } }
-            ]
-        },
-        {
-            title: { hk: '第 4 節 · 胞器的功能', en: 'Section 4 · What the Organelles Do' },
-            blocks: [
-                { type: 'para', text: {
-                    hk: '「胞器」是細胞裡各有專職的小構造，就像工廠裡不同的部門。',
-                    en: 'Organelles are small structures inside the cell, each with its own job — like departments in a factory.'
-                } },
-                { type: 'term', term: { hk: '細胞核', en: 'Nucleus' }, def: {
-                    hk: '控制中心，儲存 DNA，指揮細胞的活動。',
-                    en: 'The control centre; stores DNA and directs the cell’s activities.'
-                } },
-                { type: 'term', term: { hk: '線粒體', en: 'Mitochondria' }, def: {
-                    hk: '進行呼吸作用、釋放能量的「發電廠」。',
-                    en: 'The “power stations” that release energy through respiration.'
-                } },
-                { type: 'term', term: { hk: '葉綠體', en: 'Chloroplast' }, def: {
-                    hk: '植物細胞內含葉綠素，吸收陽光製造食物。',
-                    en: 'Contains chlorophyll in plant cells; absorbs sunlight to make food.'
-                } },
-                { type: 'term', term: { hk: '細胞膜', en: 'Cell Membrane' }, def: {
-                    hk: '半透性的「守門員」，選擇性地讓物質進出。',
-                    en: 'A partially permeable “gatekeeper” that selectively lets substances pass.'
-                } },
-                { type: 'term', term: { hk: '液泡', en: 'Vacuole' }, def: {
-                    hk: '儲存空間；植物細胞的大液泡幫助維持細胞的堅挺。',
-                    en: 'A storage space; the plant cell’s large vacuole helps keep it firm.'
-                } }
-            ]
-        },
-        {
-            title: { hk: '第 5 節 · 物質如何進出細胞', en: 'Section 5 · Moving In and Out of Cells' },
-            blocks: [
-                { type: 'para', text: {
-                    hk: '細胞要吸收養分、排出廢物。最基本的方式叫「擴散」。',
-                    en: 'Cells must take in nutrients and remove waste. The most basic way is called diffusion.'
-                } },
-                { type: 'term', term: { hk: '擴散', en: 'Diffusion' }, def: {
-                    hk: '粒子由高濃度處移向低濃度處，直至平均分佈，過程不需消耗能量。',
-                    en: 'Particles move from where they are more crowded to where they are less crowded, until evenly spread — with no energy needed.'
+                    hk: '所有活細胞外都有細胞膜，負責控制物質進出。細胞膜不會隨便讓所有物質穿過，只容許特定分子通過，這個特性稱為差異透性。',
+                    en: 'Every living cell is surrounded by a membrane that controls what moves in and out. It does not let everything through — only certain molecules pass. This property is called differential (selective) permeability.'
                 } },
                 { type: 'para', text: {
-                    hk: '例如氧氣由血液擴散進入細胞，二氧化碳則由細胞擴散出來。',
-                    en: 'For example, oxygen diffuses from the blood into cells, and carbon dioxide diffuses out of cells.'
+                    hk: '細胞需要持續交換物質維持生命：氧氣、水分、養分進入細胞；二氧化碳、代謝廢物排出，全部依賴細胞膜運輸。',
+                    en: 'Cells must keep exchanging materials to stay alive: oxygen, water and nutrients enter; carbon dioxide and waste leave — all across the membrane.'
                 } },
                 { type: 'note', text: {
-                    hk: '總結：細胞是生命的基本單位；植物細胞多了壁、葉綠體與大液泡；胞器各司其職；擴散讓物質自然進出細胞。',
-                    en: 'Summary: the cell is life’s basic unit; plant cells add a wall, chloroplasts and a big vacuole; organelles each have a role; diffusion moves substances in and out naturally.'
+                    hk: '一旦細胞膜失去控制，細胞會快速死亡。',
+                    en: 'If the membrane loses this control, the cell dies quickly.'
+                } }
+            ]
+        },
+        {
+            title: { hk: '第 3 節 · 擴散', en: 'Section 3 · Diffusion' },
+            blocks: [
+                { type: 'para', text: {
+                    hk: '分子會自發由高濃度區域移動到低濃度區域，這個過程叫擴散，不需要消耗細胞能量。',
+                    en: 'Molecules spontaneously move from an area of higher concentration to one of lower concentration. This is diffusion, and it needs no energy from the cell.'
+                } },
+                { type: 'term', term: { hk: '例子', en: 'Example' }, def: {
+                    hk: '肺部吸入的氧氣透過擴散進入體細胞；細胞產生的二氧化碳同樣靠擴散離開細胞。',
+                    en: 'Oxygen taken in by the lungs diffuses into body cells; the carbon dioxide the cells make diffuses out the same way.'
+                } },
+                { type: 'note', text: {
+                    hk: '當細胞內外濃度相同時，分子的淨移動會停止。',
+                    en: 'When the concentration is equal inside and outside, the net movement of molecules stops.'
+                } }
+            ]
+        },
+        {
+            title: { hk: '第 4 節 · 滲透', en: 'Section 4 · Osmosis' },
+            blocks: [
+                { type: 'para', text: {
+                    hk: '滲透是水分專用的擴散：水分透過選擇性通透膜，由水多（溶質少）的一邊移向水少（溶質多）的一邊。',
+                    en: 'Osmosis is diffusion of water only: water moves across a selectively permeable membrane from where there is more water (less solute) to where there is less water (more solute).'
+                } },
+                { type: 'list', items: [
+                    { hk: '植物細胞放入清水：水分流入，細胞膨脹，植物挺直。', en: 'Plant cell in pure water: water flows in, the cell swells, the plant stays firm and upright.' },
+                    { hk: '植物細胞放入濃鹽水：水分流出，細胞軟縮，植物會凋萎。', en: 'Plant cell in strong salt water: water flows out, the cell shrinks, the plant wilts.' }
+                ] },
+                { type: 'note', text: {
+                    hk: '滲透只描述「水分」的移動。',
+                    en: 'Osmosis describes the movement of water only.'
+                } }
+            ]
+        },
+        {
+            title: { hk: '第 5 節 · 主動運輸', en: 'Section 5 · Active Transport' },
+            blocks: [
+                { type: 'para', text: {
+                    hk: '有時細胞需要把物質由低濃度運去高濃度，和自然擴散方向相反，這就是主動運輸。主動運輸必須消耗細胞儲存的能量。',
+                    en: 'Sometimes a cell must move substances from low to high concentration — the opposite of natural diffusion. This is active transport, and it must use the cell’s stored energy.'
+                } },
+                { type: 'term', term: { hk: '例子', en: 'Example' }, def: {
+                    hk: '小腸細胞吸收葡萄糖、植物根部吸收礦物離子。',
+                    en: 'Small-intestine cells absorbing glucose; plant roots absorbing mineral ions.'
+                } },
+                { type: 'note', text: {
+                    hk: '總結：差異透性負責守門；擴散和滲透不需能量；主動運輸逆濃度、需要能量。',
+                    en: 'Summary: differential permeability guards the gate; diffusion and osmosis need no energy; active transport goes against the gradient and needs energy.'
                 } }
             ]
         }
     ],
     quiz: [
         {
-            question: { hk: '以下哪一項最能描述「細胞」？', en: 'Which best describes a cell?' },
-            options: {
-                hk: ['能維持生命的最小單位', '一種細菌', '身體裡最大的器官', '一種礦物質'],
-                en: ['The smallest unit that can carry out life', 'A type of bacteria', 'The largest organ in the body', 'A kind of mineral']
-            },
-            answer: 0,
-            explanation: {
-                hk: '細胞是能夠維持生命的最小單位，所有生物都由細胞組成。',
-                en: 'A cell is the smallest unit that can carry out life; all living things are made of cells.'
-            }
+            question: { hk: '細胞膜只容許特定分子穿過、控制物質進出的特性稱為？', en: 'What is the property by which the membrane lets only certain molecules through, controlling movement in and out?' },
+            options: { hk: ['完全通透', '差異透性', '不透性', '隨機通透'], en: ['Fully permeable', 'Differential permeability', 'Impermeable', 'Random permeability'] },
+            answer: 1,
+            explanation: { hk: '細胞膜只容許特定分子通過，這特性稱為差異透性。', en: 'The membrane admits only specific molecules — this is differential permeability.' }
         },
         {
-            question: { hk: '下列哪一項只在植物細胞出現，動物細胞沒有？', en: 'Which is found only in plant cells, not animal cells?' },
+            question: { hk: '下列哪項有關擴散的描述正確？', en: 'Which statement about diffusion is correct?' },
             options: {
-                hk: ['細胞核', '細胞膜', '細胞壁', '細胞質'],
-                en: ['Nucleus', 'Cell membrane', 'Cell wall', 'Cytoplasm']
+                hk: ['需要消耗細胞能量', '分子由低濃度移向高濃度', '分子自發由高濃度移向低濃度', '只可以運送水分'],
+                en: ['It uses cell energy', 'Molecules move low → high concentration', 'Molecules move spontaneously high → low concentration', 'It can only move water']
             },
             answer: 2,
-            explanation: {
-                hk: '細胞壁是植物細胞獨有的堅硬外層，提供支撐；動物細胞沒有。',
-                en: 'The cell wall is a rigid outer layer unique to plant cells for support; animal cells lack it.'
-            }
+            explanation: { hk: '擴散是分子自發由高濃度移向低濃度，不需能量。', en: 'Diffusion is the spontaneous movement of molecules from high to low concentration, using no energy.' }
         },
         {
-            question: { hk: '線粒體在細胞中主要負責什麼？', en: 'What is the main job of the mitochondria?' },
-            options: {
-                hk: ['釋放能量', '儲存 DNA', '製造細胞壁', '吸收陽光'],
-                en: ['Release energy', 'Store DNA', 'Build the cell wall', 'Absorb sunlight']
-            },
-            answer: 0,
-            explanation: {
-                hk: '線粒體是「發電廠」，透過呼吸作用釋放能量。',
-                en: 'Mitochondria are the “power stations” that release energy through respiration.'
-            }
+            question: { hk: '氧氣由肺泡進入身體細胞依靠哪種運輸方式？', en: 'How does oxygen move from the alveoli into body cells?' },
+            options: { hk: ['主動運輸', '滲透', '擴散', '質壁分離'], en: ['Active transport', 'Osmosis', 'Diffusion', 'Plasmolysis'] },
+            answer: 2,
+            explanation: { hk: '氧氣由高濃度（肺泡）擴散到低濃度（細胞）。', en: 'Oxygen diffuses from high concentration (alveoli) to low concentration (cells).' }
         },
         {
-            question: { hk: '控制細胞活動、儲存遺傳資訊的是哪個部分？', en: 'Which part controls the cell and stores genetic information?' },
-            options: {
-                hk: ['細胞核', '液泡', '葉綠體', '細胞膜'],
-                en: ['Nucleus', 'Vacuole', 'Chloroplast', 'Cell membrane']
-            },
-            answer: 0,
-            explanation: {
-                hk: '細胞核是控制中心，內含 DNA，指揮細胞的活動。',
-                en: 'The nucleus is the control centre, holding DNA and directing the cell’s activities.'
-            }
+            question: { hk: '滲透專指哪種物質透過膜的移動？', en: 'Osmosis specifically refers to the movement of which substance across a membrane?' },
+            options: { hk: ['葡萄糖', '礦物離子', '二氧化碳', '水分'], en: ['Glucose', 'Mineral ions', 'Carbon dioxide', 'Water'] },
+            answer: 3,
+            explanation: { hk: '滲透是水分專用的擴散。', en: 'Osmosis is the diffusion of water only.' }
         },
         {
-            question: { hk: '關於「擴散」，以下哪一項正確？', en: 'Which statement about diffusion is correct?' },
+            question: { hk: '將植物細胞放入濃鹽水會出現什麼情況？', en: 'What happens to a plant cell placed in strong salt water?' },
             options: {
-                hk: ['粒子由高濃度移向低濃度，不需能量', '粒子由低濃度移向高濃度，需要能量', '只在植物細胞發生', '需要細胞壁才能進行'],
-                en: ['Particles move high → low concentration, no energy needed', 'Particles move low → high concentration, energy needed', 'It only happens in plant cells', 'It needs a cell wall to occur']
+                hk: ['水分流入，細胞膨脹', '水分流出，細胞軟縮', '水分進出平衡，無變化', '細胞直接破裂'],
+                en: ['Water flows in, the cell swells', 'Water flows out, the cell shrinks', 'Water balances, no change', 'The cell simply bursts']
+            },
+            answer: 1,
+            explanation: { hk: '濃鹽水外面水少，水分靠滲透流出，細胞軟縮。', en: 'The salt water has less water outside, so water leaves by osmosis and the cell shrinks.' }
+        },
+        {
+            question: { hk: '下列哪個例子屬於主動運輸？', en: 'Which example is active transport?' },
+            options: {
+                hk: ['氧氣擴散入細胞', '二氧化碳離開細胞', '小腸細胞吸收葡萄糖', '清水滲入植物細胞'],
+                en: ['Oxygen diffusing into a cell', 'Carbon dioxide leaving a cell', 'Small-intestine cells absorbing glucose', 'Pure water entering a plant cell']
+            },
+            answer: 2,
+            explanation: { hk: '小腸吸收葡萄糖是逆濃度、需要能量，屬主動運輸。', en: 'Absorbing glucose goes against the gradient and needs energy — active transport.' }
+        },
+        {
+            question: { hk: '主動運輸和擴散最大的分別是？', en: 'What is the biggest difference between active transport and diffusion?' },
+            options: {
+                hk: ['主動運輸需要消耗能量', '主動運輸只運送水分', '擴散只存在植物體內', '擴散需要膜蛋白協助'],
+                en: ['Active transport uses energy', 'Active transport only moves water', 'Diffusion only happens in plants', 'Diffusion needs membrane proteins']
             },
             answer: 0,
-            explanation: {
-                hk: '擴散是粒子由高濃度移向低濃度，達至平均分佈，過程不需消耗能量。',
-                en: 'Diffusion moves particles from high to low concentration until evenly spread, without using energy.'
-            }
+            explanation: { hk: '主動運輸需消耗能量、逆濃度；擴散不需能量。', en: 'Active transport uses energy and goes against the gradient; diffusion does not.' }
+        },
+        {
+            question: { hk: '如果細胞膜失去差異透性，會出現什麼結果？', en: 'What happens if the membrane loses its differential permeability?' },
+            options: {
+                hk: ['細胞代謝速度加快', '物質隨意進出，細胞快速死亡', '只影響水分運輸', '完全不影響細胞生命活動'],
+                en: ['Metabolism speeds up', 'Substances move freely and the cell dies quickly', 'Only water transport is affected', 'No effect on the cell at all']
+            },
+            answer: 1,
+            explanation: { hk: '失去控制後物質隨意進出，細胞會快速死亡。', en: 'Without control, substances move freely and the cell dies quickly.' }
+        },
+        {
+            question: { hk: '細胞需要氧氣、養分進入，並排出二氧化碳，這些交換主要在哪裏進行？', en: 'Oxygen and nutrients enter while carbon dioxide leaves — where does this exchange mainly take place?' },
+            options: { hk: ['細胞核', '細胞膜', '線粒體', '液泡'], en: ['The nucleus', 'The cell membrane', 'The mitochondria', 'The vacuole'] },
+            answer: 1,
+            explanation: { hk: '所有物質進出細胞都要經過細胞膜。', en: 'All substances entering or leaving the cell pass through the cell membrane.' }
+        },
+        {
+            question: { hk: '植物細胞放入清水後變得挺直，最直接的原因是？', en: 'A plant cell becomes firm in pure water. The most direct reason is?' },
+            options: {
+                hk: ['水分靠滲透流入，細胞膨脹', '主動運輸吸入鹽分', '細胞開始呼吸', '二氧化碳擴散進入'],
+                en: ['Water enters by osmosis and the cell swells', 'Salt is taken in by active transport', 'The cell starts respiring', 'Carbon dioxide diffuses in']
+            },
+            answer: 0,
+            explanation: { hk: '清水外面水多，水分靠滲透流入，細胞膨脹變挺。', en: 'Pure water has more water outside, so water enters by osmosis and the cell swells and firms up.' }
         }
     ]
 };
 
 const BIOLOGY_ADVANCED = {
-    topic: { hk: '細胞膜與物質運輸', en: 'The Cell Membrane and Transport' },
+    topic: { hk: '細胞膜與物質運輸（進階）', en: 'Cell Membrane & Transport (Advanced)' },
     pages: [
         {
             title: { hk: '第 1 節 · 這一課學什麼', en: 'Section 1 · What This Lesson Covers' },
             blocks: [
                 { type: 'lead', text: {
-                    hk: '這份筆記深入探討「細胞膜」的結構，以及物質如何跨越細胞膜運輸。這是初中「擴散」概念的延伸與加深。',
-                    en: 'These notes go deeper into the structure of the cell membrane and how substances are transported across it — extending the junior-level idea of diffusion.'
+                    hk: '這份筆記深入細胞膜的結構與物質運輸的機制，並解釋滲透與擴散在動植物體內的實際應用。',
+                    en: 'These notes go deeper into the membrane’s structure and transport mechanisms, and explain how osmosis and diffusion actually work in animals and plants.'
                 } },
                 { type: 'heading', text: { hk: '本課大綱', en: 'Lesson Outline' } },
                 { type: 'list', items: [
-                    { hk: '細胞膜的「流體鑲嵌模型」', en: 'The fluid-mosaic model of the membrane' },
-                    { hk: '被動運輸：擴散、易化擴散、滲透與水勢', en: 'Passive transport: diffusion, facilitated diffusion, osmosis and water potential' },
-                    { hk: '主動運輸、胞吞與胞吐', en: 'Active transport, endocytosis and exocytosis' },
-                    { hk: '表面積與體積比為何影響運輸效率', en: 'Why surface-area-to-volume ratio affects transport' }
+                    { hk: '細胞膜流動鑲嵌模型', en: 'The fluid-mosaic model of the membrane' },
+                    { hk: '滲透對動、植物細胞造成的差異變化', en: 'How osmosis affects animal vs plant cells differently' },
+                    { hk: '氣體交換中的擴散應用', en: 'Diffusion in gas exchange' },
+                    { hk: '植物如何透過滲透支撐軀幹', en: 'How plants use osmosis for support' },
+                    { hk: '（延伸）運輸方式的能量與比較', en: '(Extension) energy use and a comparison of transport types' }
                 ] },
                 { type: 'note', text: {
-                    hk: '重點：細胞膜是「半透性」的——它主動選擇讓什麼通過，而不只是被動的屏障。',
-                    en: 'Key idea: the membrane is partially permeable — it actively selects what passes, not just a passive barrier.'
+                    hk: '重點：細胞膜的「流動鑲嵌」結構，正是差異透性的根本原因。',
+                    en: 'Key idea: the membrane’s fluid-mosaic structure is the very reason it is differentially permeable.'
                 } }
             ]
         },
         {
-            title: { hk: '第 2 節 · 細胞膜的結構', en: 'Section 2 · Structure of the Membrane' },
+            title: { hk: '第 2 節 · 細胞膜流動鑲嵌模型', en: 'Section 2 · The Fluid-Mosaic Model' },
             blocks: [
                 { type: 'para', text: {
-                    hk: '細胞膜由「磷脂雙層」構成，中間鑲嵌著各種蛋白質，整體會流動，因此稱為「流體鑲嵌模型」。',
-                    en: 'The membrane is a phospholipid bilayer with proteins embedded throughout; the whole structure flows, hence the “fluid-mosaic model”.'
+                    hk: '細胞膜的骨架是磷脂雙層：磷脂頭親水，分別朝向細胞內外的水溶液；磷脂尾疏水，藏在雙層中央，阻隔水溶性大分子直接穿膜。',
+                    en: 'The membrane’s framework is a phospholipid bilayer: the water-loving heads face the watery solutions inside and outside, while the water-fearing tails hide in the centre, blocking water-soluble large molecules from crossing directly.'
                 } },
-                { type: 'term', term: { hk: '磷脂雙層', en: 'Phospholipid bilayer' }, def: {
-                    hk: '磷脂有親水的「頭」與疏水的「尾」；頭朝外向水，尾朝內相對，形成雙層。',
-                    en: 'Phospholipids have a water-loving head and water-fearing tails; heads face the water outside, tails face inward, forming two layers.'
+                { type: 'para', text: {
+                    hk: '膜內鑲嵌多種蛋白：通道蛋白、載體蛋白、糖蛋白。磷脂層可流動、蛋白能在膜內橫向移動，因此稱為「流動鑲嵌模型」，解釋了細胞膜差異透性的根本原因。',
+                    en: 'Embedded in the membrane are various proteins: channel proteins, carrier proteins and glycoproteins. The phospholipids flow and the proteins drift sideways within the membrane — hence the “fluid-mosaic model”, which explains the root cause of differential permeability.'
                 } },
-                { type: 'term', term: { hk: '膜蛋白', en: 'Membrane proteins' }, def: {
-                    hk: '包括通道蛋白與載體蛋白，協助特定物質跨膜運輸。',
-                    en: 'Include channel and carrier proteins that help specific substances cross the membrane.'
-                } },
-                { type: 'note', text: {
-                    hk: '脂溶性小分子可直接穿過雙層；帶電或大分子則需要蛋白質協助。',
-                    en: 'Small lipid-soluble molecules cross the bilayer directly; charged or large molecules need protein help.'
+                { type: 'term', term: { hk: '通道／載體蛋白', en: 'Channel / carrier proteins' }, def: {
+                    hk: '協助特定分子（如帶電或大分子）跨膜運輸的通道或搬運工。',
+                    en: 'Passages or shuttles that help specific molecules (e.g. charged or large ones) cross the membrane.'
                 } }
             ]
         },
         {
-            title: { hk: '第 3 節 · 被動運輸', en: 'Section 3 · Passive Transport' },
+            title: { hk: '第 3 節 · 滲透對動、植物細胞的差異', en: 'Section 3 · Osmosis: Animal vs Plant Cells' },
             blocks: [
                 { type: 'para', text: {
-                    hk: '被動運輸沿濃度梯度進行，不需細胞消耗能量（ATP）。',
-                    en: 'Passive transport follows the concentration gradient and needs no energy (ATP) from the cell.'
+                    hk: '在同樣濃度的溶液下，動物與植物細胞的表現完全不同。',
+                    en: 'In the same solution, animal and plant cells behave very differently.'
                 } },
-                { type: 'term', term: { hk: '易化擴散', en: 'Facilitated diffusion' }, def: {
-                    hk: '物質順濃度梯度、經由膜蛋白通道跨膜，仍屬被動。',
-                    en: 'Substances move down the gradient through membrane proteins — still passive.'
+                { type: 'term', term: { hk: '動物細胞', en: 'Animal cells' }, def: {
+                    hk: '沒有細胞壁：低濃溶液吸水會膨脹甚至破裂，高濃溶液失水軟縮。因此人體注射要用等濃生理鹽水。',
+                    en: 'No cell wall: in a dilute solution they swell and may burst; in a concentrated one they shrink. That is why injections use isotonic (equal-concentration) saline.'
                 } },
-                { type: 'term', term: { hk: '滲透', en: 'Osmosis' }, def: {
-                    hk: '水分子經半透膜由水勢高處移向水勢低處。',
-                    en: 'Water moves across a partially permeable membrane from higher to lower water potential.'
-                } },
-                { type: 'term', term: { hk: '水勢', en: 'Water potential' }, def: {
-                    hk: '衡量水分子自由移動趨勢；純水最高，溶質越多水勢越低。',
-                    en: 'A measure of water’s tendency to move; pure water is highest, more solute means lower potential.'
+                { type: 'term', term: { hk: '植物細胞', en: 'Plant cells' }, def: {
+                    hk: '外有細胞壁支撐：吸水只會變硬挺、不會破裂；長期置於高濃溶液會失水，產生「質壁分離」現象。',
+                    en: 'A cell wall supports them: taking in water makes them firm without bursting; left in a concentrated solution they lose water, causing plasmolysis (the membrane pulling away from the wall).'
                 } },
                 { type: 'note', text: {
-                    hk: '應用：把植物細胞放入清水會吸水而變得飽滿（膨壓）；放入濃鹽水則失水而萎縮。',
-                    en: 'Application: a plant cell in pure water takes in water and becomes turgid; in strong salt water it loses water and shrinks.'
+                    hk: '質壁分離只會在有細胞壁的植物細胞出現。',
+                    en: 'Plasmolysis only occurs in plant cells, which have a cell wall.'
                 } }
             ]
         },
         {
-            title: { hk: '第 4 節 · 主動運輸與胞吞胞吐', en: 'Section 4 · Active Transport & Bulk Transport' },
+            title: { hk: '第 4 節 · 氣體交換中的擴散應用', en: 'Section 4 · Diffusion in Gas Exchange' },
             blocks: [
+                { type: 'para', text: {
+                    hk: '人體肺部、植物葉片氣孔都依靠擴散交換氣體。肺泡壁細胞很薄，空氣中氧氣濃度高，自動擴散入血液；細胞產生的二氧化碳濃度高，反向擴散排出體外。',
+                    en: 'Both the lungs and the stomata of plant leaves rely on diffusion to exchange gases. Alveolar walls are very thin; oxygen is more concentrated in the air, so it diffuses into the blood, while carbon dioxide (more concentrated in cells) diffuses out.'
+                } },
+                { type: 'para', text: {
+                    hk: '葉片進行光合作用時，二氧化碳經氣孔擴散進葉肉細胞，產生的氧氣再擴散離開。',
+                    en: 'During photosynthesis, carbon dioxide diffuses through the stomata into the leaf cells, and the oxygen produced diffuses back out.'
+                } },
+                { type: 'note', text: {
+                    hk: '薄的交換表面 + 濃度差 = 高效擴散。',
+                    en: 'A thin exchange surface plus a concentration difference means efficient diffusion.'
+                } }
+            ]
+        },
+        {
+            title: { hk: '第 5 節 · 植物如何透過滲透支撐軀幹', en: 'Section 5 · Osmosis and Plant Support' },
+            blocks: [
+                { type: 'para', text: {
+                    hk: '草本植物沒有木質硬莖，依靠細胞吸水產生的膨脹來支撐枝葉。',
+                    en: 'Herbaceous (non-woody) plants have no hard woody stem; they rely on the swelling of water-filled cells to hold up their stems and leaves.'
+                } },
+                { type: 'para', text: {
+                    hk: '當根吸收水分，水分透過滲透進入莖、葉細胞；細胞膨脹後對細胞壁產生壓力（膨脹壓），令植物挺直。長期缺水時細胞失水、膨脹消失，花草就會凋謝枯萎。',
+                    en: 'When roots absorb water, it passes by osmosis into stem and leaf cells. The swollen cells press on their walls (turgor pressure), keeping the plant upright. In a long drought the cells lose water, the turgor is lost, and the plant wilts.'
+                } },
+                { type: 'term', term: { hk: '膨脹壓（膨壓）', en: 'Turgor pressure' }, def: {
+                    hk: '細胞吸水膨脹後對細胞壁施加的壓力，是草本植物挺直的來源。',
+                    en: 'The pressure a swollen cell exerts on its wall — the source of firmness in soft-stemmed plants.'
+                } }
+            ]
+        },
+        {
+            title: { hk: '第 6 節 · 延伸：運輸方式的能量與比較', en: 'Section 6 · Extension: Energy & a Transport Comparison' },
+            blocks: [
+                { type: 'lead', text: {
+                    hk: '（進階延伸）把四種運輸方式放在一起比較，關鍵問題只有一個：需不需要能量？',
+                    en: '(Advanced extension) Comparing the transport types side by side, the key question is just one: is energy needed?'
+                } },
+                { type: 'term', term: { hk: '被動運輸', en: 'Passive transport' }, def: {
+                    hk: '擴散與滲透都沿濃度梯度進行、不需消耗細胞能量（ATP）。',
+                    en: 'Diffusion and osmosis both follow the concentration gradient and use no cell energy (ATP).'
+                } },
                 { type: 'term', term: { hk: '主動運輸', en: 'Active transport' }, def: {
-                    hk: '物質「逆」濃度梯度、由低濃度移向高濃度，需消耗 ATP 及載體蛋白。',
-                    en: 'Moves substances against the gradient, low → high concentration, using ATP and carrier proteins.'
+                    hk: '逆濃度梯度、需要載體蛋白並消耗 ATP，例如根部由稀薄土壤吸收礦物離子。',
+                    en: 'Goes against the gradient, needs carrier proteins and uses ATP — e.g. roots absorbing mineral ions from dilute soil.'
                 } },
                 { type: 'para', text: {
-                    hk: '例子：植物根部由稀薄的土壤溶液主動吸收礦物離子。',
-                    en: 'Example: plant roots actively absorb mineral ions from a dilute soil solution.'
-                } },
-                { type: 'term', term: { hk: '胞吞作用', en: 'Endocytosis' }, def: {
-                    hk: '細胞膜內陷、包裹大分子或顆粒進入細胞。',
-                    en: 'The membrane folds inward to bring large molecules or particles into the cell.'
-                } },
-                { type: 'term', term: { hk: '胞吐作用', en: 'Exocytosis' }, def: {
-                    hk: '囊泡與細胞膜融合，把物質（如分泌物）排出細胞外。',
-                    en: 'A vesicle fuses with the membrane to release substances (e.g. secretions) out of the cell.'
+                    hk: '為什麼細胞普遍細小？因為物質靠表面進出、卻要供應整個體積；細胞越小，表面積對體積的比例越大，交換越有效率。',
+                    en: 'Why are cells generally small? Substances enter across the surface but must supply the whole volume; the smaller the cell, the larger its surface-area-to-volume ratio and the more efficient the exchange.'
                 } },
                 { type: 'note', text: {
-                    hk: '分辨關鍵：需不需要能量？逆梯度且耗 ATP 的就是主動運輸。',
-                    en: 'Key test: is energy needed? Against-gradient and ATP-using means active transport.'
-                } }
-            ]
-        },
-        {
-            title: { hk: '第 5 節 · 表面積與體積比', en: 'Section 5 · Surface-Area-to-Volume Ratio' },
-            blocks: [
-                { type: 'para', text: {
-                    hk: '物質靠細胞表面進出，卻要供應整個體積。細胞越大，表面積相對體積就越小，運輸越跟不上需求。',
-                    en: 'Substances enter across the surface but must supply the whole volume. The larger the cell, the smaller its surface area is relative to volume, so transport cannot keep up.'
-                } },
-                { type: 'term', term: { hk: '表面積 : 體積比', en: 'SA : V ratio' }, def: {
-                    hk: '細胞越細，此比值越大，物質交換越有效率——這是細胞為何普遍細小的原因。',
-                    en: 'The smaller the cell, the larger this ratio and the more efficient the exchange — which is why cells stay small.'
-                } },
-                { type: 'note', text: {
-                    hk: '總結：細胞膜是流體鑲嵌結構；被動運輸沿梯度、不耗能，主動運輸逆梯度、耗 ATP；表面積體積比限制了細胞大小。',
-                    en: 'Summary: the membrane is a fluid mosaic; passive transport goes down the gradient without energy, active transport goes against it using ATP; the SA:V ratio limits cell size.'
+                    hk: '一句記法：被動運輸「順流免費」，主動運輸「逆流收費（ATP）」。',
+                    en: 'One-line memory: passive transport is “downhill and free”, active transport is “uphill and paid for (ATP)”.'
                 } }
             ]
         }
     ],
     quiz: [
         {
-            question: { hk: '「流體鑲嵌模型」中，構成細胞膜主體的是什麼？', en: 'In the fluid-mosaic model, what forms the main body of the membrane?' },
-            options: {
-                hk: ['磷脂雙層', '纖維素', '單層蛋白質', '澱粉'],
-                en: ['A phospholipid bilayer', 'Cellulose', 'A single layer of protein', 'Starch']
-            },
-            answer: 0,
-            explanation: {
-                hk: '細胞膜以磷脂雙層為主體，蛋白質鑲嵌其中並可流動。',
-                en: 'The membrane is mainly a phospholipid bilayer with proteins embedded and free to move.'
-            }
+            question: { hk: '流動鑲嵌模型中，細胞膜的基礎骨架是？', en: 'In the fluid-mosaic model, what is the membrane’s basic framework?' },
+            options: { hk: ['蛋白質雙層', '磷脂雙層', '碳水化合物', '纖維素'], en: ['A protein bilayer', 'A phospholipid bilayer', 'Carbohydrate', 'Cellulose'] },
+            answer: 1,
+            explanation: { hk: '細胞膜骨架是磷脂雙層，蛋白質鑲嵌其中。', en: 'The framework is a phospholipid bilayer with proteins embedded in it.' }
         },
         {
-            question: { hk: '下列哪一項屬於「被動」運輸，不需消耗 ATP？', en: 'Which is a passive process that needs no ATP?' },
+            question: { hk: '磷脂分子尾部的特性為？', en: 'What is the property of a phospholipid’s tails?' },
             options: {
-                hk: ['滲透', '主動運輸', '胞吞作用', '胞吐作用'],
-                en: ['Osmosis', 'Active transport', 'Endocytosis', 'Exocytosis']
+                hk: ['親水（喜愛水分）', '疏水（排斥水分）', '可溶解於鹽水', '可運送礦物離子'],
+                en: ['Hydrophilic (water-loving)', 'Hydrophobic (water-fearing)', 'Dissolves in salt water', 'Carries mineral ions']
             },
-            answer: 0,
-            explanation: {
-                hk: '滲透是水分子順水勢梯度移動，屬被動運輸，不需能量。',
-                en: 'Osmosis moves water down its water-potential gradient — passive, needing no energy.'
-            }
+            answer: 1,
+            explanation: { hk: '磷脂尾疏水，藏在雙層中央，阻隔水溶性大分子。', en: 'The tails are hydrophobic and hide in the centre, blocking water-soluble molecules.' }
         },
         {
-            question: { hk: '主動運輸與擴散最主要的分別是什麼？', en: 'What is the key difference between active transport and diffusion?' },
-            options: {
-                hk: ['主動運輸逆濃度梯度並需消耗能量', '主動運輸只在死細胞發生', '擴散一定需要載體蛋白', '兩者完全相同'],
-                en: ['Active transport goes against the gradient and uses energy', 'Active transport only happens in dead cells', 'Diffusion always needs carrier proteins', 'They are identical']
-            },
-            answer: 0,
-            explanation: {
-                hk: '主動運輸逆濃度梯度（低→高）並消耗 ATP；擴散則順梯度且不需能量。',
-                en: 'Active transport moves against the gradient (low → high) using ATP; diffusion goes down the gradient with no energy.'
-            }
+            question: { hk: '下列哪一種膜蛋白不會出現在流動鑲嵌模型？', en: 'Which of these proteins is NOT part of the fluid-mosaic model?' },
+            options: { hk: ['通道蛋白', '載體蛋白', '糖蛋白', '纖維蛋白'], en: ['Channel protein', 'Carrier protein', 'Glycoprotein', 'Fibre protein'] },
+            answer: 3,
+            explanation: { hk: '膜蛋白包括通道、載體、糖蛋白；纖維蛋白不屬於細胞膜。', en: 'Membrane proteins are channel, carrier and glycoproteins; fibre protein is not part of the membrane.' }
         },
         {
-            question: { hk: '把植物細胞放入純水中，會發生什麼？', en: 'What happens to a plant cell placed in pure water?' },
+            question: { hk: '動物細胞長期浸泡在清水會破裂，原因是？', en: 'An animal cell left in pure water bursts because?' },
             options: {
-                hk: ['吸水並變得飽滿（膨壓）', '失水並萎縮', '沒有任何變化', '細胞壁溶解'],
-                en: ['It takes in water and becomes turgid', 'It loses water and shrinks', 'Nothing changes', 'The cell wall dissolves']
+                hk: ['細胞沒有細胞壁阻擋膨脹', '清水有毒，破壞細胞膜', '清水令細胞停止呼吸', '水分無法進入細胞'],
+                en: ['It has no cell wall to resist swelling', 'Pure water is toxic to the membrane', 'Pure water stops respiration', 'Water cannot enter the cell']
             },
             answer: 0,
-            explanation: {
-                hk: '純水的水勢較高，水分子經滲透進入細胞，令細胞飽滿產生膨壓。',
-                en: 'Pure water has higher water potential, so water enters by osmosis, making the cell turgid.'
-            }
+            explanation: { hk: '動物細胞無細胞壁，吸水過度會膨脹破裂。', en: 'Without a cell wall, the animal cell swells and bursts as water floods in.' }
+        },
+        {
+            question: { hk: '為什麼人體靜脈注射必須使用等濃生理鹽水？', en: 'Why must intravenous injections use isotonic saline?' },
+            options: {
+                hk: ['增加血液濃度', '避免血細胞過度吸水或失水變形', '為細胞提供額外能量', '促進主動運輸'],
+                en: ['To thicken the blood', 'So blood cells neither over-absorb nor lose water and deform', 'To give cells extra energy', 'To boost active transport']
+            },
+            answer: 1,
+            explanation: { hk: '等濃鹽水令水分進出平衡，血細胞不會膨脹破裂或軟縮。', en: 'Isotonic saline balances water movement so blood cells neither burst nor shrink.' }
+        },
+        {
+            question: { hk: '質壁分離現象只會在哪類細胞出現？', en: 'Plasmolysis occurs only in which kind of cell?' },
+            options: { hk: ['動物細胞', '植物細胞', '血液紅細胞', '肺泡細胞'], en: ['Animal cells', 'Plant cells', 'Red blood cells', 'Alveolar cells'] },
+            answer: 1,
+            explanation: { hk: '質壁分離是細胞膜脫離細胞壁，只在有細胞壁的植物細胞發生。', en: 'Plasmolysis is the membrane pulling from the wall — only in plant cells, which have a wall.' }
+        },
+        {
+            question: { hk: '植物葉片吸收二氧化碳進行光合作用依靠什麼機制？', en: 'How do leaves take in carbon dioxide for photosynthesis?' },
+            options: { hk: ['主動運輸', '滲透', '擴散', '膨脹'], en: ['Active transport', 'Osmosis', 'Diffusion', 'Swelling'] },
+            answer: 2,
+            explanation: { hk: '二氧化碳經氣孔擴散進葉肉細胞。', en: 'Carbon dioxide diffuses through the stomata into the leaf cells.' }
+        },
+        {
+            question: { hk: '草本植物枝葉可以挺直，依靠細胞產生的？', en: 'Soft-stemmed plants stay upright because their cells generate?' },
+            options: { hk: ['膨脹壓', '滲透壓', '濃度差', '化學能量'], en: ['Turgor pressure', 'Osmotic pressure', 'A concentration difference', 'Chemical energy'] },
+            answer: 0,
+            explanation: { hk: '細胞吸水膨脹，對細胞壁產生膨脹壓，支撐植物挺直。', en: 'Water-filled cells press on their walls (turgor pressure), holding the plant up.' }
+        },
+        {
+            question: { hk: '下列哪一組全部都不需要消耗細胞能量（ATP）？', en: 'Which pair are BOTH processes that use no cell energy (ATP)?' },
+            options: {
+                hk: ['擴散與滲透', '主動運輸與滲透', '主動運輸與擴散', '主動運輸與質壁分離'],
+                en: ['Diffusion and osmosis', 'Active transport and osmosis', 'Active transport and diffusion', 'Active transport and plasmolysis']
+            },
+            answer: 0,
+            explanation: { hk: '擴散與滲透都是被動運輸，沿濃度梯度、不需 ATP。', en: 'Diffusion and osmosis are both passive — down the gradient, no ATP needed.' }
         },
         {
             question: { hk: '為什麼細胞通常都很細小？', en: 'Why are cells usually very small?' },
             options: {
-                hk: ['細胞越小，表面積對體積比越大，交換越有效率', '細小才能容納細胞核', '大細胞不能分裂', '細小的細胞不需要能量'],
+                hk: ['細胞越小，表面積對體積比越大，物質交換越有效率', '細小才能容納細胞核', '大細胞不能分裂', '細小的細胞不需要能量'],
                 en: ['Smaller cells have a larger surface-area-to-volume ratio for efficient exchange', 'Only small cells can hold a nucleus', 'Large cells cannot divide', 'Small cells need no energy']
             },
             answer: 0,
-            explanation: {
-                hk: '細胞越小，表面積相對體積越大，物質交換越能滿足整個細胞的需要。',
-                en: 'The smaller the cell, the larger its surface area relative to volume, so exchange can meet the whole cell’s needs.'
-            }
+            explanation: { hk: '物質靠表面進出卻要供應整個體積，細胞越小交換越有效率。', en: 'Substances enter across the surface but supply the whole volume, so smaller cells exchange more efficiently.' }
         }
     ]
 };

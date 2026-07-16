@@ -9,7 +9,7 @@ import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { SMAAPass } from 'three/addons/postprocessing/SMAAPass.js';
 import { setState, getState } from '../../app/state.js';
-import { getCameraFocusScore, getCameraTrackingStatus, stopCameraPreview } from '../../services/focusInputService.js?v=2026-07-16-2';
+import { getCameraFocusScore, getCameraTrackingStatus, stopCameraPreview } from '../../services/focusInputService.js?v=2026-07-16-3';
 import { appendSessionSummary, getSessionHistory, getLocalVoyageLog, appendVoyageLog, getCumulativeCloudDistance } from '../../services/storageService.js';
 import { initVoyage, resetVoyage, updateVoyage, getVoyageStats, getBuoysInWindow, routeXAt, routeYawAt, CHECKPOINT_SPACING, setVoyageVisible } from './voyage.js';
 import { getStudyMaterial, STUDY_PAGE_LIMIT_MS, STUDY_PAGE_MIN_MS } from './studyMaterials.js';
@@ -303,14 +303,24 @@ function isChallengeMode() {
 }
 
 // Study Mode (D3): read material on an open sea (no boat), then quiz. The
-// reading phase has no sailing and no question flow; the quiz phase (D3-4)
-// will reuse the challenge question HUD.
+// reading phase has no sailing and no question flow; the quiz phase reuses the
+// challenge sailing + question HUD with the material's fixed reviewed paper.
 function isStudyMode() {
     return CONFIG.testMode === 'study';
 }
 
+// Reading phase = boat/route hidden, no questions. Quiz phase = boat sails, the
+// fixed paper runs through the normal question flow.
+function isStudyReading() {
+    return isStudyMode() && studySession != null && studySession.phase === 'reading';
+}
+
+function isStudyQuiz() {
+    return isStudyMode() && studySession != null && studySession.phase === 'quiz';
+}
+
 function shouldUseQuestionFlow() {
-    return isChallengeMode();
+    return isChallengeMode() || isStudyQuiz();
 }
 
 function getTrainingSessionDurationMs() {
@@ -332,10 +342,58 @@ const STUDY_DEPTH_LABELS = {
 };
 
 let studySession = null;
+// The finished study session's split report (reading vs quiz), used by the
+// results page + CSV export. Survives refresh via the session snapshot.
+let lastStudyReport = null;
 
 function studyLabel(map, key) {
     const entry = map[key] || {};
     return entry[CONFIG.currentLang] || entry.hk || String(key || '');
+}
+
+function round1(n) {
+    return Math.round((Number(n) || 0) * 10) / 10;
+}
+
+// Build the reading-vs-quiz split report from the live study session. Reading
+// analytics come from the boundary snapshot; quiz analytics are the difference
+// between the final counters and that snapshot.
+function buildStudyReport() {
+    if (!studySession || !studySession.readingSnapshot) return null;
+    const rs = studySession.readingSnapshot;
+    const readingFocusPct = rs.playTimeMs > 0 ? (rs.focusedTimeMs / rs.playTimeMs) * 100 : 0;
+    const readingAvgRecoveryMs = rs.recoveryCount > 0 ? rs.recoverySumMs / rs.recoveryCount : 0;
+
+    const quizFocusedMs = Math.max(0, trainingAnalytics.focusedTimeMs - rs.focusedTimeMs);
+    const quizPlayMs = Math.max(0, (CONFIG.accumulatedPlayTime || 0) - rs.playTimeMs);
+    const quizFocusPct = quizPlayMs > 0 ? (quizFocusedMs / quizPlayMs) * 100 : 0;
+    const quizAnswers = (studySession.quizAnswers || []).map((a) => ({
+        index: a.index, ms: a.timeMs, focus: a.focusAtAnswer, correct: a.correct
+    }));
+    const quizCorrect = quizAnswers.filter((a) => a.correct).length;
+
+    const allSamples = trainingAnalytics.focusSamples || [];
+    return {
+        subject: CONFIG.studySubject,
+        depth: CONFIG.studyDepth,
+        student: CONFIG.currentUser || '',
+        reading: {
+            totalReadMs: rs.totalReadMs,
+            focusPct: round1(readingFocusPct),
+            distractions: rs.recoveryCount,
+            interventions: rs.interventionCount,
+            avgRecoveryMs: Math.round(readingAvgRecoveryMs),
+            pageTimes: (studySession.pageTimes || []).map((p) => ({ index: p.index, ms: p.elapsedMs, auto: p.autoAdvanced })),
+            curve: allSamples.slice(0, rs.sampleCount)
+        },
+        quiz: {
+            correct: quizCorrect,
+            total: (studySession.material?.quiz || []).length,
+            focusPct: round1(quizFocusPct),
+            answers: quizAnswers,
+            curve: allSamples.slice(rs.sampleCount)
+        }
+    };
 }
 
 function resetStudySession() {
@@ -354,8 +412,12 @@ function initStudySession() {
         pages: material.pages,
         index: 0,
         pageStartPlayMs: 0,
-        pageTimes: [],
-        quizRequested: false
+        pageTimes: [],          // { index, elapsedMs, autoAdvanced }
+        quizRequested: false,
+        phase: 'reading',       // 'reading' | 'quiz'
+        readingSnapshot: null,  // analytics counters at the reading→quiz boundary
+        quizAnswers: [],        // { index, timeMs, focusAtAnswer, correct }
+        currentQStartMs: 0
     };
     const panel = document.getElementById('study-reader');
     if (panel) panel.style.display = 'flex';
@@ -523,22 +585,87 @@ function advanceStudyPage(auto = false) {
     paintStudyPage();
 }
 
-// D3-2 boundary: the reading phase is complete here. D3-4 replaces this notice
-// with the real quiz phase (boat + challenge-style question HUD + fixed paper).
+// Map the material's fixed reviewed paper into the runtime question format
+// (current language), matching what renderPuzzle / checkAnswer expect.
+function buildStudyQuizBank() {
+    const quiz = studySession?.material?.quiz || [];
+    const lang = CONFIG.currentLang;
+    return quiz.map((q) => ({
+        question: q.question?.[lang] || q.question?.hk || '',
+        options: (q.options?.[lang] || q.options?.hk || []).slice(),
+        answer: q.answer,
+        explanation: q.explanation?.[lang] || q.explanation?.hk || '',
+        skill: langText('溫習測驗', 'Study Quiz'),
+        ageBand: `${studyLabel(STUDY_SUBJECT_LABELS, CONFIG.studySubject)} · ${studyLabel(STUDY_DEPTH_LABELS, CONFIG.studyDepth)}`
+    }));
+}
+
+// D3-3 + D3-4 boundary: reading phase is complete. Snapshot the analytics so
+// reading and quiz can be reported separately, then bring the boat back and run
+// the fixed reviewed paper through the normal challenge question flow.
 function requestStudyQuiz() {
-    if (!studySession) return;
+    if (!studySession || studySession.phase === 'quiz') return;
+
+    // --- D3-3: freeze the reading-phase analytics for the split report ---
+    const totalReadMs = studySession.pageTimes.reduce((sum, p) => sum + p.elapsedMs, 0);
+    studySession.readingSnapshot = {
+        focusedTimeMs: trainingAnalytics.focusedTimeMs,
+        playTimeMs: CONFIG.accumulatedPlayTime || 0,
+        recoveryCount: trainingAnalytics.recoveryDurationsMs.length,
+        recoverySumMs: trainingAnalytics.recoveryDurationsMs.reduce((a, b) => a + b, 0),
+        interventionCount: trainingAnalytics.interventionCount,
+        sampleCount: trainingAnalytics.focusSamples.length,
+        totalReadMs
+    };
+
+    // --- D3-4: switch to the quiz phase ---
+    studySession.phase = 'quiz';
     studySession.quizRequested = true;
-    renderStudyPageTimer(0);
-    const nextBtn = document.getElementById('study-next-btn');
-    if (nextBtn) nextBtn.disabled = true;
-    const note = document.getElementById('study-quiz-note');
-    if (note) {
-        note.textContent = langText(
-            '閱讀階段完成。測驗階段建置中——審核測驗卷會喺下一步接上。',
-            'Reading phase complete. The quiz phase is under construction — the reviewed paper connects here next.'
-        );
-        note.style.display = 'block';
+
+    // Hide the reader; bring the hull + route back into the same scene.
+    const panel = document.getElementById('study-reader');
+    if (panel) panel.style.display = 'none';
+    if (boat) boat.visible = true;
+    setVoyageVisible(true);
+    // Lay the boat back on the route and settle the chase camera on it.
+    if (boat) {
+        resetVoyage(boat.position.z);
+        boat.position.x = routeXAt(boat.position.z);
+        boatYaw = routeYawAt(boat.position.z);
+        boat.rotation.y = -boatYaw;
     }
+
+    // Load the fixed reviewed paper and reset the quiz scoreboard.
+    questionBank = buildStudyQuizBank();
+    currentQuestionIndex = 0;
+    CONFIG.score = 0;
+    CONFIG.streak = 0;
+    CONFIG.wrongAnswers = [];
+    studySession.quizAnswers = [];
+    studySession.currentQStartMs = performance.now();
+
+    // Flip the HUD from reading (reader, no scoreboard) to quiz (challenge-style
+    // score/streak/speed/question panel).
+    applyStudyQuizUI();
+
+    // Brief cue, then the first question.
+    showTransientCue(langText('📖 溫習完成，開始測驗！', '📖 Reading done — quiz time!'), 4000);
+    loadQuestionFromBank();
+}
+
+// Quiz-phase HUD: reveal the challenge readouts and the question panel that the
+// reading phase kept hidden. The study-session body class stays on so the
+// settings panel still drops camera/volume, but the score/speed pieces show.
+function applyStudyQuizUI() {
+    const show = (id, display = '') => { const el = document.getElementById(id); if (el) el.style.display = display; };
+    show('speed-display');
+    show('distance-display');
+    show('score-display');
+    show('streak-display');
+    // Borrow the challenge compact-voyage HUD layout for the quiz phase.
+    document.body.classList.add('challenge-session');
+    const scoreText = document.getElementById('score-text');
+    if (scoreText) scoreText.textContent = `0/${TOTAL_QUESTIONS}`;
 }
 
 function updateStudyReader() {
@@ -1609,7 +1736,7 @@ function voyageCardV(x, centreX) {
 function renderVoyageCard(force = false) {
     const card = document.getElementById('voyage-card');
     if (!card) return;
-    const show = isGameActive && !isStudyMode();
+    const show = isGameActive && !isStudyReading();
     const displayValue = show ? '' : 'none';
     if (card.style.display !== displayValue) card.style.display = displayValue;
     if (!show || !boat) return;
@@ -1757,6 +1884,22 @@ function playCheckpointBell() {
 
 // Wordless-first onboarding beat: one line that explains the core mapping,
 // shown as gameplay begins, auto-dismissed.
+// A short bottom cue with custom text (reuses the onboarding-cue slot).
+function showTransientCue(text, holdMs = 4000) {
+    const cue = document.getElementById('onboarding-cue');
+    const cueText = document.getElementById('onboarding-cue-text');
+    if (!cue || !cueText) return;
+    cueText.textContent = text;
+    cue.style.display = '';
+    cue.classList.remove('is-in');
+    void cue.offsetWidth;
+    cue.classList.add('is-in');
+    setTimeout(() => {
+        cue.classList.remove('is-in');
+        setTimeout(() => { cue.style.display = 'none'; }, 600);
+    }, holdMs);
+}
+
 function showOnboardingCue() {
     const cue = document.getElementById('onboarding-cue');
     const cueText = document.getElementById('onboarding-cue-text');
@@ -2443,9 +2586,10 @@ function updateGameLogic(delta) {
         }
     }
     
-    // Study Mode: no hull in the water — skip helm physics, wake, voyage and
-    // chase-camera work entirely. The sea/sky/weather below still follow focus.
-    if (boat && !isStudyMode()) {
+    // Study reading phase: no hull in the water — skip helm physics, wake,
+    // voyage and chase-camera work. The quiz phase sails like challenge mode.
+    // The sea/sky/weather below still follow focus in every phase.
+    if (boat && !isStudyReading()) {
         // --- Helm: heading physics ---
         // Steering authority comes from focus. Focused: the helm answers and
         // the boat tracks the winding route. Distracted: the helm goes light
@@ -2544,7 +2688,7 @@ function updateGameLogic(delta) {
         );
     }
 
-    if (boat && !isStudyMode()) {
+    if (boat && !isStudyReading()) {
         // 4. Boat Physics (SPEEDBOAT REALISM)
         const timeVal = performance.now() / 1000;
         const maxSpeedMPS = CONFIG.MAX_SHIP_SPEED / 3.6;
@@ -3261,8 +3405,8 @@ function initGameSession() {
         // Study Mode reads on an open sea: same sky/water/weather, but no
         // hull, no route dashes, no buoys. Everything stays in the scene
         // (hidden) so a training/challenge run afterwards gets them back.
-        boat.visible = !isStudyMode();
-        setVoyageVisible(!isStudyMode());
+        boat.visible = !isStudyReading();
+        setVoyageVisible(!isStudyReading());
 
         attachRendererToCanvasHost();
         const canvasHost = document.getElementById('canvas-container');
@@ -3796,7 +3940,8 @@ function saveLastSessionSnapshot() {
             stableThreshold: FOCUS_TRAINING.stableThreshold,
             recoveryThreshold: FOCUS_TRAINING.recoveryThreshold,
             summary: lastSessionSummary,
-            voyageTotals: voyageTotals
+            voyageTotals: voyageTotals,
+            study: lastStudyReport
         };
         localStorage.setItem(LAST_SESSION_SNAPSHOT_KEY, JSON.stringify(snapshot));
     } catch (e) {
@@ -3818,9 +3963,12 @@ function applySnapshotToMemory() {
     }
     if (!snapshot) return false;
 
-    CONFIG.testMode = ['training', 'challenge'].includes(snapshot.testMode) ? snapshot.testMode : CONFIG.testMode;
+    CONFIG.testMode = ['training', 'challenge', 'study'].includes(snapshot.testMode) ? snapshot.testMode : CONFIG.testMode;
     CONFIG.difficulty = snapshot.difficulty ?? CONFIG.difficulty;
     CONFIG.focusSource = snapshot.focusSource || CONFIG.focusSource;
+    CONFIG.studySubject = snapshot.study?.subject || CONFIG.studySubject;
+    CONFIG.studyDepth = snapshot.study?.depth || CONFIG.studyDepth;
+    lastStudyReport = snapshot.study || null;
     CONFIG.score = Number(snapshot.score) || 0;
     CONFIG.totalDistance = Number(snapshot.totalDistance) || 0;
     CONFIG.accumulatedPlayTime = Number(snapshot.accumulatedPlayTime) || 0;
@@ -3885,9 +4033,18 @@ function commitLiveResults() {
         goldenTimeMs: Math.round(trainingAnalytics.goldenTimeMs)
     };
 
-    // Commit to history + voyage log exactly once per session, so repainting the
-    // results page (language switch, etc.) never double-counts.
-    if (!sessionResultsCommitted) {
+    // Study Mode: capture the reading-vs-quiz split for the results page + CSV.
+    // Only (re)build while the live session exists — on the results page
+    // studySession has been disposed, so keep the report built in showResults().
+    if (isStudyMode() && studySession) {
+        lastStudyReport = buildStudyReport();
+    }
+
+    // Commit to cross-session history + voyage log exactly once per session, so
+    // repainting the results page (language switch, etc.) never double-counts.
+    // Study sessions stay OUT of the shared history/voyage — the experiment
+    // records them via CSV export, and mixing them would skew the focus trend.
+    if (!sessionResultsCommitted && !isStudyMode()) {
         // Track the best single-session star count (stars are open-ended, so the
         // achievements row shows "this run" vs "personal best" rather than /5).
         try {
@@ -3987,10 +4144,19 @@ function buildHeroHTML(values) {
     else if (accuracy >= 40) verdict = langText('答對 — 有進步空間，繼續練', 'correct — room to grow, keep training');
     else verdict = langText('答對 — 萬事起頭難，逐步建立', 'correct — every voyage starts somewhere');
 
+    // Study Mode uses the challenge score verdict but its own chips
+    // (mode + subject·depth instead of a difficulty).
+    const modeChip = isStudyMode()
+        ? langText('學習', 'Study')
+        : langText('挑戰', 'Challenge');
+    const secondChip = isStudyMode()
+        ? `${studyLabel(STUDY_SUBJECT_LABELS, CONFIG.studySubject)} · ${studyLabel(STUDY_DEPTH_LABELS, CONFIG.studyDepth)}`
+        : difficultyLabel();
+
     return `
         <div class="results-hero-chips">
-            <span class="results-chip">${langText('挑戰', 'Challenge')}</span>
-            <span class="results-chip">${difficultyLabel()}</span>
+            <span class="results-chip">${modeChip}</span>
+            <span class="results-chip">${escapeHtml(secondChip)}</span>
             <span class="results-chip">${source}</span>
         </div>
         <h1 class="results-hero-headline"><span class="accent">${CONFIG.score} / ${TOTAL_QUESTIONS}</span> ${verdict}</h1>
@@ -4218,6 +4384,122 @@ function buildNextGoalHTML(values) {
 
 // Paint the results DOM from whatever session state is in memory (live or
 // rehydrated). Pure rendering — no persistence side effects.
+function formatMs(ms) {
+    const s = Math.max(0, Math.round((Number(ms) || 0) / 1000));
+    const m = Math.floor(s / 60);
+    const r = s % 60;
+    return m > 0 ? `${m}分${r}秒` : `${r}秒`;
+}
+function formatMsEn(ms) {
+    const s = Math.max(0, Math.round((Number(ms) || 0) / 1000));
+    const m = Math.floor(s / 60);
+    const r = s % 60;
+    return m > 0 ? `${m}m ${r}s` : `${r}s`;
+}
+function dur(ms) { return langText(formatMs(ms), formatMsEn(ms)); }
+
+// Study Mode results: a reading-phase card sitting above the (challenge-style)
+// quiz results, so the two phases read separately (D3-5). Numbers only — no
+// untrusted strings — but escapeHtml is used defensively.
+function buildStudyReadingHTML(report) {
+    if (!report) return '';
+    const r = report.reading;
+    const subjectLabel = `${studyLabel(STUDY_SUBJECT_LABELS, report.subject)} · ${studyLabel(STUDY_DEPTH_LABELS, report.depth)}`;
+    const pageRows = (r.pageTimes || []).map((p) => `
+        <div class="study-res-page">
+            <span>${langText('第 ' + (p.index + 1) + ' 節', 'Section ' + (p.index + 1))}</span>
+            <span>${dur(p.ms)}${p.auto ? langText('（自動）', ' (auto)') : ''}</span>
+        </div>`).join('');
+    const metric = (label, value) => `
+        <div class="study-res-metric"><span class="study-res-metric-v">${value}</span><span class="study-res-metric-l">${label}</span></div>`;
+    return `
+        <section class="results-card study-res-card">
+            <div class="results-card-head">
+                <div>
+                    <h2>📖 ${langText('溫習階段', 'Reading Phase')}</h2>
+                    <p class="results-card-sub">${escapeHtml(subjectLabel)}</p>
+                </div>
+            </div>
+            <div class="study-res-metrics">
+                ${metric(langText('總閱讀時長', 'Total reading'), dur(r.totalReadMs))}
+                ${metric(langText('閱讀專注度', 'Reading focus'), r.focusPct + '%')}
+                ${metric(langText('分心恢復次數', 'Distractions'), r.distractions)}
+                ${metric(langText('呼吸介入', 'Interventions'), r.interventions)}
+                ${metric(langText('平均恢復', 'Avg recovery'), r.avgRecoveryMs > 0 ? dur(r.avgRecoveryMs) : '—')}
+            </div>
+            <div class="study-res-pages">${pageRows}</div>
+        </section>`;
+}
+
+// A compact "quiz phase" header card (score + focus while answering). The full
+// answer review is still rendered by buildAchievementsHTML (challenge branch).
+function buildStudyQuizHeaderHTML(report) {
+    if (!report) return '';
+    const q = report.quiz;
+    const metric = (label, value) => `
+        <div class="study-res-metric"><span class="study-res-metric-v">${value}</span><span class="study-res-metric-l">${label}</span></div>`;
+    return `
+        <section class="results-card study-res-card">
+            <div class="results-card-head">
+                <div>
+                    <h2>✍️ ${langText('答題階段', 'Quiz Phase')}</h2>
+                    <p class="results-card-sub">${langText('固定審核測驗卷', 'Fixed reviewed paper')}</p>
+                </div>
+            </div>
+            <div class="study-res-metrics">
+                ${metric(langText('分數', 'Score'), `${q.correct}/${q.total}`)}
+                ${metric(langText('答題專注度', 'Answering focus'), q.focusPct + '%')}
+            </div>
+        </section>`;
+}
+
+// One-row CSV of the whole study session for the teacher's analysis. Generated
+// locally and downloaded — never sent to a server. Student id is the numbered
+// username (S01/S02…), not a real name/email.
+function buildStudyCsv(report) {
+    if (!report) return '';
+    const r = report.reading;
+    const q = report.quiz;
+    const cols = [
+        ['student_id', report.student],
+        ['subject', report.subject],
+        ['depth', report.depth],
+        ['reading_total_ms', r.totalReadMs],
+        ['reading_focus_pct', r.focusPct],
+        ['reading_distractions', r.distractions],
+        ['reading_interventions', r.interventions],
+        ['reading_avg_recovery_ms', r.avgRecoveryMs],
+        ['quiz_score', q.correct],
+        ['quiz_total', q.total],
+        ['quiz_focus_pct', q.focusPct]
+    ];
+    (r.pageTimes || []).forEach((p, i) => cols.push([`read_section${i + 1}_ms`, p.ms]));
+    (q.answers || []).forEach((a, i) => {
+        cols.push([`q${i + 1}_time_ms`, a.ms]);
+        cols.push([`q${i + 1}_focus`, a.focus]);
+        cols.push([`q${i + 1}_correct`, a.correct ? 1 : 0]);
+    });
+    const header = cols.map((c) => c[0]).join(',');
+    const row = cols.map((c) => c[1]).join(',');
+    return `${header}\n${row}\n`;
+}
+
+// Exposed to the results page: trigger a local CSV download.
+function exportStudyCsv() {
+    if (!lastStudyReport) return;
+    const csv = buildStudyCsv(lastStudyReport);
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    const stamp = new Date().toISOString().slice(0, 10);
+    a.href = url;
+    a.download = `neurofocus_study_${lastStudyReport.student || 'S00'}_${lastStudyReport.subject}_${lastStudyReport.depth}_${stamp}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
 function paintResults() {
     const heroHost = document.getElementById('results-hero');
     if (!heroHost) return; // results DOM not mounted
@@ -4230,6 +4512,20 @@ function paintResults() {
     if (achvHost) achvHost.innerHTML = buildAchievementsHTML();
     const nextGoalHost = document.getElementById('results-nextgoal');
     if (nextGoalHost) nextGoalHost.innerHTML = buildNextGoalHTML(values);
+
+    // Study Mode: inject the reading + quiz split cards, reveal the CSV button.
+    const studyHost = document.getElementById('results-study-reading');
+    if (studyHost) {
+        if (isStudyMode() && lastStudyReport) {
+            studyHost.innerHTML = buildStudyReadingHTML(lastStudyReport) + buildStudyQuizHeaderHTML(lastStudyReport);
+            studyHost.style.display = '';
+        } else {
+            studyHost.innerHTML = '';
+            studyHost.style.display = 'none';
+        }
+    }
+    const csvBtn = document.getElementById('btn-export-csv');
+    if (csvBtn) csvBtn.style.display = (isStudyMode() && lastStudyReport) ? '' : 'none';
 }
 
 function renderResults() {
@@ -4406,6 +4702,15 @@ async function renderHistoryTrend() {
 
 // Alias for compatibility if needed, but we should use ROUTER
 function showResults() {
+    // Build the study split report NOW, while studySession is still alive — the
+    // navigation below unmounts the game page, which disposes (and nulls) it
+    // before the results page can read it.
+    if (isStudyMode() && studySession) {
+        if (!CONFIG.gameEndTime || CONFIG.gameEndTime < CONFIG.gameStartTime) {
+            CONFIG.gameEndTime = performance.now();
+        }
+        lastStudyReport = buildStudyReport();
+    }
     if (typeof runtimeResultsHandler === 'function') {
         runtimeResultsHandler();
         return;
@@ -4928,6 +5233,12 @@ function renderPuzzle(data) {
     if (isStroop) {
         startStroopCountdown(data);
     }
+
+    // Study quiz: stamp when this question appeared so checkAnswer can log the
+    // time taken and the focus level while answering.
+    if (isStudyQuiz() && studySession) {
+        studySession.currentQStartMs = performance.now();
+    }
 }
 
 // Time pressure is what makes Stroop a focus task: run a visible countdown
@@ -4984,6 +5295,16 @@ function checkAnswer(selectedIndex, correctIndex, btn) {
     options.forEach(opt => opt.disabled = true); // Disable all
 
     const currentQ = questionBank[currentQuestionIndex];
+
+    // Study quiz: record time on this question + focus while answering.
+    if (isStudyQuiz() && studySession) {
+        studySession.quizAnswers.push({
+            index: currentQuestionIndex,
+            timeMs: Math.max(0, Math.round(performance.now() - (studySession.currentQStartMs || performance.now()))),
+            focusAtAnswer: Math.round(getEffectiveFocusLevel(performance.now())),
+            correct: selectedIndex === correctIndex
+        });
+    }
 
     if (selectedIndex === correctIndex) {
         playCorrectSound();
@@ -7192,6 +7513,7 @@ export {
     renderResults,
     renderSessionDashboard,
     renderHistoryTrend,
+    exportStudyCsv,
     setEEGConnectionState,
     showResults,
     startGameSession,

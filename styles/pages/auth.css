@@ -116,11 +116,9 @@
 }
 
 @media (max-width: 720px) {
-    .page-auth,
-    .page-setup {
-        align-items: flex-start;
-    }
-
+    /* Keep the card vertically centred on mobile (Steven, 2026-07-16). The page
+       uses min-height:100vh (not a fixed height), so tall content still grows
+       and scrolls from the top — centring only kicks in when it actually fits. */
     .auth-panel,
     .setup-panel {
         padding: 1.1rem;

@@ -1,8 +1,8 @@
 import { getState, resetFlowState, setState } from '../../app/state.js';
-import { t } from '../../app/i18n.js?v=2026-07-16-2';
+import { t } from '../../app/i18n.js?v=2026-07-16-3';
 import { logout } from '../../services/authService.js';
-import { disposeMode, syncRuntimeState } from '../../services/eegBridgeService.js?v=2026-07-16-2';
-import { importGameRuntime } from '../../services/runtimeLoader.js?v=2026-07-16-2';
+import { disposeMode, syncRuntimeState } from '../../services/eegBridgeService.js?v=2026-07-16-3';
+import { importGameRuntime } from '../../services/runtimeLoader.js?v=2026-07-16-3';
 
 async function getRuntime() {
     return importGameRuntime('/pages/game/runtime.js');
@@ -55,7 +55,7 @@ export default {
                                 <button type="button" data-quality="3">${t('quality_lowest')}</button>
                             </div>
                         </div>
-                        <div class="settings-group">
+                        <div class="settings-group" data-settings-group="camera">
                             <div class="settings-label">${t('settings_camera')}</div>
                             <div class="settings-options">
                                 <button type="button" data-camera="0.85">${t('camera_near')}</button>
@@ -63,7 +63,7 @@ export default {
                                 <button type="button" data-camera="1.2">${t('camera_far')}</button>
                             </div>
                         </div>
-                        <div class="settings-group">
+                        <div class="settings-group" data-settings-group="audio">
                             <div class="settings-label">${t('settings_audio')}</div>
                             <div class="settings-slider-row">
                                 <span class="settings-slider-name">${t('settings_bgm')}</span>

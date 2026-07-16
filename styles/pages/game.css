@@ -2153,6 +2153,14 @@ html[data-platform='windows'] body.light-mode #study-reader {
     --study-surface: rgba(248, 251, 255, 0.96);
 }
 
+/* Study Mode reading has no chase camera and no game audio worth tuning, so
+   the settings panel drops the camera-distance and volume groups (Steven,
+   2026-07-16). Quality + fullscreen + pause-on-open stay. */
+body.study-session #game-settings-panel [data-settings-group="camera"],
+body.study-session #game-settings-panel [data-settings-group="audio"] {
+    display: none;
+}
+
 
 /* Settings panel volume sliders */
 #game-settings-panel .settings-slider-row {

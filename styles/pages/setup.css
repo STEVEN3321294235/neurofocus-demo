@@ -144,8 +144,9 @@ body.light-mode .page-setup {
     white-space: nowrap;
 }
 
+/* One subject per row (Steven, 2026-07-16) — reads as a clear list. */
 .subject-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: 1fr;
 }
 
 /* Third goal card sits alone on its own full-width row under the pair. */

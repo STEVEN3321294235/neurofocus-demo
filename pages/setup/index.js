@@ -1,17 +1,17 @@
-import { t } from '../../app/i18n.js?v=2026-07-16-2';
+import { t } from '../../app/i18n.js?v=2026-07-16-3';
 import { getState, setState } from '../../app/state.js';
-import { activateEEGMode, activateSimulationMode, disposeMode, syncRuntimeState } from '../../services/eegBridgeService.js?v=2026-07-16-2';
-import { attachCameraPreview, detachCameraPreview, requestCameraPreview, stopCameraPreview } from '../../services/focusInputService.js?v=2026-07-16-2';
+import { activateEEGMode, activateSimulationMode, disposeMode, syncRuntimeState } from '../../services/eegBridgeService.js?v=2026-07-16-3';
+import { attachCameraPreview, detachCameraPreview, requestCameraPreview, stopCameraPreview } from '../../services/focusInputService.js?v=2026-07-16-3';
 
-// Study Mode ships visible-but-locked (Steven's call, 2026-07-16): the card is
-// on the live site as a roadmap teaser while D3 is built. Flip the localStorage
-// flag below to '1' (devtools console) to develop/test the flow; D3-6 removes
-// the lock for everyone.
+// Study Mode is live (D3 complete, 2026-07-16). The card is fully enterable;
+// only the extra subjects (Chemistry/Physics/History) stay locked until their
+// materials exist. Set localStorage 'nf_study_lock' = '1' to hide it again
+// (e.g. if a clean competition build is ever wanted).
 function isStudyModeUnlocked() {
     try {
-        return localStorage.getItem('nf_study_dev_unlock') === '1';
+        return localStorage.getItem('nf_study_lock') !== '1';
     } catch (e) {
-        return false;
+        return true;
     }
 }
 
@@ -275,18 +275,9 @@ function renderCameraStep(state) {
 export default {
     render() {
         const state = getState();
-        const isStudyFlow = state.testMode === 'study';
-        const flowModeLabel = isStudyFlow ? t('setup_flow_subject') : t('setup_flow_mode');
-        const flowCameraLabel = isStudyFlow ? t('setup_flow_mode') : t('setup_flow_camera');
-        const flowDifficultyLabel = isStudyFlow
-            ? t('setup_flow_camera')
-            : (state.testMode === 'challenge' ? t('setup_flow_diff') : t('setup_flow_enter'));
-        const flowEnterLabel = isStudyFlow
-            ? t('setup_flow_study_enter')
-            : (state.testMode === 'challenge' ? t('setup_flow_enter') : t('setup_training_length'));
         return `
             <main class="page page-setup">
-                <section class="page-shell narrow-shell setup-layout setup-layout-compact">
+                <section class="page-shell setup-layout setup-layout-compact">
                     <div class="setup-panel setup-panel-compact">
                         <header class="page-header">
                             <div>
@@ -295,13 +286,6 @@ export default {
                                 <p class="page-support">${t('game_player')}：${state.currentUser || '-'}</p>
                             </div>
                         </header>
-                        <div class="setup-flow-inline">
-                            <span>01 ${t('setup_flow_goal')}</span>
-                            <span>02 ${flowModeLabel}</span>
-                            <span>03 ${flowCameraLabel}</span>
-                            <span>04 ${flowDifficultyLabel}</span>
-                            <span>05 ${flowEnterLabel}</span>
-                        </div>
                         ${state.setupStep === 'test'
                             ? renderTestStep(state)
                             : state.setupStep === 'subject'

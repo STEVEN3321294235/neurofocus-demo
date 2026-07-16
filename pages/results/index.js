@@ -1,7 +1,7 @@
-import { t } from '../../app/i18n.js?v=2026-07-16-2';
+import { t } from '../../app/i18n.js?v=2026-07-16-3';
 import { getState, resetFlowState, setState } from '../../app/state.js';
-import { disposeMode, syncRuntimeState } from '../../services/eegBridgeService.js?v=2026-07-16-2';
-import { importGameRuntime } from '../../services/runtimeLoader.js?v=2026-07-16-2';
+import { disposeMode, syncRuntimeState } from '../../services/eegBridgeService.js?v=2026-07-16-3';
+import { importGameRuntime } from '../../services/runtimeLoader.js?v=2026-07-16-3';
 
 async function getRuntime() {
     return importGameRuntime('/pages/game/runtime.js');
@@ -14,7 +14,7 @@ function resolveMode() {
     const state = getState();
     let lastMode = null;
     try { lastMode = localStorage.getItem('last_session_mode'); } catch (e) { lastMode = null; }
-    return (lastMode === 'training' || lastMode === 'challenge') ? lastMode : state.testMode;
+    return (lastMode === 'training' || lastMode === 'challenge' || lastMode === 'study') ? lastMode : state.testMode;
 }
 
 export default {
@@ -36,10 +36,14 @@ export default {
                         <!-- 1. Hero verdict (painted by runtime) -->
                         <section class="results-hero" id="results-hero"></section>
 
+                        <!-- Study Mode: reading + quiz split cards (painted by
+                             runtime; hidden in training/challenge). -->
+                        <div id="results-study-reading" style="display: none;"></div>
+
                         <!-- 2. Metric cards (painted by runtime) -->
                         <section class="results-metrics" id="results-metrics"></section>
 
-                        <!-- 3. Achievements (training) / Answer review (challenge) -->
+                        <!-- 3. Achievements (training) / Answer review (challenge/study) -->
                         <section id="results-achievements"></section>
 
                         <!-- 4. Focus curve -->
@@ -71,6 +75,7 @@ export default {
                         <!-- 7. Actions -->
                         <div class="results-actions">
                             <button type="button" class="results-btn-primary" id="btn-restart">${t('play_again')}</button>
+                            <button type="button" class="results-btn-secondary" id="btn-export-csv" style="display: none;">${t('results_export_csv')}</button>
                             <button type="button" class="results-btn-secondary" id="btn-home">${t('back_home')}</button>
                         </div>
                     </div>
@@ -103,6 +108,10 @@ export default {
             if (!btn) return;
             const item = btn.closest('.review-item');
             if (item) item.classList.toggle('is-open');
+        });
+
+        root.querySelector('#btn-export-csv')?.addEventListener('click', () => {
+            try { runtime.exportStudyCsv(); } catch (e) { console.warn('CSV export failed', e); }
         });
 
         root.querySelector('#btn-restart')?.addEventListener('click', () => {

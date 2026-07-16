@@ -786,3 +786,54 @@ html[data-platform="windows"] .results-nextgoal {
 @media (prefers-reduced-motion: reduce) {
     .results-btn-primary, .results-btn-secondary, .review-caret, .dash-bar { transition: none; }
 }
+
+/* --- Study Mode results: reading + quiz split cards (D3-5) --------------- */
+.study-res-card .results-card-head h2 { display: flex; align-items: center; gap: 0.4rem; }
+
+.study-res-metrics {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(6.5rem, 1fr));
+    gap: 0.7rem;
+    margin-bottom: 0.9rem;
+}
+
+.study-res-metric {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    padding: 0.7rem 0.8rem;
+    border-radius: var(--radius-md, 14px);
+    background: var(--r-card-bg);
+    border: 1px solid var(--r-card-border);
+}
+
+.study-res-metric-v {
+    font-family: var(--font-display);
+    font-size: clamp(1.1rem, 2.4vw, 1.42rem);
+    font-weight: 700;
+    color: var(--r-accent);
+}
+
+.study-res-metric-l {
+    font-size: 0.76rem;
+    color: var(--r-text-dim);
+}
+
+.study-res-pages {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+}
+
+.study-res-page {
+    display: flex;
+    justify-content: space-between;
+    padding: 0.4rem 0.7rem;
+    border-radius: 10px;
+    background: var(--r-card-bg);
+    border: 1px solid var(--r-card-border);
+    font-size: 0.86rem;
+    color: var(--r-text);
+}
+
+.study-res-page span:last-child { color: var(--r-text-dim); font-variant-numeric: tabular-nums; }
