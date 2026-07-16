@@ -9,10 +9,10 @@ import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { SMAAPass } from 'three/addons/postprocessing/SMAAPass.js';
 import { setState, getState } from '../../app/state.js';
-import { getCameraFocusScore, getCameraTrackingStatus, stopCameraPreview } from '../../services/focusInputService.js?v=2026-07-16-1';
+import { getCameraFocusScore, getCameraTrackingStatus, stopCameraPreview } from '../../services/focusInputService.js?v=2026-07-16-2';
 import { appendSessionSummary, getSessionHistory, getLocalVoyageLog, appendVoyageLog, getCumulativeCloudDistance } from '../../services/storageService.js';
 import { initVoyage, resetVoyage, updateVoyage, getVoyageStats, getBuoysInWindow, routeXAt, routeYawAt, CHECKPOINT_SPACING, setVoyageVisible } from './voyage.js';
-import { getStudyMaterial, STUDY_PAGE_LIMIT_MS } from './studyMaterials.js';
+import { getStudyMaterial, STUDY_PAGE_LIMIT_MS, STUDY_PAGE_MIN_MS } from './studyMaterials.js';
 
 // DEMO_MODE shows the raw EEG channels (attention / meditation / signal) for
 // the competition booth. Flip to false in a future product build to hide the
@@ -350,6 +350,7 @@ function resetStudySession() {
 function initStudySession() {
     const material = getStudyMaterial(CONFIG.studySubject, CONFIG.studyDepth);
     studySession = {
+        material,
         pages: material.pages,
         index: 0,
         pageStartPlayMs: 0,
@@ -365,10 +366,73 @@ function initStudySession() {
         nextBtn.dataset.bound = '1';
         nextBtn.addEventListener('click', () => {
             if (!isGameActive || CONFIG.isPaused) return;
+            // Enforce the minimum-read gate: the button is disabled before the
+            // 1-minute floor, but guard here too against stray clicks.
+            const elapsed = Math.max(0, (CONFIG.accumulatedPlayTime || 0) - studySession.pageStartPlayMs);
+            if (elapsed < STUDY_PAGE_MIN_MS) return;
             advanceStudyPage(false);
         });
     }
     paintStudyPage();
+}
+
+const STUDY_LANG = () => CONFIG.currentLang;
+
+function studyText(node) {
+    if (!node) return '';
+    return node[STUDY_LANG()] || node.hk || '';
+}
+
+// Render one content block into a real DOM node (never innerHTML), so the
+// authored notes get clean formatting while staying injection-safe.
+function buildStudyBlock(block) {
+    const lang = STUDY_LANG();
+    if (block.type === 'heading') {
+        const el = document.createElement('h4');
+        el.className = 'study-block-heading';
+        el.textContent = studyText(block.text);
+        return el;
+    }
+    if (block.type === 'lead') {
+        const el = document.createElement('p');
+        el.className = 'study-block-lead';
+        el.textContent = studyText(block.text);
+        return el;
+    }
+    if (block.type === 'note') {
+        const el = document.createElement('div');
+        el.className = 'study-block-note';
+        el.textContent = studyText(block.text);
+        return el;
+    }
+    if (block.type === 'list') {
+        const ul = document.createElement('ul');
+        ul.className = 'study-block-list';
+        (block.items || []).forEach((item) => {
+            const li = document.createElement('li');
+            li.textContent = studyText(item);
+            ul.appendChild(li);
+        });
+        return ul;
+    }
+    if (block.type === 'term') {
+        const row = document.createElement('div');
+        row.className = 'study-block-term';
+        const dt = document.createElement('span');
+        dt.className = 'study-term-name';
+        dt.textContent = studyText(block.term);
+        const dd = document.createElement('span');
+        dd.className = 'study-term-def';
+        dd.textContent = studyText(block.def);
+        row.appendChild(dt);
+        row.appendChild(dd);
+        return row;
+    }
+    // default: paragraph
+    const el = document.createElement('p');
+    el.className = 'study-block-para';
+    el.textContent = studyText(block.text || block);
+    return el;
 }
 
 function paintStudyPage() {
@@ -388,26 +452,47 @@ function paintStudyPage() {
         );
     }
     const title = document.getElementById('study-reader-title');
-    if (title) title.textContent = page.title?.[CONFIG.currentLang] || page.title?.hk || '';
-    // Body is intentionally blank until the reviewed material lands in
-    // studyMaterials.js — textContent keeps whatever arrives injection-safe.
-    const body = document.getElementById('study-reader-body');
-    if (body) body.textContent = page.content?.[CONFIG.currentLang] || page.content?.hk || '';
+    if (title) title.textContent = studyText(page.title);
+    // Topic line under the title (shown on every page so the reader always
+    // knows what subject this material is about).
+    const topicEl = document.getElementById('study-reader-topic');
+    if (topicEl) topicEl.textContent = studyText(studySession.material?.topic);
 
-    const isLastPage = studySession.index >= studySession.pages.length - 1;
-    const nextBtn = document.getElementById('study-next-btn');
-    if (nextBtn) {
-        nextBtn.textContent = isLastPage
-            ? langText('進行測驗', 'Start Quiz')
-            : langText('下一頁', 'Next Page');
-        nextBtn.disabled = false;
-        nextBtn.classList.toggle('is-quiz', isLastPage);
+    // Rebuild the body from structured blocks (notes-style formatting).
+    const body = document.getElementById('study-reader-body');
+    if (body) {
+        body.textContent = '';
+        body.scrollTop = 0;
+        (page.blocks || []).forEach((block) => body.appendChild(buildStudyBlock(block)));
     }
+
     const note = document.getElementById('study-quiz-note');
     if (note) note.style.display = 'none';
     const panel = document.getElementById('study-reader');
     if (panel) panel.classList.remove('is-critical');
     renderStudyPageTimer(STUDY_PAGE_LIMIT_MS);
+    updateStudyNextButton(0);
+}
+
+// The "next / start quiz" button is locked until the reader has spent
+// STUDY_PAGE_MIN_MS on this page; before that it shows the remaining lock
+// time so the reader knows why it can't advance yet.
+function updateStudyNextButton(elapsedMs) {
+    const nextBtn = document.getElementById('study-next-btn');
+    if (!nextBtn || !studySession) return;
+    const isLastPage = studySession.index >= studySession.pages.length - 1;
+    nextBtn.classList.toggle('is-quiz', isLastPage);
+    const lockRemainingMs = STUDY_PAGE_MIN_MS - elapsedMs;
+    if (lockRemainingMs > 0) {
+        nextBtn.disabled = true;
+        const secs = Math.ceil(lockRemainingMs / 1000);
+        nextBtn.textContent = langText(`請先閱讀（${secs} 秒）`, `Keep reading (${secs}s)`);
+    } else {
+        nextBtn.disabled = false;
+        nextBtn.textContent = isLastPage
+            ? langText('進行測驗', 'Start Quiz')
+            : langText('下一頁', 'Next Page');
+    }
 }
 
 function renderStudyPageTimer(remainingMs) {
@@ -461,8 +546,11 @@ function updateStudyReader() {
     const elapsed = Math.max(0, (CONFIG.accumulatedPlayTime || 0) - studySession.pageStartPlayMs);
     const remaining = Math.max(0, STUDY_PAGE_LIMIT_MS - elapsed);
     renderStudyPageTimer(remaining);
+    updateStudyNextButton(elapsed);
     const panel = document.getElementById('study-reader');
     if (panel) panel.classList.toggle('is-critical', remaining / STUDY_PAGE_LIMIT_MS <= 0.2);
+    // 3-minute cap still auto-advances even though the 1-minute floor has
+    // long passed by then.
     if (remaining <= 0) {
         advanceStudyPage(true);
     }

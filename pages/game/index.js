@@ -1,8 +1,8 @@
 import { getState, resetFlowState, setState } from '../../app/state.js';
-import { t } from '../../app/i18n.js?v=2026-07-16-1';
+import { t } from '../../app/i18n.js?v=2026-07-16-2';
 import { logout } from '../../services/authService.js';
-import { disposeMode, syncRuntimeState } from '../../services/eegBridgeService.js?v=2026-07-16-1';
-import { importGameRuntime } from '../../services/runtimeLoader.js?v=2026-07-16-1';
+import { disposeMode, syncRuntimeState } from '../../services/eegBridgeService.js?v=2026-07-16-2';
+import { importGameRuntime } from '../../services/runtimeLoader.js?v=2026-07-16-2';
 
 async function getRuntime() {
     return importGameRuntime('/pages/game/runtime.js');
@@ -85,9 +85,9 @@ export default {
                         <div class="settings-note">${t('settings_paused_note')} ${t('settings_auto_note')}</div>
                     </div>
 
-                    <!-- Study Mode reader (D3-2): right-hand rounded panel. All
-                         text inside is runtime-driven; body stays blank until
-                         the real material lands in studyMaterials.js. -->
+                    <!-- Study Mode reader (D3): right-hand frosted panel. All
+                         text is runtime-driven from studyMaterials.js and
+                         rendered as notes-style blocks (see paintStudyPage). -->
                     <div id="study-reader" style="display: none;">
                         <div class="study-reader-head">
                             <span id="study-reader-subject" class="study-reader-chip"></span>
@@ -97,7 +97,10 @@ export default {
                             <div id="study-page-timer-label" class="study-reader-timer-label"></div>
                             <div id="study-page-timer-value">03:00</div>
                         </div>
-                        <h3 id="study-reader-title"></h3>
+                        <div class="study-reader-titles">
+                            <div id="study-reader-topic" class="study-reader-topic"></div>
+                            <h3 id="study-reader-title"></h3>
+                        </div>
                         <div id="study-reader-body"></div>
                         <div class="study-reader-actions">
                             <button type="button" id="study-next-btn"></button>

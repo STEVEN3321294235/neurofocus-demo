@@ -1,7 +1,7 @@
-import { t } from '../../app/i18n.js?v=2026-07-16-1';
+import { t } from '../../app/i18n.js?v=2026-07-16-2';
 import { getState, setState } from '../../app/state.js';
-import { activateEEGMode, activateSimulationMode, disposeMode, syncRuntimeState } from '../../services/eegBridgeService.js?v=2026-07-16-1';
-import { attachCameraPreview, detachCameraPreview, requestCameraPreview, stopCameraPreview } from '../../services/focusInputService.js?v=2026-07-16-1';
+import { activateEEGMode, activateSimulationMode, disposeMode, syncRuntimeState } from '../../services/eegBridgeService.js?v=2026-07-16-2';
+import { attachCameraPreview, detachCameraPreview, requestCameraPreview, stopCameraPreview } from '../../services/focusInputService.js?v=2026-07-16-2';
 
 // Study Mode ships visible-but-locked (Steven's call, 2026-07-16): the card is
 // on the live site as a roadmap teaser while D3 is built. Flip the localStorage

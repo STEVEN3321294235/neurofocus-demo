@@ -294,32 +294,61 @@
 }
 
 /* ---------------------------------------------------------------------------
-   Study Mode reader (D3-2): rounded glass panel on the RIGHT of the screen.
-   The per-page countdown reuses the training-countdown look (same type,
-   digit boxes, critical state) but lives INSIDE the reader. The body area is
-   intentionally empty until the reviewed material lands in studyMaterials.js.
+   Study Mode reader (D3): rounded frosted panel on the RIGHT of the screen,
+   ~60% wide but capped so it never overlaps the left HUD (the cap subtracts
+   the side-panel width). Frosted-glass look mirrors the breathing overlay and
+   flips white (light mode) / dark (dark mode) with the site theme. The
+   per-page countdown lives INSIDE the reader; the body renders authored notes.
+   Theme tokens keep the two modes in sync.
 --------------------------------------------------------------------------- */
 #study-reader {
+    /* dark (default) frosted tokens */
+    --study-surface: rgba(9, 18, 32, 0.58);
+    --study-border: rgba(148, 163, 184, 0.22);
+    --study-inset: rgba(23, 39, 62, 0.5);
+    --study-text: #e7f1fb;
+    --study-text-soft: #b9cde0;
+    --study-heading: #eaf6ff;
+    --study-accent: #67e8f9;
+    --study-accent-soft: rgba(34, 211, 238, 0.14);
+    --study-accent-line: rgba(34, 211, 238, 0.3);
+
     position: absolute;
     right: 1rem;
     top: 50%;
     transform: translateY(-50%);
-    width: min(24rem, 38vw);
-    height: min(76vh, 36rem);
+    /* ~60% of the screen, but never wide enough to reach the left HUD. */
+    width: min(60vw, calc(100vw - var(--game-side-panel-width) - 4rem));
+    height: min(78vh, 38rem);
     display: flex;
     flex-direction: column;
     gap: 0.6rem;
-    padding: 1.1rem 1.15rem 1.15rem;
-    border-radius: 22px;
-    background:
-        linear-gradient(180deg, rgba(13, 27, 46, 0.82), rgba(7, 17, 30, 0.74)),
-        radial-gradient(circle at top right, rgba(34, 211, 238, 0.12), transparent 55%);
-    border: 1px solid rgba(148, 163, 184, 0.2);
+    padding: 1.15rem 1.25rem 1.2rem;
+    border-radius: 24px;
+    background: var(--study-surface);
+    border: 1px solid var(--study-border);
     box-shadow:
         inset 0 1px 0 rgba(255, 255, 255, 0.06),
-        0 22px 48px rgba(2, 8, 23, 0.4);
-    backdrop-filter: blur(16px) saturate(138%);
-    -webkit-backdrop-filter: blur(16px) saturate(138%);
+        0 24px 52px rgba(2, 8, 23, 0.42);
+    color: var(--study-text);
+    backdrop-filter: blur(20px) saturate(128%);
+    -webkit-backdrop-filter: blur(20px) saturate(128%);
+}
+
+/* Light mode: white frosted panel, dark ink. */
+body.light-mode #study-reader {
+    --study-surface: rgba(255, 255, 255, 0.66);
+    --study-border: rgba(148, 163, 184, 0.3);
+    --study-inset: rgba(255, 255, 255, 0.72);
+    --study-text: #1e293b;
+    --study-text-soft: #475569;
+    --study-heading: #0f172a;
+    --study-accent: #0e7490;
+    --study-accent-soft: rgba(14, 116, 144, 0.1);
+    --study-accent-line: rgba(14, 116, 144, 0.28);
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.6),
+        0 24px 52px rgba(15, 23, 42, 0.18);
 }
 
 .study-reader-head {
@@ -335,16 +364,16 @@
     border-radius: 999px;
     font-size: 0.72rem;
     letter-spacing: 0.05em;
-    color: #67e8f9;
-    background: rgba(34, 211, 238, 0.12);
-    border: 1px solid rgba(34, 211, 238, 0.3);
+    color: var(--study-accent);
+    background: var(--study-accent-soft);
+    border: 1px solid var(--study-accent-line);
     white-space: nowrap;
 }
 
 .study-reader-chip.subtle {
-    color: #b8cfe4;
-    background: rgba(148, 163, 184, 0.12);
-    border-color: rgba(148, 163, 184, 0.26);
+    color: var(--study-text-soft);
+    background: transparent;
+    border-color: var(--study-border);
 }
 
 .study-reader-timer {
@@ -352,14 +381,14 @@
     align-items: baseline;
     justify-content: space-between;
     gap: 0.6rem;
-    padding: 0.5rem 0.7rem;
+    padding: 0.5rem 0.75rem;
     border-radius: 14px;
-    background: rgba(2, 8, 23, 0.34);
-    border: 1px solid rgba(148, 163, 184, 0.14);
+    background: var(--study-inset);
+    border: 1px solid var(--study-border);
 }
 
 .study-reader-timer-label {
-    color: #8fb8d9;
+    color: var(--study-text-soft);
     font-size: 0.72rem;
     letter-spacing: 0.08em;
     text-transform: uppercase;
@@ -368,36 +397,110 @@
 #study-page-timer-value {
     font-family: var(--font-tech);
     font-size: clamp(1.25rem, 1.05rem + 0.6vw, 1.7rem);
-    color: #f8fafc;
-    text-shadow: 0 2px 10px rgba(0, 0, 0, 0.8), 0 0 4px rgba(56, 189, 248, 0.4);
+    color: var(--study-heading);
     white-space: nowrap;
 }
 
 #study-reader.is-critical #study-page-timer-value,
 #study-reader.is-critical .study-reader-timer-label {
     color: #f87171;
-    text-shadow: 0 2px 10px rgba(127, 29, 29, 0.55), 0 0 8px rgba(248, 113, 113, 0.28);
+}
+
+.study-reader-titles {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+}
+
+.study-reader-topic {
+    font-size: 0.74rem;
+    letter-spacing: 0.04em;
+    color: var(--study-accent);
+    font-weight: 600;
 }
 
 #study-reader-title {
     margin: 0;
-    font-size: 1.02rem;
-    font-weight: 600;
-    color: #e8f4ff;
-    letter-spacing: 0.02em;
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--study-heading);
+    letter-spacing: 0.01em;
 }
 
+/* Notes-style body: comfortable reading column, clear heading/term/bullet
+   hierarchy so it reads like study notes rather than a wall of text. */
 #study-reader-body {
     flex: 1;
     min-height: 0;
     overflow-y: auto;
-    padding: 0.35rem 0.15rem;
+    padding: 0.35rem 0.55rem 0.35rem 0.2rem;
     font-family: var(--font-body, inherit);
-    font-size: 0.92rem;
-    line-height: 1.65;
-    color: #d7e6f5;
-    white-space: pre-wrap;
+    font-size: 0.95rem;
+    line-height: 1.7;
+    color: var(--study-text);
     border-radius: 12px;
+}
+
+#study-reader-body > * { margin: 0 0 0.7rem; }
+#study-reader-body > *:last-child { margin-bottom: 0.2rem; }
+
+.study-block-lead {
+    font-size: 0.98rem;
+    color: var(--study-text);
+    font-weight: 500;
+}
+
+.study-block-heading {
+    margin-top: 0.2rem;
+    font-size: 0.9rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    color: var(--study-accent);
+}
+
+.study-block-para {
+    color: var(--study-text);
+}
+
+.study-block-list {
+    margin: 0 0 0.7rem;
+    padding-left: 1.2rem;
+    list-style: disc;
+}
+
+.study-block-list li {
+    margin-bottom: 0.35rem;
+    color: var(--study-text);
+}
+
+.study-block-term {
+    display: grid;
+    grid-template-columns: minmax(6.5rem, 34%) 1fr;
+    gap: 0.2rem 0.8rem;
+    padding: 0.45rem 0.6rem;
+    border-radius: 10px;
+    background: var(--study-inset);
+    border: 1px solid var(--study-border);
+}
+
+.study-term-name {
+    font-weight: 700;
+    color: var(--study-heading);
+}
+
+.study-term-def {
+    color: var(--study-text-soft);
+    font-size: 0.9rem;
+}
+
+.study-block-note {
+    padding: 0.55rem 0.75rem;
+    border-radius: 10px;
+    border-left: 3px solid var(--study-accent);
+    background: var(--study-accent-soft);
+    color: var(--study-text);
+    font-size: 0.9rem;
 }
 
 .study-reader-actions {
@@ -421,6 +524,11 @@
     transition: transform 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
 }
 
+body.light-mode #study-next-btn {
+    color: #06323b;
+    background: linear-gradient(180deg, rgba(34, 211, 238, 0.4), rgba(14, 116, 144, 0.4));
+}
+
 #study-next-btn:hover:not(:disabled) {
     transform: translateY(-1px);
     box-shadow: 0 14px 30px rgba(8, 145, 178, 0.28);
@@ -432,28 +540,35 @@
     color: #fdf3dd;
 }
 
+body.light-mode #study-next-btn.is-quiz {
+    color: #5b3d0a;
+    background: linear-gradient(180deg, rgba(245, 195, 107, 0.55), rgba(217, 160, 60, 0.5));
+}
+
 #study-next-btn:disabled {
-    opacity: 0.55;
+    opacity: 0.5;
     cursor: default;
 }
 
 #study-quiz-note {
-    font-size: 0.78rem;
+    font-size: 0.8rem;
     line-height: 1.5;
-    color: #b8cfe4;
+    color: var(--study-text-soft);
     text-align: center;
 }
 
 /* Landscape phones / small windows: the reader narrows and hugs the edge so
    the sea (and the left HUD) stay visible. */
-@media (max-width: 900px), (max-height: 560px) {
+@media (max-width: 820px), (max-height: 560px) {
     #study-reader {
         right: 0.6rem;
-        width: min(19rem, 46vw);
-        height: min(82vh, 30rem);
-        padding: 0.8rem 0.85rem 0.85rem;
+        width: min(58vw, calc(100vw - var(--game-side-panel-width) - 2rem));
+        height: min(84vh, 32rem);
+        padding: 0.85rem 0.9rem 0.9rem;
         border-radius: 18px;
     }
+    #study-reader-body { font-size: 0.9rem; line-height: 1.62; }
+    .study-block-term { grid-template-columns: 1fr; gap: 0.1rem; }
 }
 
 #score-display {
@@ -2026,10 +2141,16 @@ html[data-platform='windows'] #game-settings-panel {
     backdrop-filter: none;
 }
 
+/* Windows perf profile drops the blur, so make the surface near-opaque (still
+   theme-aware via the tokens) instead of a see-through frosted layer. */
 html[data-platform='windows'] #study-reader {
     backdrop-filter: none;
     -webkit-backdrop-filter: none;
-    background: linear-gradient(180deg, rgba(13, 27, 46, 0.94), rgba(7, 17, 30, 0.92));
+    --study-surface: rgba(9, 18, 32, 0.95);
+}
+
+html[data-platform='windows'] body.light-mode #study-reader {
+    --study-surface: rgba(248, 251, 255, 0.96);
 }
 
 
