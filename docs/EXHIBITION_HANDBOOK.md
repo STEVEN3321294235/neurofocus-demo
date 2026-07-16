@@ -55,7 +55,7 @@
 
 - **訓練模式**：專注航行，**不出題**，主打穩定維持專注。沿一條**無限彎曲航道**航行：專注先揸得住個舵（分心船會漂離航道）、穩住專注 25 秒摘一粒**心流星**、每 500m 經過一個**航標**、天氣即時反映腦狀態（分心起霧、復原放晴）。最適合台上展示（流程最清、最穩、旁觀者一眼睇明）。
 - **挑戰模式**：加入 **Stroop 題 + 邏輯題**，主打「一邊做任務、一邊維持專注」，貼近真實生活。最適合台下俾評判親身感受「做 task 時大腦容易亂」。
-- **學習模式 Study Mode（🚧 2026-07-15 立項，建置中；正式站會見到張卡但鎖住「Coming Soon」，做完先解鎖）**：第三個選項，對應負責老師嘅**紙本 vs 平台對照實驗**——揀學科（首發生物，「基礎/進階」兩級深度；化學/物理/歷史 🔒 Coming Soon）→ **閱讀階段**（材料喺螢幕中間閱讀卡、側邊精簡 HUD 顯示專注%/訊號/倒數；每頁最多 3 分鐘可提早跳；背景係同一片天空海景但**無船無航道**；天氣共感/呼吸介入/三路訊號輸入照用）→ **答題階段**（**船隻＋題目 HUD 返場**，航行回饋同挑戰模式一樣，題目用 AI 預先生成＋老師審核鎖死嘅固定卷）→ **Study Results**（溫習/答題兩階段數據斬開＋CSV 匯出，學生用編號 S01/S02/S03 唔收真名）。詳見 plan §5 D3。**比賽 demo 唔倚賴佢**：訓練/挑戰模式一行 code 都冇郁。
+- **學習模式 Study Mode（🚧 2026-07-15 立項，D3-1/D3-2 已實裝；正式站會見到張卡但鎖住「Coming Soon」，全部做完先解鎖）**：第三個選項，對應負責老師嘅**紙本 vs 平台對照實驗**——揀學科（首發生物，「基礎/進階」兩級深度；化學/物理/歷史 🔒 Coming Soon，比賽前唔會解鎖）→ **閱讀階段**（材料放喺**螢幕右邊圓角閱讀器**，計時器內嵌喺閱讀器裏面、左邊 focus HUD 照留顯示專注%/訊號；每頁最多 3 分鐘可提早揭頁；背景係同一片天空海景但**收起船／航道／浮標**；天氣共感/呼吸介入/三路訊號輸入照用）→ **答題階段**（**船隻＋題目 HUD 返場**，航行回饋同挑戰模式一樣，題目用 AI 預先生成＋老師審核鎖死嘅固定卷）→ **Study Results**（溫習/答題兩階段數據斬開＋CSV 匯出，學生用編號 S01/S02/S03 唔收真名）。詳見 plan §5 D3。**比賽 demo 唔倚賴佢**：訓練/挑戰模式一行 code 都冇郁。
 
 ### 第二層：訊號來源模式（用咩訊號）
 - **Real EEG**：MindWave 頭帶讀 EEG → 本地 `eeg_bridge.py` → WebSocket → 前端。**wow factor 最高、最吸引評判**；風險最高（藍牙 / COM port / 權限）。
@@ -119,8 +119,9 @@ graph LR
 | `services/storageService.js` | localStorage + **跨 session 歷史讀寫** |
 | `services/runtimeLoader.js` | 版本號 query string + 動態 import runtime（降快取干擾） |
 | `services/focusInputService.js` | 相機專注偵測（MediaPipe FaceLandmarker） |
-| `pages/game/runtime.js` | **全專案核心引擎**（接近 7000 行）：Three.js 場景、航行物理（航向+慣性）、心流充能摘星、天氣共感、黃金時刻、題目、focus 更新、呼吸介入、simulation profile、bridge reconnect、results、audio、performance profile、**自適應門檻**、**FPS meter** |
-| `pages/game/voyage.js` | **航程系統**：無限不規則彎曲航道（發光虛線）、航標浮塔 checkpoint（浮沉+燈頭脈動+海鷗）、航海圖數據 |
+| `pages/game/runtime.js` | **全專案核心引擎**（接近 7000 行）：Three.js 場景、航行物理（航向+慣性）、心流充能摘星、天氣共感、黃金時刻、題目、focus 更新、呼吸介入、simulation profile、bridge reconnect、results、audio、performance profile、**自適應門檻**、**FPS meter**、**學習模式閱讀引擎（D3）** |
+| `pages/game/voyage.js` | **航程系統**：無限不規則彎曲航道（發光虛線）、航標浮塔 checkpoint（浮沉+燈頭脈動+海鷗）、航海圖數據；`setVoyageVisible()` 畀學習模式收起船隻航道 |
+| `pages/game/studyMaterials.js` | **學習模式教材（D3）**：per 學科 per 深度嘅分頁課文；目前留白霸位，老師材料一到就填入 |
 | `eeg_bridge.py` | 本地硬體橋：掃 COM port、揀 MindWave、解析 attention/meditation/signal、WebSocket 廣播 |
 | `styles/**` | UI 外觀、Liquid Glass、dark mode、各頁樣式 |
 | `*.bat` / `requirements-eeg-bridge.txt` | Windows 一鍵啟動（見 Part 8） |
@@ -130,7 +131,7 @@ graph LR
 ## Part 4 — 遊戲運行邏輯 + UI 機制
 
 ### 基本流程
-`輸入名稱 → Setup（揀任務模式 → 揀訊號來源 →（挑戰揀難度 / 訓練揀時長）→（Simulation 問相機授權））→ Game → Results`
+`輸入名稱 → Setup（揀任務模式 →〔學習模式先揀學科＋深度〕→ 揀訊號來源 →（挑戰揀難度 / 訓練揀時長 / 學習直接入）→（Simulation 問相機授權））→ Game → Results`
 
 ### 核心邏輯（2026-07 gameplay 重新設計後）
 - **專注度驅動船速 + 舵**：`focusLevel` 係核心輸入——越高船越快；同時專注 = 舵嘅控制力：專注時船貼住彎曲航道行，分心時船會隨機漂離航道，重新專注先拉得返（真實航向物理：慣性加速、入彎側傾）。
