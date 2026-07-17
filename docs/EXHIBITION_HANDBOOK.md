@@ -3,6 +3,7 @@
 > **一份文件睇晒**：產品是什麼、技術架構、玩法邏輯、現場執行、台上台詞、評判 Q&A、Windows 部署、競爭力與科學論述。
 > 呢份係「**展覽 + 答辯**」用嘅參考大全，展覽當日直接開嚟用。
 > 👉 至於「之後要寫咩 code / 待辦」——睇另一份 **[`docs/IEYI_PLAN_V2.md`](./IEYI_PLAN_V2.md)**。
+> 👉 **正式答辯（3–4 分鐘、PPT 主導、老師 07-17 新方向）**——睇 **[`docs/IEYI_PRESENTATION_PACKAGE.md`](./IEYI_PRESENTATION_PACKAGE.md)**（PPT 每頁大綱＋講稿＋A0 海報＋Q&A＋Pros/Cons）。本手冊 Part 6 係**攤位長版** walkthrough，兩者並用。
 >
 > 本手冊由以下舊文件整合而成（已全部併入，並**更新到 2026-07 sprint 後嘅最新狀態**）：
 > `PROJECT_ANALYSIS.md`、`README.md`、`EXHIBITION_EXECUTION_BRIEF`、`GAMEPLAY_UPGRADE_CONFIRMATION`、`UI_FLOWCHART`、`WINDOWS_2A_DEPLOYMENT_SOP`、`TRAE_HANDOFF_PROMPT_WINDOWS`、`debug-windows-home-fps`。
@@ -236,6 +237,8 @@ graph TD
 <a name="part-6"></a>
 ## Part 6 — 台上講稿（版本進化對照 + 統一講稿・中英對照）
 
+> ⚠️ **2026-07-17 更新**：老師建議正式答辯改為 **3–4 分鐘、PPT 主導、淨係 demo 學習模式、technical 落 Q&A**。呢個新版**正式答辯稿**移咗去 **[`docs/IEYI_PRESENTATION_PACKAGE.md`](./IEYI_PRESENTATION_PACKAGE.md)**。下面 Part 6 保留做**攤位長版**（逐個模式行、時間充裕先用）。
+>
 > 呢個 Part 分兩橛：**6.1** 係「最舊版本 → 目前版本」嘅進化對照表（適合喺答辯講「我哋點樣一路改良、點解有市場、係咪真係幫到專注」）；**6.2** 係**一篇過**嘅講稿（唔再綁死邊個講者講邊 part，你哋可以一人讀晒，或者自由切段畀三個人），中英對照。
 
 ### 6.1 版本進化對照表（最舊版本 → 目前版本）

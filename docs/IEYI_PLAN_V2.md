@@ -61,6 +61,11 @@
 > ㉛ **⚡ FPS 急跌急救（最高畫質由 120 跌到有時 <60）**：查出三個**逐幀**成本源並修好——(a) 主題切換後 `envState.isTransitioning` 冇 set 返 `false`，令一段**重 per-frame lerp ＋ boat.traverse 永遠行落去** → progress 滿咗即 stop；(b) 暫停檢查每幀 `getComputedStyle(warningEl)` **強制同步 style recalc** → 改用 `matchMedia` cache（`portraitBlockActive`，只喺 resize/orientation 時更新）；(c) 閱讀器 `backdrop-filter: blur(20px)` 罩住 66vw×90vh 動畫場景**每幀 GPU 重算** → 收細到 `blur(7px)`＋加厚面板底色補償。另外學習頁計時器/下一頁掣加 `dataset` 去重，唔再每 tick 重砌 DOM。
 > ㉜ **匯出 PDF 補 email**：`authService` 新增 `nf_user_email`（login/register 都記低）＋ `syncUserEmail()`（舊用戶由 Supabase session 回填），Results 頁首而家真係印到登入 email。
 > ㉝ **Setup 右上設定選單**：齒輪掣 → **重設所有數據**（清進度/歷史/結果＋雲端 session rows，保留登入＋語言/主題）＋**刪除帳戶**（清晒數據＋email＋登出＋返主頁）；兩個都有中文確認彈窗，`storageService` 加 `resetAllData()`/`deleteAccountData()`。模組版本 `2026-07-17-2`。全部 headless 實測 ✅（Setup 選單 12/12、遊戲 4 秒 render loop 零錯）。
+>
+> **2026-07-17 第九輪（老師回饋 → 答辯策略大轉向・純文件）**：
+> ㉞ **策略轉向**：老師睇完話「技術夠分，但展示訊息唔清、三部份未有綜合感、太 technical 會冗長」。正式答辯改為 **3–4 分鐘、PPT 主導、問題行先、淨係現場 demo 學習模式（一個模式串起成個閉環）、technical 全部落 Q&A**。
+> ㉟ **新增答辯包** `docs/IEYI_PRESENTATION_PACKAGE.md`：PPT 每頁詳細大綱（8 頁）＋中英講稿（附 `[NAV]`/`[DEMO]` 導航示範提示）＋A0 海報設計大綱＋Q&A 手冊（technical 全入）＋**Pros & Cons/SWOT**。手冊 Part 6 改做「攤位長版」，頂部加指路。
+> ㊱ **🔑 待 Steven 拍板嘅產品建議**：學習模式**閱讀階段目前收起隻船**（`boat.visible = !isStudyReading()`），但老師/短片都描述「溫習時旁邊有隻小小漂流船、分心飄開」——建議喺閱讀階段角落加返一隻**細船**（跟 focus 飄移、唔遮閱讀器），直接補返「綜合感」。改動細，但屬 UX 決定，未做住。
 
 ---
 
