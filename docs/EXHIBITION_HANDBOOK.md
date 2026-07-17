@@ -18,7 +18,7 @@
 3. [技術架構（最新）](#part-3)
 4. [遊戲運行邏輯 + UI 機制](#part-4)
 5. [現場展示執行](#part-5)
-6. [台上台詞（三位講者）](#part-6)
+6. [台上講稿（版本進化對照 + 統一講稿・中英對照）](#part-6)
 7. [評判 Q&A](#part-7)
 8. [Windows 部署 SOP + 裝置分工 + FPS 已知問題](#part-8)
 9. [競爭力分析（對比賽）](#part-9)
@@ -234,35 +234,104 @@ graph TD
 
 ---
 <a name="part-6"></a>
-## Part 6 — 台上台詞（三位講者）
+## Part 6 — 台上講稿（版本進化對照 + 統一講稿・中英對照）
 
-### 分工
-- **講者一**：時代痛點、專注力點解碎片化、傳統方法點解唔夠。
-- **講者二**：網站三個模式做咩（訓練/挑戰/學習）、船如何代表專注、Simulation 兩條路線原理。
-- **講者三（你）**：EEG 概念、技術架構、Box Breathing 為何有效、長期改善機制、**學習模式對照實驗（紙本 vs 平台）**。
+> 呢個 Part 分兩橛：**6.1** 係「最舊版本 → 目前版本」嘅進化對照表（適合喺答辯講「我哋點樣一路改良、點解有市場、係咪真係幫到專注」）；**6.2** 係**一篇過**嘅講稿（唔再綁死邊個講者講邊 part，你哋可以一人讀晒，或者自由切段畀三個人），中英對照。
 
-### 講者一（背景 / 問題 / 理念）— 停留 `Home`
-> 「各位評判大家好，我哋嘅作品叫做 NeuroFocus。喺而家充斥短片、通知、社交媒體嘅年代，年輕人好容易長期處於一種『睇落清醒，但注意力好碎』嘅狀態。我哋認為專注力唔應該只靠意志力硬撐——如果用戶根本唔知道自己而家係專心、分心定太緊張，佢就無從調整。所以我哋想做嘅唔係普通遊戲，而係一個將專注狀態變成**可視化、可訓練、可量化**嘅平台。」
+### 6.1 版本進化對照表（最舊版本 → 目前版本）
 
-### 講者二（網站模式 / Simulation 原理 / 產品設計）— 入 `Setup` 再入 `Simulation`
-> 「我哋個網站有兩層模式。第一層係**任務目標**，有三個：`訓練模式` 唔出題，純練穩定維持專注；`挑戰模式` 加入 Stroop 同邏輯題，模擬真實世界『一邊做任務、一邊維持專心』；仲有一個 `學習模式`，係我哋為咗一個對照實驗特別做嘅——陣間講者三會詳細講。第二層係**訊號來源**：`Real EEG` 真實腦波輸入，`Simulation` 用嚟展示同備援。Simulation 仲有兩條路線——相機開到就用鏡頭觀察望開/眨眼/臉部集中程度估專注分；相機唔得就用 fallback 模擬曲線，確保任何裝置都 demo 到。無論用邊種偵測，只要你長時間跌出穩定狀態，都會觸發 Box Breathing。喺遊戲入面，當你狀態好，船就更順更快;分心就失去節奏——呢種即時回饋，比叫人『專心啲』直接得多。」
+由 **2026-06-23 第一個 commit「EEG 2026 - Focus Game」** 到 **2026-07 嘅「NeuroFocus」平台**，三個幾星期、約 95 個 commit。核心 gameplay 檔 `runtime.js` 由 **3961 行** 長到 **7615 行**。以下逐項對照——重點唔淨係「加咗嘢」，而係**每一項點樣擴闊市場 + 加強專注訓練嘅說服力**：
 
-### 講者三（EEG / Box Breathing / 長期改善 / 對照實驗）— 入 `Game` 或 `Results`
-> 「我負責講技術同原理。其中一條核心輸入係 **EEG 腦電波**：透過頭帶讀腦部活動，經本地 Python bridge 傳到網頁，轉成即時專注指標，直接驅動隻船。我哋唔只監測『你有冇分心』——當系統發現你長時間跌出穩定狀態，會即時觸發 **Box Breathing**。點解用呼吸？因為規律呼吸有助降低過高喚醒，幫你由太亂太緊，慢慢返去『專注但放鬆』。我哋最重視長期改善：即時回饋幫你建立自我覺察，重複練習幫你學識分心時點拉返自己——我哋唔止想量度專注，而係想教用戶**調節**專注。」
-> 
-> **（如果有做學習模式 pilot 實驗，補充）**：「為咗初步驗證有冇用，我哋喺老師指導下做咗一個小型對照：**同一份生物教材、同一份老師審核嘅測驗卷**，一組用紙本溫習、一組用我哋平台溫習，然後比較兩組嘅**測驗成績**同**溫習時嘅專注數據**（平台會量度專注穩定度、分心後拉返專注嘅時間）。呢啲數據可以一鍵匯出 CSV 畀老師做分析。要誠實講：我哋 n 只有 2–3 個學生，屬於 pilot，唔係正式研究——但佢示範咗個平台**點樣量度到學習過程**，係下一步做更大規模研究嘅基礎。」
+| 面向 Dimension | 最舊版本 Oldest（06-23「EEG Focus Game」） | 目前版本 Now（07「NeuroFocus」平台） | 對「市場潛力／改善專注」嘅意義 |
+|---|---|---|---|
+| **定位 Identity** | 一個靠頭帶玩嘅 EEG 專注**遊戲** | 多模式**神經回饋專注訓練平台**原型 | 由「玩具／demo」升做「平台」，先有得延伸商業化 |
+| **訊號來源 Signal** | EEG ＋ 模擬曲線 fallback（**冇相機**） | EEG ＋ **相機臉部偵測（MediaPipe）** ＋ 模擬 fallback | 冇 EEG 硬件都用得 → 受眾由「有頭帶嘅人」擴到「**任何有 webcam 嘅學生**」，TAM 大幅擴闊 |
+| **任務模式 Task modes** | **單一遊戲**，冇分層 | **訓練／挑戰／學習** 三模式（任務層）＋ EEG／Simulation（訊號層）兩層架構 | 覆蓋更多場景：純練穩定、抗干擾、溫習學習——一個平台多種用途 |
+| **專注介入 Intervention** | **冇**（淨係量度） | **Box Breathing 呼吸介入**，接喺所有偵測後面嘅統一層 | 由「淨係量度你分咗心」→「量度**＋主動幫你調節返**」＝真正嘅訓練價值，唔止 monitor |
+| **數據／進度 Data** | 淨係**單次 session** 結果 | 單次 ＋ **跨 session 趨勢／恢復分析**（雲端 Supabase ＋ 本地）＋ PDF/CSV 匯出 | 用戶睇到自己進步 → 黏性／回訪／訂閱潛力；對評判＝「唔止畀你睇一次」 |
+| **教育應用 Education** | **冇** | **學習模式**：紙本 vs 平台對照實驗、老師固定審核卷、兩階段專注數據、教材數碼化 | 打開**教育市場**（學校／老師／家長）＋ 提供「**可量度學習過程**」嘅證據角度 |
+| **語言 Language** | 中英雙語（一開始已有） | 中英雙語**更完整**（連教材、結果、匯出都雙語） | 面向本地學生 ＋ 國際評判，兩邊都 present 到 |
+| **規模 Scale** | `runtime.js` 3961 行、README 淨係講 EEG 駁機 | `runtime.js` 7615 行、完整手冊＋計劃書＋教材＋實驗 | 3.5 週由「一隻遊戲」演進成「一個系統」 |
 
-### 時間不足時
-- **可略**：AI 個人化難度、未來 cloud progress、其他未實裝 sensor。
-- **一定要講**：專注力點解值得解決；先任務模式再訊號來源;Real EEG vs Simulation 分工；訓練 vs 挑戰分別;Box Breathing 係橫跨所有偵測嘅介入層;產品長期訓練價值。
+**分析一：市場潛力有冇因為改良而增加？→ 有，而且係關鍵性擴闊。**
+最舊版本嘅致命限制係「**要有 MindWave 頭帶先玩到**」——市場等於「擁有／肯買消費級 EEG 嘅人」，非常窄。加咗**相機偵測 fallback** 之後，任何一部有鏡頭嘅手機／電腦都可以完整體驗，受眾由「頭帶用家」擴到「**普通學生**」。再加**學習模式**，等於由「個人玩具」跨入「**教育工具**」呢個更大、更肯付費嘅市場（學校／補習／家長）。而**跨 session 進度追蹤**提供咗回訪同訂閱嘅商業鈎。所以改良方向唔係「加花巧」，而係**一步步拆走增長天花板**。
 
-### 台下攤位 SOP（6 步）
-1. **Hook**：「頭先台上講嗰套腦波訓練系統，我哋而家可以畀你親身試。」
-2. **先講模式**：「先揀任務模式，再揀訊號來源。」
-3. **先示範訓練模式**（`Real EEG → 訓練`）：「呢個唔出題，純粹訓練穩定專注。」
-4. **再示範挑戰模式**：「基本功穩定後就加任務壓力，貼近現實。」
-5. **最後 Results**：「每次訓練都量化今次表現——穩定度、恢復速度、呼吸次數，仲有同你之前 session 嘅對比。」
-6. **未來發展點到即止**：「之後會加長期 progress tracking、個人化難度、更多外界偵測。」
+**分析二：係咪真係可以改善專注？→ 要誠實分兩面講。**
+- **機制上站得住腳**：(1) **即時神經回饋**幫用戶建立「而家掂唔掂」嘅**自我覺察**——呢個係行為改變嘅第一步；(2) **Box Breathing** 用規律呼吸降低過高喚醒，係有文獻支持嘅情緒／喚醒調節手法；(3) **重複練習 + 恢復數據**訓練嘅係「**分心之後點拉返自己**」呢個技能，唔係一次性表演。呢三樣都係朝住「真正改善」嘅方向設計，而且平台**已經量度到**專注穩定度同恢復時間。
+- **但要 honest**：我哋**未有嚴謹嘅長期實證**——pilot 得 n≈2–3，冇正式對照組／前後測／長期追蹤，用嘅又係消費級單通道 EEG。所以正確講法係：「**機制對齊科學、平台已經量度到學習過程，但長期成效仲未證實**」。定位係**訓練平台原型**，唔係已完成臨床驗證嘅醫療產品；下一步先做更大樣本嘅對照研究。**呢個誠實框架本身就係加分位**——評判最鍾意見到參賽者分得清「已做到」同「仲要證實」。
+
+### 6.2 統一講稿（一篇過・分部份・中英對照）
+
+> 一路 demo 一路講：`Home →（講 6.2-①②）→ Setup / Simulation →（③④）→ Game / Results →（⑤⑥⑦⑧）→ 收結（⑨）`。
+
+**① 開場・時代痛點 Opening — The Problem**
+> **【中】** 各位評判大家好，我哋嘅作品叫做 NeuroFocus。喺而家充斥短片、通知、社交媒體嘅年代，年輕人好容易長期處於一種「睇落清醒，但注意力好碎」嘅狀態。我哋認為專注力唔應該只靠意志力硬撐——如果用戶根本唔知道自己而家係專心、分心定太緊張，佢就無從調整。
+>
+> **【EN】** Good afternoon, judges. Our project is called NeuroFocus. In an age flooded with short videos, notifications and social media, young people often stay in a state that "looks awake but whose attention is badly fragmented." We believe focus shouldn't rely on willpower alone — if you don't even know whether you're focused, distracted, or over-tense right now, you have no way to adjust.
+
+**② 產品定位 What NeuroFocus Is**
+> **【中】** 所以我哋想做嘅唔係普通遊戲，而係一個將專注狀態變成**可視化、可訓練、可量化**嘅平台。我哋唔係叫用戶「你專心啲」，而係令佢即時見到自己嘅狀態、學識點拉返自己入狀態。
+>
+> **【EN】** So what we built is not an ordinary game, but a platform that turns your attention state into something **visible, trainable and measurable**. Instead of telling users to "focus more," we let them see their own state in real time and learn how to pull themselves back into focus.
+
+**③ 網站兩層模式 The Two Layers of Modes**
+> **【中】** 個網站有兩層模式。第一層係**任務目標**，有三個：訓練模式唔出題，純練穩定維持專注；挑戰模式加入 Stroop 同邏輯題，模擬真實世界「一邊做任務、一邊維持專心」；仲有學習模式，係我哋為咗一個對照實驗特別做嘅。第二層係**訊號來源**：Real EEG 真實腦波，Simulation 用嚟展示同備援；Simulation 仲有兩條路線——相機開到就用鏡頭觀察望開／眨眼／臉部集中程度估專注分，相機唔得就用模擬曲線，確保任何裝置都 demo 到。
+>
+> **【EN】** The site has two layers of modes. The first is the **task goal**, with three options: Training asks no questions — you simply practise holding steady focus; Challenge adds Stroop and logic questions to simulate the real-world demand of staying focused while doing a task; and Study mode, which we built specifically for a controlled experiment. The second layer is the **signal source**: Real EEG for genuine brainwaves, and Simulation for demo and backup. Simulation has two paths — if the camera is on, it reads gaze-away, blinking and facial concentration to estimate a focus score; if not, it falls back to a simulated curve, so any device can still demo.
+
+**④ 船 = 專注・即時回饋 The Boat = Focus, Real-time Feedback**
+> **【中】** 喺遊戲入面，當你狀態好，船就更順更快；分心就會失去節奏。呢種即時回饋，比叫人「專心啲」直接得多——你一望個畫面就知自己而家掂唔掂。
+>
+> **【EN】** In the game, when your state is good the boat sails smoother and faster; when you drift, it loses its rhythm. This real-time feedback is far more direct than telling someone to "focus" — one glance at the screen tells you whether you're on track.
+
+**⑤ EEG 核心 The EEG Core**
+> **【中】** 其中一條核心輸入係 **EEG 腦電波**：透過頭帶讀腦部活動，經本地 Python bridge 傳到網頁，轉成即時專注指標，直接驅動隻船。要誠實講，我哋用嘅係消費級單通道頭帶，當佢係訓練輸入同展示，唔會講成研究級腦狀態診斷。
+>
+> **【EN】** One core input is **EEG brainwaves**: a headband reads brain activity, a local Python bridge streams it to the web page, and it becomes a live focus metric that drives the boat directly. To be honest, we use a consumer single-channel headband — we treat it as a training input and demonstration, not a research-grade brain-state diagnosis.
+
+**⑥ Box Breathing 呼吸介入 The Breathing Intervention**
+> **【中】** 我哋唔只監測「你有冇分心」——當系統發現你長時間跌出穩定狀態，會即時觸發 **Box Breathing**。點解用呼吸？因為規律呼吸有助降低過高喚醒，幫你由太亂太緊，慢慢返去「專注但放鬆」。而且佢唔綁死某一輸入模式，係接喺所有偵測後面嘅統一介入層。
+>
+> **【EN】** We don't only monitor whether you're distracted — when the system detects you've dropped out of a stable state for too long, it triggers **Box Breathing**. Why breathing? Regular breathing helps lower excessive arousal, guiding you from "too scattered, too tense" back toward "focused but relaxed." And it isn't tied to any single input mode — it sits behind every detection method as one unified intervention layer.
+
+**⑦ 長期改善機制 Long-term Improvement**
+> **【中】** 我哋最重視長期改善：即時回饋幫你建立自我覺察，重複練習幫你學識分心時點拉返自己。所以除咗單次 session 量化，我哋仲有跨 session 前後對比同恢復趨勢——唔止畀你睇一次，仲畀你睇多次之間有冇進步。我哋唔止想量度專注，而係想教用戶**調節**專注。
+>
+> **【EN】** What we care about most is long-term improvement: real-time feedback builds self-awareness, and repeated practice teaches you how to recover when you drift. So beyond single-session metrics, we show cross-session before/after comparisons and recovery trends — not just one snapshot, but whether you're improving across sessions. We don't only want to measure focus; we want to teach users to **regulate** it.
+
+**⑧ 學習模式對照實驗 Study Mode — Paper vs Platform**
+> **【中】** 為咗初步驗證有冇用，我哋喺老師指導下做咗一個小型對照：**同一份生物教材、同一份老師審核嘅測驗卷**，一組用紙本溫習、一組用我哋平台溫習，然後比較兩組嘅測驗成績同溫習時嘅專注數據。呢啲數據可以一鍵匯出 CSV／PDF 畀老師分析。要誠實講：我哋 n 只有 2–3 個學生，屬於 pilot，唔係正式研究——但佢示範咗平台點樣量度到學習過程，係下一步做更大規模研究嘅基礎。
+>
+> **【EN】** To get a first check on whether it helps, under our teacher's guidance we ran a small controlled comparison: the **same biology material and the same teacher-vetted quiz**, one group revising on paper and one on our platform, then comparing test scores and the focus data recorded during revision. That data exports to CSV/PDF for the teacher in one click. To be honest, our n is only 2–3 students — this is a pilot, not a formal study — but it demonstrates how the platform can **measure the learning process**, and it's the basis for a larger study next.
+
+**⑨ 收結 Closing**
+> **【中】** 總括嚟講，NeuroFocus 由一個 EEG 專注遊戲，喺三個幾星期內演進成一個多模式神經回饋訓練平台：即時回饋、呼吸介入、單次同跨 session 量化，加上一個可以量度學習過程嘅學習模式。我哋定位佢係訓練平台原型，唔係已完成臨床驗證嘅醫療產品；但佢示範咗一條清晰嘅路——由「叫你專心」變成「畀你睇到、練到、量度到專注」。多謝各位。
+>
+> **【EN】** In short, NeuroFocus evolved in just over three weeks from an EEG focus game into a multi-mode neurofeedback training platform: real-time feedback, a breathing intervention, single- and cross-session measurement, plus a Study mode that can measure the learning process itself. We position it as a training-platform prototype, not a clinically validated medical product — but it shows a clear path: from "telling you to focus" to "letting you **see, train and measure** focus." Thank you.
+
+### 6.3 時間不足時嘅取捨 If Time Runs Short
+- **可略 Can skip**：AI 個人化難度、未來 cloud progress、其他未實裝 sensor。 / *AI-personalised difficulty, future cloud progress, other unbuilt sensors.*
+- **一定要講 Must cover**：專注力點解值得解決；先任務模式再訊號來源；Real EEG vs Simulation 分工；訓練 vs 挑戰分別；Box Breathing 係橫跨所有偵測嘅介入層；產品長期訓練價值。 / *Why focus is worth solving; task layer before signal layer; Real EEG vs Simulation; Training vs Challenge; Box Breathing as an intervention layer across all detection; the product's long-term training value.*
+
+### 6.4 台下攤位 SOP（6 步・中英對照）Booth SOP (6 steps)
+1. **Hook**
+   > **【中】** 頭先台上講嗰套腦波訓練系統，我哋而家可以畀你親身試。
+   > **【EN】** That brainwave-training system we just presented — you can try it yourself right now.
+2. **先講模式 Explain the modes first**
+   > **【中】** 先揀任務模式，再揀訊號來源。
+   > **【EN】** First pick a task mode, then pick a signal source.
+3. **先示範訓練模式 Demo Training first**（`Real EEG → 訓練`）
+   > **【中】** 呢個唔出題，純粹訓練穩定專注。
+   > **【EN】** This one has no questions — it's purely about training steady focus.
+4. **再示範挑戰模式 Then Challenge**
+   > **【中】** 基本功穩定後就加任務壓力，貼近現實。
+   > **【EN】** Once the basics are steady, we add task pressure to mirror real life.
+5. **最後 Results Finish on Results**
+   > **【中】** 每次訓練都量化今次表現——穩定度、恢復速度、呼吸次數，仲有同你之前 session 嘅對比。
+   > **【EN】** Every session quantifies your performance — stability, recovery speed, breathing count, plus a comparison with your previous sessions.
+6. **未來發展點到即止 Touch on the future, lightly**
+   > **【中】** 之後會加長期 progress tracking、個人化難度、更多外界偵測。
+   > **【EN】** Next we'll add long-term progress tracking, personalised difficulty, and more external sensing.
 
 ---
 <a name="part-7"></a>
@@ -404,7 +473,7 @@ Windows laptop 做現場 demo 機：本地 Python EEG bridge + 本地站 `http:/
 - [ ] iPad 已開網址，停 `Home`
 - [ ] Windows 電腦喺攤位，`eeg_bridge.py` 運行中
 - [ ] EEG 頭帶喺電腦旁，方便即時佩戴
-- [ ] 三位講者知自己講邊部分
+- [ ] 講稿分工講清楚：統一講稿（Part 6.2 ①–⑨）邊個讀邊幾段，大家夾好
 - [ ] 備援共識：Real EEG 不穩即改 Simulation
 
 ### 最後檢查（必做）
