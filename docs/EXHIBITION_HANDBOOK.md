@@ -281,55 +281,9 @@ graph TD
 | Slide 7 | Tab 2 | 切去預先完成嘅 Results，指住恢復時間＋兩階段卡 |
 | Slide 8 | PPT | 返 PPT 收結 |
 
-### 6.3 PPT 每頁詳細大綱（8 頁）＋ Canva Prompt（2026-07-18 詳細版）
+### 6.3 PPT 每頁詳細大綱（8 頁）＋ Canva Prompt
 
-> 隊員用 Canva 砌；**6.3.4 個 prompt** 直接 copy 畀 Canva Magic Design／AI 都得，或者照住人手砌。截圖自己喺平台 cap（閱讀頁／測驗頁／Results 各一）——**cap 之前記得喺 homepage 把網站切去英文 UI**（slides 建議全英文，理由見 6.3.1）。
-
-#### 6.3.1 語言拍板：建議 slides 全英文＋口頭按評判（分析）
-
-| 方案 | 好處 | 壞處 | 判斷 |
-|---|---|---|---|
-| 全中文 | 本地評判即讀即明；隊員砌得快 | IEYI 係**國際**發明展，評判團國際化——非華語評判一個字都睇唔明；同英文 UI 截圖／海報唔一致 | ❌ |
-| 中英並排（舊 prompt 做法） | 兩邊都照顧到 | **每頁字量 ×2**，直接違反「每頁一個重點、3 秒睇明」鐵律；簡報研究（Mayer 嘅 redundancy principle）一致發現螢幕字越多、觀眾越唔聽你講 | ❌ |
-| **全英文** ✅ | 國際賽通用評審語言；標題短（≤8 個字）本地評判一樣秒懂；同 A0 海報、英文 UI 截圖、科學名詞（EEG／neurofeedback）全部一致；國際賽觀感專業 | 隊員寫英文要執一執（下面 prompt 已寫定晒每頁文字，照抄就得） | **✅ 採用** |
-
-**配套（好重要）**：
-- **口講唔使跟 slides 語言**——講稿 6.4 本身中英對照：評判係本地人就照講中文，英文 slides 完全唔阻（標題得幾個字）；評判國際化就全英。開場先用英文打招呼，再按評判反應調節。
-- **保險**：如果領隊／官方文件確認評審全程用中文（例如中國賽區中文評判組），就出中文版——6.3.3 大綱表已備齊中文標題，Canva 逐頁換字 **<15 分鐘**。呢個決定**建議 07-20 前**問清楚拍板，免得隊員砌完要返工。
-
-#### 6.3.2 文獻數據卡（slides 用得嘅真數字＋出處）
-
-> 用法鐵律：**每頁最多一個數字**，數字特大金色、出處一行細字（作者＋年份就夠）。答辯正文唔使背晒，評判 Q&A 追問先展開（配合 Part 7／Part 9「可主張／不可主張」清單）。
-
-| # | 數字／發現 | 出處 | 用邊頁 | ⚠️ 注意 |
-|---|---|---|---|---|
-| 1 | 螢幕工作平均單次專注時長：2004 年約 2.5 分鐘 → 近年 **47 秒** | Gloria Mark（UC Irvine），*Attention Span*（2023） | S2 | 唔好用「人類專注得 8 秒、輸畀金魚」——嗰個係冇根據嘅都市傳說，評判識笑 |
-| 2 | 被打斷後平均要 **~25 分鐘**先完全返到原任務 | Mark et al.，*The Cost of Interrupted Work*（CHI 2008） | S2／S3 | 講「分咗心唔係『返嚟』咁簡單」 |
-| 3 | 人清醒時間 **~47%** 喺 mind-wandering，而且多數唔自覺 | Killingsworth & Gilbert，*Science*（2010） | S3 | 正正支持「幾時走神自己唔知」呢句核心 |
-| 4 | 學生開始溫書後 **~3–5 分鐘**就出現第一次分心（多數係手機／社交媒體） | Rosen et al.，*Computers in Human Behavior*（2013） | S2（可選） | 最貼學生場景 |
-| 5 | 手機**淨係擺喺枱面**都會拖低工作記憶表現 | Ward et al.，「Brain Drain」（*JACR* 2017） | S2（可選） | 一個 icon 一句就夠 |
-| 6 | 慢呼吸提升副交感／HRV、降低焦慮喚醒（系統性回顧） | Zaccaro et al.，*Front. Hum. Neurosci.*（2018） | S5／S8 | 支持呼吸介入呢環——係成個科學敘事入面最穩嗰塊 |
-| 7 | 每日 **5 分鐘**呼吸練習（RCT）改善情緒、降低生理喚醒；box breathing 係其中一組 | Balban et al.，*Cell Reports Medicine*（2023） | S5／S8 | 唔好講成「醫治焦慮」 |
-| 8 | 「讀完即測」（retrieval practice）比重讀更記得牢，meta 效應量 **g≈0.5–0.6** | Roediger & Karpicke（2006）；Adesope et al. meta（2017） | S6 | 支持「Read, then quiz」呢個產品設計 |
-| 9 | Neurofeedback 對 ADHD：標準 protocol 有中小效應、follow-up 有持續性，但整體證據**混合** | Van Doren et al. meta（2019）；近年 reviews | S8／Q&A | 只可以講「有科學基礎、待大樣本驗證」——同 Part 9 誠實框架完全一致 |
-
-#### 6.3.3 Slide 7 儀表板「顯示差異」設計（含示意數據規則）
-
-儀表板頁要令評判 **3 秒睇到三個差異位**（喺真截圖上圈註，或 Canva 自製 mock）：
-
-| 差異位 | 展示數字（示意） | 點解呢個範圍先合理（文獻對齊） |
-|---|---|---|
-| **兩階段差異** | Reading stability **74%** vs Quiz **68%** | 時間越長專注自然下滑（vigilance decrement）＋答題認知負荷更高——差 **4–8 個百分點**合理；整到差 30 點就假 |
-| **跨場改善** | Avg recovery **22s（第 1 場）→ 14s（第 5 場）**，↓約 36% | 神經回饋類訓練文獻見到嘅係**漸進**學習曲線——改善幅度寫 **20–40%** 之內先可信；「快咗 80%」冇文獻撐 |
-| **介入有效** | Breathing cues **3 · 全部 <20s 救返** | 呼吸一輪 12 秒（4-4-4），文獻支持 1–2 分鐘慢呼吸已見喚醒下降（Zaccaro 2018）——「介入後好快救返」係站得住嘅講法 |
-
-**誠實鐵律（同 Part 6.6／Part 9 框架一致，唔可以違反）**：
-- 用 Canva 自製 mock 嘅話，**左下角必須有細字 "Illustrative mock-up — live data shown on stage"**；用真截圖就唔使。
-- 呢啲示意數字**唔可以**講成 pilot 實驗結果——口頭永遠指住 **Tab 2 真數據**講（6.2 三件套）。
-- Pilot 一出咗真 CSV 就即換真數，示意即棄。
-- 圈註統一用金色（#F5C542）幼框＋一個詞 label（"Recovery ↓"／"Reading vs Quiz"），唔好遮住圖。
-
-#### 6.3.4 大綱速覽表（中文標題＝隊員對照＋中文版後備；slides 上淨用 EN）
+> 隊員用 Canva 砌；下面個 prompt 直接 copy 畀 Canva Magic Design／AI 都得，或者照住人手砌。截圖自己喺平台 cap（閱讀頁／測驗頁／Results 各一）。
 
 | # | 標題（中/EN） | 版面重點 | 講邊段 | 郁唔郁平台 |
 |---|---|---|---|---|
@@ -342,96 +296,29 @@ graph TD
 | 7 | 唔止分數，係你嘅專注歷史 / Not a score — your focus history | Results 截圖：兩階段卡＋恢復時間＋趨勢 | C3 | ✅ 切 Tab 2 真數據 |
 | 8 | 由「叫你專心」到「畀你練專心」 / From "focus!" to "train your focus" | 三欄：誠實成效／市場／願景＋「Technical 歡迎 Q&A」＋備用錄屏 | D＋E | 否 |
 
-#### 6.3.5 Canva Prompt 詳細版（copy 畀隊員／Canva AI 用）
-
-> 一次過貼晒可能超出 Canva AI 輸入上限——超咗就**先貼【全局風格】＋第 1–4 頁**生成，再逐頁貼住改。人手砌就當佢係逐頁 spec 照做。
-
+**Canva Prompt（copy 畀隊員／Canva AI 用）**：
 ```
-你係比賽簡報設計師。請整一副 16:9、8 頁嘅國際賽答辯 PPT，
-主題：「NeuroFocus — an EEG neurofeedback focus-training platform」。
-slides 上所有文字用英文（口頭報告另有雙語講稿，唔使喺 slide 加中文）。
+請整一副 16:9、8 頁嘅比賽答辯 PPT，主題係「NeuroFocus——EEG 神經回饋專注力訓練平台」。
+風格：深海藍漸變背景（#0B1E3A → #123B5C）、青色點綴（#22D3EE）、白色文字；
+字體：標題用粗黑體（如 Montserrat / Noto Sans TC Bold），內文用 Noto Sans TC；
+每頁只有一個大標題＋極少文字＋一張大圖位（截圖或圖示），大量留白，唔好塞字。
 
-【全局風格】
-- 背景：深海藍垂直漸變 #0B1E3A（頂）→ #123B5C（底）；全副唔好出現白底頁。
-- 色板：青色 #22D3EE（accent／箭咀／icon）、金色 #F5C542（數據高亮／圈註）、
-  正文白 #FFFFFF、次要文字 #9FB6CC。
-- 字體：標題 Montserrat ExtraBold；內文 Inter（或 Open Sans）；大數字 Montserrat Bold 特大。
-- 每頁鐵律：一個大標題（≤8 個英文字）＋內文最多 25 個英文字＋一個視覺主角
- （大截圖／圖表／影片位）；留白 ≥30%；每頁最多一個統計數字；唔好 bullet 牆。
-- 每頁右下角：細頁碼＋細字 "NeuroFocus · IEYI 2026"。
-- 過場動畫一律 fade（0.3s）；唔好飛入／彈跳／旋轉。
-
-【第 1 頁・封面】
-- 版面：上 2/3 hero 插圖——深藍夜海、一隻發光小帆船、地平線微光（扁平插畫風，
-  唔好卡通幼稚；Canva 素材可搜 "sailboat night ocean flat illustration"）；下 1/3 文字區。
-- 大標題："NeuroFocus"（特大、白色、置中）
-- 副題："Focus you can see, train and measure"（青色）
-- 底部一行細字：隊名 · 學校 · IEYI 2026；右下角預留 3×3cm QR code 位（白底圓角）。
-
-【第 2 頁・問題】
-- 標題："Attention is being fragmented"
-- 中央：16:9 影片位（佔頁 55%、圓角、幼青邊）——之後嵌入 20–30 秒短片（離線 mp4）。
-- 影片位下方三個 icon＋關鍵詞（橫排、青 icon、白字）：
-  "Endless short videos" · "Constant notifications" · "Fragmented focus"
-- 數據 callout（金色特大數字，擺影片位右側）："47s"
-  ＋細字 "average attention on a screen — Mark, UC Irvine (2023)"
-
-【第 3 頁・舊方法唔 work】
-- 標題："'Just focus' doesn't work"
-- 左右兩張圓角磨砂對比卡：
-  左卡（灰調、紅 ✗ icon）："Willpower & timers only count minutes"
-    ＋細字 "They never tell you WHEN you drifted"
-  右卡（青框、? icon）："When did I drift? How do I pull back?"
-- 底部一行金色細字："We mind-wander ~47% of waking hours — often without
-  noticing (Killingsworth & Gilbert, Science 2010)"
-
-【第 4 頁・閉環】
-- 標題："One loop, not three features"
-- 中央大圓環圖（佔頁 60%）：四個節點順時針、青色箭咀首尾相連：
-  1 "DETECT"（腦電波 icon）— EEG / webcam
-  2 "SEE"（帆船 icon）— a boat that drifts when you do
-  3 "CUE"（呼吸 icon）— breathing pulls you back
-  4 "MEASURE"（圖表 icon）— dashboard tracks progress
-- 節點用圓形磨砂卡＋青 icon；圓心細字 "real-time · closed loop"。
-
-【第 5 頁・LIVE DEMO】
-- 標題："Same notes, revised on NeuroFocus"
-- 右上角斜貼大 badge（金底深藍字）："LIVE DEMO"
-- 中央大截圖位（佔頁 70%、圓角＋陰影）：閱讀器畫面截圖（英文 UI）。
-- 底部細字："Study Mode · reading phase · focus meter live on the left"
-
-【第 6 頁・測驗】
-- 標題："Read, then quiz — with the boat"
-- 兩張橫截圖位並排（各佔 40%）：左＝測驗題目＋帆船 HUD；右＝帆船航行畫面。
-- 截圖下細字："Teacher-vetted, locked question paper — fair for the experiment"
-- 角落金色細字："Retrieval practice beats re-reading (Roediger & Karpicke, 2006)"
-
-【第 7 頁・儀表板】
-- 標題："Not a score — your focus history"
-- 中央大截圖位（佔頁 65%）：Results 儀表板截圖（英文 UI）。
-- 喺截圖上加三個金色（#F5C542）幼框圈註＋引線 label（細字，唔好遮圖）：
-  "Reading 74% vs Quiz 68%" · "Recovery 22s → 14s" · "Every drift rescued"
-- 如果暫時冇真截圖、用 Canva 自製 mock 代替：左下角必須細字
-  "Illustrative mock-up — live data shown on stage"
-- 右側直排三個小標籤卡："Focus stability" / "Recovery time" / "Cross-session trend"
-
-【第 8 頁・收結】
-- 標題："From 'focus!' to 'train your focus'"
-- 三欄圓角磨砂小卡：
-  1 "Honest evidence" — mechanisms grounded in science · small pilot (n=2–3) ·
-    long-term efficacy needs larger trials
-  2 "Ready market" — any student with a webcam · schools & revision scenarios
-  3 "Next" — full EEG loop · larger controlled study
-- 底部一行（青色）："EEG bridge · camera algorithm · AI questions · cloud —
-  happy to go deep in Q&A"
-- 右下角：細 QR code＋"Try it yourself"
-
-【第 9 頁・隱藏備用】
-- 全黑背景、細標題 "Backup — full flow recording"，嵌入成套學習流程錄屏（離線 mp4）。
-- 正常唔會播；demo 機出事先跳呢頁（對應 6.2 保險）。
+第 1 頁（封面）：大標題「NeuroFocus」，副題「睇得到的專注力訓練 / Focus you can see, train & measure」，
+  底部細字放隊名、學校、IEYI 2026，右下角留一個 QR code 位。背景放海洋帆船插圖。
+第 2 頁：標題「注意力，正在碎片化 / Attention is being fragmented」，中央留一個 16:9 影片位，
+  下方三個 icon＋關鍵字：短片轟炸、通知打斷、睇落清醒但注意力好碎。
+第 3 頁：標題「叫人『專心啲』冇用 / 'Just focus' doesn't work」，左右兩欄對比：
+  左欄「意志力／番茄鐘——只計時間 ✗」，右欄大問號「幾時走神？走神點拉返？」。
+第 4 頁：標題「一個閉環，唔係三件事 / One loop, not three features」，中央一個四節點圓環圖：
+  偵測 Detect → 睇到 See(船icon) → 提示 Cue(呼吸icon) → 量化 Measure(圖表icon)，箭咀首尾相連。
+第 5 頁：標題「同一份書，喺 NeuroFocus 溫」，角落大 badge「LIVE DEMO」，中央留一張大截圖位（閱讀器畫面）。
+第 6 頁：標題「讀完即刻考，船同你一齊航」，留兩張橫截圖位（測驗＋帆船），細字「老師審核・固定測驗卷」。
+第 7 頁：標題「唔止分數，係你嘅專注歷史」，留一張大截圖位（數據儀表板），
+  旁邊三個小標籤：專注穩定度、分心恢復時間、跨場進步。
+第 8 頁：標題「由『叫你專心』到『畀你練專心』」，三欄小卡：誠實成效（機制有科學根據・小型pilot・長期待驗證）、
+  市場（有 webcam 就用到・學校/溫習場景）、願景（真EEG閉環・大樣本研究），
+  底部一行「技術細節（EEG／相機演算法／AI出題／雲端）歡迎喺 Q&A 深入傾」。
 ```
-
-**砌完自查（隊員用）**：① 每頁企遠兩米仲讀唔讀到標題？② 邊頁多過一個數字？刪剩一個。③ 三張截圖係咪英文 UI？④ Slide 2／9 條片係咪已上載入 Canva（離線播得）？⑤ Slide 7 如果用 mock，有冇 "Illustrative mock-up" 細字？
 
 ### 6.4 講稿（分段落 Part A–E・中英對照・唔分邊個講）
 
@@ -700,9 +587,7 @@ Windows laptop 做現場 demo 機：本地 Python EEG bridge + 本地站 `http:/
 ## Part 10 — 現場檢查清單
 
 ### 上台前
-- [ ] PPT 8 頁＋隱藏備用錄屏頁完成（Canva，照 Part 6.3；**全英文 slides、三張截圖用英文 UI**），Slide 2 條片可**離線**播
-- [ ] Slide 7 如用 mock 數據：有 "Illustrative mock-up" 細字；pilot 真 CSV 一出即換真數（6.3.3 鐵律）
-- [ ] 評審語言已同領隊／官方確認（建議 07-20 前）——如中文評審，照 6.3.4 中文標題 15 分鐘換字
+- [ ] PPT 8 頁完成（Canva，照 Part 6.3），Slide 2 條片可**離線**播
 - [ ] Demo 機 Tab 1 預先登入、去到 Setup；**Tab 2 開定今朝完成場次嘅 Results**
 - [ ] 成個學習流程嘅**備用錄屏**擺喺 PPT 尾
 - [ ] 講稿分工講清楚：Part 6.4 A–E 邊個讀邊段，大家夾好；計時 ≤3.5 分鐘行過一次
