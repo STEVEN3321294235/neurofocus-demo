@@ -18,8 +18,8 @@
 2. [網站所有模式：目的與原理](#part-2)
 3. [技術架構（最新）](#part-3)
 4. [遊戲運行邏輯 + UI 機制](#part-4)
-5. [現場展示執行](#part-5)
-6. [正式答辯包（3–4 分鐘・PPT/Canva＋講稿＋海報）](#part-6)
+5. [現場執行（答辯線 vs 攤位線）](#part-5)
+6. [正式答辯包（PPT 9 頁＋數據＋預錄影片＋講稿＋海報）](#part-6)
 7. [評判 Q&A](#part-7)
 8. [Windows 部署 SOP + 裝置分工 + FPS 已知問題](#part-8)
 9. [競爭力分析（對比賽）](#part-9)
@@ -188,206 +188,270 @@ graph TD
 
 ---
 <a name="part-5"></a>
-## Part 5 — 現場展示執行
+## Part 5 — 現場執行（答辯線 vs 攤位線）
 
-### 雙軌制（最重要嘅策略）
+> **一句總綱**：**答辯靠 PPT＋預錄影片（Part 6），零現場操作風險；攤位靠真平台試玩，畀評判同觀眾親手體驗。**兩條線互為備份——答辯入面任何嘢評判想睇真版，攤位（或手提機）即場開。
+
+### 5.1 兩條線分工
+| 線 | 場合 | 用咩 | 風險 |
+|---|---|---|---|
+| **答辯線** | 台上 3–4 分鐘＋Q&A | PPT＋數據 dashboard＋預錄對比影片＋Results 截圖（全部離線檔案） | 極低 |
+| **攤位線** | 評判巡攤／觀眾試玩 | 真平台：iPad／手機行 Simulation 保底；Windows＋EEG 頭帶做加分位 | 可控（雙軌＋備援） |
+
+### 5.2 攤位雙軌制＋成功標準
 | 軌 | 裝置 | 角色 |
 |---|---|---|
-| **A. EEG 深度軌** | Windows Laptop + EEG 頭帶 | 完整功能 + 技術深度，畀評判睇「真腦波輸入」 |
+| **A. EEG 深度軌** | Windows Laptop + EEG 頭帶 | 完整功能＋技術深度，畀評判睇「真腦波輸入」 |
 | **B. 穩定體驗軌** | iPad + 參觀者手機 | 流暢、多人參與，Simulation 保底 |
 
-**核心原則**：唔好將全部成敗押喺 EEG 即時取數。策略 = 「**網站可玩、Simulation 穩定、EEG 作加分**」。
+**核心原則**：唔好將成敗押喺 EEG 即時取數——「網站可玩、Simulation 穩定、EEG 作加分」。
+**三層成功標準**：最低＝觀眾用 iPad/手機玩到 Simulation；標準＝完整展示 EEG 連接流程；加分＝真 EEG 成功驅動船速。
 
-### 三層成功標準
-- **最低成功**：參觀者用 iPad / 手機入到網站、玩到 Simulation。
-- **標準成功**：Laptop 演示真 EEG 流程，或至少完整展示 EEG 連接介面。
-- **額外加分**：至少一部 EEG 成功連線，展示專注度驅動船速。
+### 5.3 風險分級＋救場
+- **低風險**：公開網站、Simulation、題目互動、呼吸介入、結果頁。
+- **中風險**：AI 出題速度、會場網絡、平板／手機效能。
+- **高風險**：EEG 當日藍牙／serial、Windows 權限／驅動、bridge 數據唔穩。
 
-### 風險分級
-- **低**：公開網站、Simulation、題目互動、呼吸介入、結果頁。
-- **中**：AI 出題速度、會場網絡、平板/手機效能波動。
-- **高**：EEG 當日藍牙/serial、Windows 權限/驅動、bridge 收唔到穩定數據。
-
-### 四人分工
-1. **主講 + 評審應對**：講背景、產品目的、技術架構；答「點解用 EEG/camera/simulation」「專注度點量化」「呼吸點幫訓練」。
-2. **EEG + Laptop**：管頭帶連接、bridge 啟動、佩戴；成功就示範真 EEG。
-3. **iPad + 一般參觀者**：引導入 Simulation，示範遊戲 / 呼吸 / 結果頁。
-4. **人流分流 + 手機入口**：引導掃 QR、解釋手機版、處理網絡/排隊/故障。
-
-### 帶咩物品
-- **核心**：Windows Laptop ×1、EEG ×2 套、iPad ×1（連充電線/頭）、Laptop 充電器、EEG 電池/充電配件、延長線 ×1–2、拖板 ×1。
-- **網絡備援**：手機熱點 ≥1、已部署網址、QR code（首頁 + demo 入口）、本機 IP 局域網入口說明。
-- **操作/清潔**：酒精濕紙巾、紙巾、小鏡/髮夾（戴 EEG）、膠紙/魔術貼（固線）。
-- **講解物料**：項目名牌、一頁式介紹、功能流程圖、原理簡介、評審問答速記卡。
-- **額外**：多一部手機錄影、USB 備份簡報/影片、本地錄好嘅 demo 影片、四頁截圖備援（Setup / 遊戲 / 呼吸 / 結果）。
-
-### Demo 路線
-**路線 A — 一般參觀者（1–2 分鐘）**：掃碼/iPad 開網站 → 輸入名 → 揀 Simulation → 入遊戲 → 示範專注↔速度 → 有機會示範呼吸介入 → 睇結果頁。
-
-**路線 B — 評判（3–5 分鐘）**：介紹目標（幫助專注訓練）→ 說明輸入模式（EEG / Simulation / 未來 camera）→ 示範核心流程 → 示範呼吸介入 + 結果頁 → 若 EEG OK 再示範真裝置。
-
-**路線 C — EEG 失敗備援**：先承認現場連線受限 → 說明已設計真 EEG 模式 + 本機 bridge → 改用 Simulation 示範完整閉環 → 強調「輸入接口已存在，現場示範改用穩定模式」。
-
-### 救場台詞
+**救場台詞**：
 > 「會場藍牙干擾比較大，Real EEG 正在重連。不過我哋個系統有 Simulation 路線，可以即刻展示完整訓練邏輯。」
 
-**鐵律**：喺參觀者面前**唔好花多過 1–2 分鐘**搞硬件；不穩就即刻切 Simulation。
+**鐵律**：觀眾面前**唔好花多過 1–2 分鐘**搞硬件；唔穩即刻切 Simulation。
+
+### 5.4 四人分工
+1. **主講＋評審應對**：講背景、產品目的；答「點解用 EEG/camera/simulation」「專注點量化」「呼吸點幫訓練」（彈藥喺 Part 7）。
+2. **EEG＋Laptop**：管頭帶連接、bridge 啟動、佩戴示範。
+3. **iPad＋一般參觀者**：引導入 Simulation，行 5.6 導覽流程。
+4. **人流＋手機入口**：QR 掃碼、解釋手機版、處理網絡／排隊／故障。
+
+### 5.5 帶咩物品
+- **核心**：Windows Laptop ×1、EEG ×2 套、iPad ×1（連充電線／頭）、Laptop 充電器、EEG 電池配件、延長線、拖板。
+- **網絡備援**：手機熱點 ≥1、已部署網址、QR code、本機 IP 局域網入口說明。
+- **操作／清潔**：酒精濕紙巾、紙巾、小鏡／髮夾（戴 EEG）、膠紙／魔術貼。
+- **講解物料**：項目名牌、一頁式介紹、A0 海報、評審問答速記卡（Part 7 精華）。
+- **數碼備援**：USB（簡報＋預錄影片＋四頁截圖：Setup／閱讀／測驗／Results）、多一部手機錄影。
+
+### 5.6 攤位導覽（中英・一般觀眾 1–2 分鐘）
+1. **Hook**
+   > **【中】** 頭先台上講嗰套腦波訓練系統，我哋而家可以畀你親身試。
+   > **【EN】** That brainwave-training system we just presented — you can try it yourself right now.
+2. **先講模式 Explain the modes first**
+   > **【中】** 先揀任務模式，再揀訊號來源。
+   > **【EN】** First pick a task mode, then pick a signal source.
+3. **先示範訓練模式 Demo Training first**（`Real EEG → 訓練`）
+   > **【中】** 呢個唔出題，純粹訓練穩定專注。
+   > **【EN】** This one has no questions — it's purely about training steady focus.
+4. **再示範挑戰模式 Then Challenge**
+   > **【中】** 基本功穩定後就加任務壓力，貼近現實。
+   > **【EN】** Once the basics are steady, we add task pressure to mirror real life.
+5. **最後 Results Finish on Results**
+   > **【中】** 每次訓練都量化今次表現——穩定度、恢復速度、呼吸次數，仲有同你之前 session 嘅對比。
+   > **【EN】** Every session quantifies your performance — stability, recovery speed, breathing count, plus a comparison with your previous sessions.
+6. **未來發展點到即止 Touch on the future, lightly**
+   > **【中】** 之後會加長期 progress tracking、個人化難度、更多外界偵測。
+   > **【EN】** Next we'll add long-term progress tracking, personalised difficulty, and more external sensing.
+
+**評判版（3–5 分鐘）**：上面 6 步之外，加：三種模式概念（訓練／挑戰／學習）→ 學習模式完整行一次（攤位冇時限，15 秒閱讀鎖照行）→ EEG 頭帶示範（如當日穩定）→ Results 講恢復時間＋趨勢。
+**EEG 唔穩時**：先認（「現場藍牙受限」）→ 即切 Simulation 行完整閉環 → 強調輸入接口已存在、換訊號源唔使改系統。
 
 ---
 <a name="part-6"></a>
-## Part 6 — 正式答辯包（3–4 分鐘・PPT 主導・2026-07-17 老師新方向）
+## Part 6 — 正式答辯包（3–4 分鐘・PPT＋預錄影片・零現場操作）
 
-> **點解重寫**：老師 07-17 回饋——技術已夠分，但（1）展示訊息唔夠清楚、（2）遊戲／溫習／腦電波未有「綜合感」、（3）太 technical 會冗長。策略改為：**問題行先、PPT 主導、3–4 分鐘、現場只 demo 學習模式嘅閱讀階段（詳見 6.2 時間分析）、technical 全部留 Q&A（Part 7）**。
-> Pros & Cons 睇 **Part 9**；Roadmap/to-do 睇 **[`IEYI_PLAN_V2.md`](./IEYI_PLAN_V2.md)**。
+> **策略（07-17 老師方向＋Steven 修訂版）**：台上**完全唔現場操作平台**——問題用**真實研究數據 dashboard** 講；demo 用**賽前預錄嘅「專心 vs 分心」對比影片**；Results 用截圖。PPT 行**多文字路線**（評判自己讀得明，唔使靠腦補），內文喺 6.3 直接 copy 得。真平台留返俾 Q&A／攤位（Part 5）。
+> 點解唔現場行：學習模式每頁 15 秒閱讀鎖 ×5 頁＋10 條 MC，完整流程機械下限 2.5–3 分鐘，台上行唔晒；預錄影片仲可以**同屏對比兩種狀態**，現場行反而做唔到。
 
-### 6.1 策略定調＋核心訊息＋時間分配
+### 6.1 核心訊息＋時間分配
 
-**四條定調（每次 present 都要做到）**
-- **問題行先**：頭 30 秒就要令評判 100% 清楚「解決緊咩問題、為邊個解決」。
-- **一個核心訊息**（成隊人講同一句）：
-  > **中**：NeuroFocus 將「專注力」由一個睇唔到、齋靠意志力頂嘅嘢，變成**睇得到、練得到、量得到**嘅技能——用一隻**會因為你分心而飄走嘅船**即時話你知你幾時走神，再用**呼吸提示**同**進度儀表板**幫你逐次把專注練返嚟。
-  > **EN**: NeuroFocus turns focus — normally invisible and willpower-dependent — into a skill you can **see, train and measure**: a boat that **drifts when your attention wanders** shows the exact moment you lose focus, then breathing cues and a progress dashboard help you train it back, session by session.
-- **綜合感**：唔好講成三件事，要講成**一個閉環**：`偵測 → 睇到（船）→ 提示（呼吸）→ 量化（儀表板）`。學習模式係呢個閉環嘅最完整示範。
-- **Technical 留 Q&A**：EEG bridge、相機演算法、AI 出題、雲端——一句帶過，評判想深入先喺 Q&A 答（Part 7 已備好）。
+**一個核心訊息（成隊人講同一句）**
+> **中**：NeuroFocus 將「專注力」由一個睇唔到、齋靠意志力頂嘅嘢，變成**睇得到、練得到、量得到**嘅技能——一隻**會因為你分心而飄走嘅船**即時話你知你幾時走神，**呼吸提示**幫你拉返，**進度儀表板**話你知有冇進步。
+> **EN**: NeuroFocus turns focus — normally invisible and willpower-dependent — into a skill you can **see, train and measure**: a boat that **drifts when your attention wanders** shows the exact moment you lose focus, breathing cues pull you back, and a progress dashboard tells you whether you are improving.
 
-**時間分配（目標 3.5 分鐘）**
-| 段 | 內容 | 時間 |
-|---|---|---|
-| A | 問題（短片＋一句痛點） | 40s |
-| B | 我哋嘅答案＝一個閉環（核心訊息） | 30s |
-| C | **現場 demo：學習模式閱讀階段（1 頁）＋分心→呼吸提示**；測驗用截圖、儀表板切去預先完成場次 | 80s |
-| D | 成效觀點（誠實）＋市場＋願景 | 40s |
-| E | 收結一句 → 邀請 Q&A | 15s |
+**時間分配（9 頁・目標 3 分 50 秒，超時壓縮位見括號）**
+| 段 | Slides | 內容 | 時間 |
+|---|---|---|---|
+| A | S1–S2 | 開場＋問題數據 dashboard | 50s |
+| B | S3–S4 | 舊方法缺口＋一個閉環 | 40s |
+| C | S5–S7 | 三種模式 → 對比影片 → Results 儀表板 | 85s（S5 可壓到 15s） |
+| D | S8 | 點樣量度＋實驗設計＋誠實成效 | 35s |
+| E | S9 | 市場＋願景＋收結 | 20s（可壓到 15s） |
 
-### 6.2 Demo 執行方案（⚠️ 重新分析：點解唔可以現場行晒成個流程）
+### 6.2 語言建議（中英對照點做）
+**建議：標題雙語（英文為主視覺、中文副標），內文以中文為主、關鍵術語括號附英文。**理由：IEYI 係國際性比賽，雙語標題保證國際評判一眼明；本地評審以中文溝通為主，中文內文保證資訊密度同讀速。**如果賽會確認全英文評審**，內文轉英文（Canva 逐頁改得快）。講稿（6.4）中英全份，臨場講邊隻話都接得上。
 
-**機械時間落地數（用 code 實數計）**：
-- 閱讀階段：基礎材料 **5 頁**，每頁**最少鎖 15 秒**先解鎖「下一頁」（冇任何 bypass）→ 就算頁頁狂撳，都要 **≥75 秒**純撳頁。
-- 測驗階段：**10 條 MC**，就算背晒答案，讀題＋撳掣＋轉場每題 ~6–10 秒 → **≥60–100 秒**。
-- 合計：**成個流程機械下限 ≈ 2.5–3 分鐘**——3.5 分鐘 presentation 一定爆。呢個 15 秒鎖係**產品刻意設計**（防跳讀、保證溫習質量），唔應該為咗 demo 拆走。
+### 6.3 PPT 逐頁大綱（9 頁・多文字版・內文可直接 copy 落 Canva）
 
-**所以答辯咁做（三件套）**：
-1. **現場只行「閱讀階段第 1 頁」（~40–50s）**：入到閱讀畫面，15 秒鎖啱啱好畀你講解讀器＋focus 指標；跟住**示範分心**（望開／扮碌手機）→ 等佢彈**呼吸提示**→ 跟住呼吸拉返。呢個就係 wow 位，時間啱啱好。
-2. **測驗階段唔現場行**：PPT Slide 6 放 1–2 張測驗截圖（船返場＋題目 HUD），一句帶過；或者 10 秒快進錄屏。
-3. **儀表板用「預先完成場次」**：**present 之前（當日朝早）用 demo 帳戶完整行一次 study session**，行到 Results 之後**開定第二個瀏覽器 tab 留喺 Results 頁**（有 snapshot，refresh 都返到嚟）。講到 Slide 7 就**切去嗰個 tab**，show 真數據（溫習卡＋答題卡＋恢復時間）。
-4. **保險**：成個流程預先**錄屏一條片**擺喺 PPT 尾——demo 機一死就播片，流程照行。
+> 設計風格（顏色、字體、版式美術）**由設計隊員全權決定**——下面只列結構＋文字內容＋圖位。
 
-**NAV 速查表（demo 機兩個 tab）**
-| 時刻 | 去邊 | 動作 |
-|---|---|---|
-| Slide 5 開始 | Tab 1 | Setup → 學習模式 → 生物 → 基礎 → Simulation →（相機 skip）→ 入閱讀 |
-| Slide 5 中段 | Tab 1 | 示範分心 → 呼吸提示彈出 → 跟住呼吸 |
-| Slide 6 | PPT | 唔郁平台，講截圖 |
-| Slide 7 | Tab 2 | 切去預先完成嘅 Results，指住恢復時間＋兩階段卡 |
-| Slide 8 | PPT | 返 PPT 收結 |
+**S1 封面**
+- 標題：**NeuroFocus** ／ 副題：睇得到的專注力訓練 Focus you can see, train & measure
+- 內文（一句）：一個用「即時偵測＋遊戲回饋＋呼吸介入＋數據儀表板」幫青少年重建專注力嘅訓練平台。
+- 圖位：平台海洋＋帆船畫面做背景；角落：隊名／學校／IEYI 2026。
 
-### 6.3 PPT 每頁詳細大綱（8 頁）＋ Canva Prompt
+**S2 問題：數據 Dashboard「注意力，正在碎片化 / Attention is fragmenting」**
+- 版面：**4 張大數字卡**＋一條落跌趨勢線（2.5 分鐘 → 75 秒 → 47 秒），下面一句結論。
+- 四張卡（數字＋解說＋來源細字）：
+  1. **47 秒** — 人喺單一螢幕上嘅平均持續專注時間：2004 年係 2.5 分鐘，近年跌到 47 秒（Gloria Mark 團隊，UC Irvine，多個獨立研究佐證）。
+  2. **23 分 15 秒** — 每次被打斷之後，平均要 23 分鐘先完全返到原本任務（Mark 等，UC Irvine）。
+  3. **2 倍** — 高頻使用數碼媒體嘅青少年，24 個月內出現 ADHD 症狀嘅風險約為低頻者兩倍（JAMA 2018；約 2,600 名高中生追蹤研究）。
+  4. **6–7 小時** — 香港青少年 2024/25 年度日均螢幕時間，接近成人兩倍（本港調查／立法會文件）。
+- 結論句：**唔係後生仔唔想專心——係環境令「保持專注」愈嚟愈難，而且冇人教過點樣拉返。**
+- 來源（放頁底細字，隊員可再核實）：gloriamark.com／APA Speaking of Psychology／JAMA jamanetwork.com/journals/jama/fullarticle/2687861／The Standard HK・news.gov.hk 2025-04。
 
-> 隊員用 Canva 砌；下面個 prompt 直接 copy 畀 Canva Magic Design／AI 都得，或者照住人手砌。截圖自己喺平台 cap（閱讀頁／測驗頁／Results 各一）。
+**S3 舊方法缺口「叫人『專心啲』冇用 / Why 'just focus' fails」**
+- 內文（三點，成句）：
+  1. 意志力提醒（「專心啲啦」）：唔會話你知你**幾時**走咗神，等你發現嗰陣已經遲咗。
+  2. 番茄鐘／溫習 app：只計時間，唔量狀態——坐足 25 分鐘唔等於專注咗 25 分鐘。
+  3. 最貴嘅係恢復成本：一次分心平均要 23 分鐘先返到嚟（接 S2 數據）——所以介入一定要**即時**。
+- 圖位：左「舊方法」✗ 右「缺口：即時覺察＋即時介入＋量化進步」。
 
-| # | 標題（中/EN） | 版面重點 | 講邊段 | 郁唔郁平台 |
-|---|---|---|---|---|
-| 1 | NeuroFocus——睇得到的專注力訓練 / Focus you can see, train & measure | 海洋＋船 hero 圖、隊名/校/IEYI、QR | 核心訊息一句 | 否 |
-| 2 | 注意力，正在碎片化 / Attention is being fragmented | **嵌入 20–30 秒短片**（掛住碌手機、溫唔到書）＋3 關鍵字 | A | 否（播片） |
-| 3 | 叫人「專心啲」冇用 / "Just focus" doesn't work | 左：意志力/番茄鐘只計時間 ✗；右：「幾時走神？點拉返？」 | B 前半 | 否 |
-| 4 | 一個閉環，唔係三件事 / One loop, not three features | **中央閉環圓環圖**：偵測→睇到(船)→提示(呼吸)→量化，箭咀轉圈 | B 後半 | 否 |
-| 5 | 同一份書，喺 NeuroFocus 溫 / Same notes, revised here | 大字「LIVE DEMO」＋閱讀頁截圖做底 | C1 | ✅ Tab 1 閱讀＋示範分心 |
-| 6 | 讀完即刻考，船同你一齊航 / Read, then quiz — with the boat | 測驗階段截圖 1–2 張（船＋題目 HUD）；註明「老師審核固定卷」 | C2 | 否（截圖） |
-| 7 | 唔止分數，係你嘅專注歷史 / Not a score — your focus history | Results 截圖：兩階段卡＋恢復時間＋趨勢 | C3 | ✅ 切 Tab 2 真數據 |
-| 8 | 由「叫你專心」到「畀你練專心」 / From "focus!" to "train your focus" | 三欄：誠實成效／市場／願景＋「Technical 歡迎 Q&A」＋備用錄屏 | D＋E | 否 |
+**S4 我哋嘅答案「一個閉環，唔係三件事 / One loop, not three features」**
+- 版面：中央圓環圖：`偵測 Detect → 睇到 See（船）→ 介入 Cue（呼吸）→ 量化 Measure（儀表板）` 首尾相連。
+- 內文（兩句）：我哋唔係做咗三個獨立功能，而係一個閉環：系統即時偵測你嘅專注，用一隻船畀你「睇到」自己狀態，分心太耐就用呼吸提示拉你返嚟，完場再量化你嘅進步。訊號來源可以係 EEG 腦電、相機，或者模擬曲線——閉環唔變。
 
-**Canva Prompt（copy 畀隊員／Canva AI 用）**：
+**S5 三種模式「一個閉環，三個入口 / One loop, three entries」**
+- 內文（每個模式一行 concept）：
+  1. **訓練模式 Training**：冇題目，純粹練「維持穩定專注」——專注力嘅基本功。
+  2. **挑戰模式 Challenge**：加入 Stroop／邏輯題，練「一邊做任務一邊唔俾自己散」——貼近考試同日常。
+  3. **學習模式 Study**：真實溫習場景——讀老師教材、考老師審核嘅卷，全程順便量埋你嘅專注狀態。
+- 收尾句（大字）：**學習模式一個模式已經行晒成個閉環——所以我哋用佢示範。**
+- 圖位：三張細卡（每模式一張截圖）。
+
+**S6 對比影片「同一份筆記，兩種狀態 / Same notes, two states」**
+- 版面：中央嵌入**預錄影片**（規格見 6.5），旁邊少量文字。
+- 內文（影片講咩）：賽前實錄——同一段生物筆記，「專心」同「分心」兩種狀態嘅真實系統反應：閱讀時 focus 指標點變、分心點觸發呼吸提示、測驗時隻船點樣由順航變失速。
+- 備註細字：全程真實錄製，無加工；平台喺攤位可即場試。
+
+**S7 結果儀表板「唔止分數，係你嘅專注歷史 / Not a score — your focus history」**
+- 版面：Results 大截圖＋三個重點標籤。
+- 內文（三點）：
+  1. **溫習 vs 答題分開量**：兩個階段嘅專注穩定度、分心次數獨立顯示——知你係「讀嗰陣散」定「答嗰陣散」。
+  2. **恢復時間**：每次分心之後幾快拉得返——呢個先係「訓練緊」嘅證據。
+  3. **跨場趨勢**：同你之前嘅 session 比，有進步就鼓勵你；一鍵匯出 PDF／CSV 畀老師分析。
+
+**S8 點樣證明「實驗設計＋誠實成效 / Evidence & honesty」**
+- 內文：
+  - **對照實驗（老師指導下設計）**：同一份生物教材＋同一份老師審核測驗卷；一組紙本溫習、一組平台溫習；比較**測驗成績**＋**溫習過程專注數據**（穩定度／恢復時間）。
+  - **機制有文獻根據**：即時回饋建立自我覺察；規律呼吸（box breathing）降低過高喚醒；重複練習訓練「分心後拉返」呢種可遷移技能。
+  - **誠實講**：而家係 n≈2–3 嘅 pilot，唔係正式研究；長期成效要更大樣本對照先證實——我哋分得清「已做到」同「仲要證實」。
+- 圖位：實驗流程小圖（紙本組 vs 平台組 → 同卷 → 比較）。
+
+**S9 市場＋願景＋收結「由『叫你專心』到『畀你練專心』」**
+- 內文：
+  - **市場**：唔一定要 EEG 頭帶，有 webcam 就用到——任何學生即場試；學校／補習／家長市場，跨 session 數據支持訂閱同報表模式。
+  - **願景**：接返真 EEG 閉環做旗艦體驗；加多 sensor（眼動／HRV）交叉驗證；同學校合作做大樣本研究。
+  - **收結（大字）**：NeuroFocus——將專注力變成**睇得到、練得到、量得到**嘅技能。技術細節歡迎 Q&A。
+
+**Canva 製作 Prompt（copy 畀隊員／Canva AI）**：
 ```
-請整一副 16:9、8 頁嘅比賽答辯 PPT，主題係「NeuroFocus——EEG 神經回饋專注力訓練平台」。
-風格：深海藍漸變背景（#0B1E3A → #123B5C）、青色點綴（#22D3EE）、白色文字；
-字體：標題用粗黑體（如 Montserrat / Noto Sans TC Bold），內文用 Noto Sans TC；
-每頁只有一個大標題＋極少文字＋一張大圖位（截圖或圖示），大量留白，唔好塞字。
-
-第 1 頁（封面）：大標題「NeuroFocus」，副題「睇得到的專注力訓練 / Focus you can see, train & measure」，
-  底部細字放隊名、學校、IEYI 2026，右下角留一個 QR code 位。背景放海洋帆船插圖。
-第 2 頁：標題「注意力，正在碎片化 / Attention is being fragmented」，中央留一個 16:9 影片位，
-  下方三個 icon＋關鍵字：短片轟炸、通知打斷、睇落清醒但注意力好碎。
-第 3 頁：標題「叫人『專心啲』冇用 / 'Just focus' doesn't work」，左右兩欄對比：
-  左欄「意志力／番茄鐘——只計時間 ✗」，右欄大問號「幾時走神？走神點拉返？」。
-第 4 頁：標題「一個閉環，唔係三件事 / One loop, not three features」，中央一個四節點圓環圖：
-  偵測 Detect → 睇到 See(船icon) → 提示 Cue(呼吸icon) → 量化 Measure(圖表icon)，箭咀首尾相連。
-第 5 頁：標題「同一份書，喺 NeuroFocus 溫」，角落大 badge「LIVE DEMO」，中央留一張大截圖位（閱讀器畫面）。
-第 6 頁：標題「讀完即刻考，船同你一齊航」，留兩張橫截圖位（測驗＋帆船），細字「老師審核・固定測驗卷」。
-第 7 頁：標題「唔止分數，係你嘅專注歷史」，留一張大截圖位（數據儀表板），
-  旁邊三個小標籤：專注穩定度、分心恢復時間、跨場進步。
-第 8 頁：標題「由『叫你專心』到『畀你練專心』」，三欄小卡：誠實成效（機制有科學根據・小型pilot・長期待驗證）、
-  市場（有 webcam 就用到・學校/溫習場景）、願景（真EEG閉環・大樣本研究），
-  底部一行「技術細節（EEG／相機演算法／AI出題／雲端）歡迎喺 Q&A 深入傾」。
+請整一副 16:9、共 9 頁嘅比賽答辯簡報，主題「NeuroFocus——神經回饋專注力訓練平台」。
+版面要求：標題中英對照（英文做主標題、中文做副標）；內文中文為主，可以有較多文字，
+但要分點、易讀；設計風格（顏色、字體、裝飾）由你哋決定，保持乾淨、對比清晰即可。
+每頁內容如下（文字照用得）：
+第1頁 封面：NeuroFocus／睇得到的專注力訓練 Focus you can see, train & measure；
+  一句介紹＋隊名/學校/IEYI 2026；背景留一張海洋帆船圖位。
+第2頁 問題數據儀表板：標題 Attention is fragmenting／注意力，正在碎片化；
+  四張大數字卡：47秒（單一螢幕平均專注，2004年2.5分鐘跌到近年47秒）、
+  23分15秒（每次被打斷後平均要幾耐先完全返到原任務）、
+  2倍（高頻用數碼媒體嘅青少年24個月內出現ADHD症狀風險）、
+  6-7小時（香港青少年日均螢幕時間，近成人兩倍）；
+  加一條 2.5分鐘→75秒→47秒 落跌趨勢線；頁底細字來源：UC Irvine (Gloria Mark)、
+  JAMA 2018、香港調查 2024/25。
+第3頁 舊方法缺口：標題 Why "just focus" fails／叫人「專心啲」冇用；
+  三點：意志力提醒唔會話你知幾時走神；番茄鐘只計時間唔量狀態；
+  一次分心平均23分鐘先返到嚟，所以介入要即時。
+第4頁 一個閉環：標題 One loop, not three features／一個閉環，唔係三件事；
+  中央圓環圖四節點：偵測 Detect→睇到 See(船)→介入 Cue(呼吸)→量化 Measure(儀表板)。
+第5頁 三種模式：標題 One loop, three entries／一個閉環，三個入口；
+  三張卡：訓練模式(純練穩定專注嘅基本功)、挑戰模式(壓力下維持專注，貼近考試)、
+  學習模式(真溫習場景，讀教材考卷順便量專注)；
+  底部大字：學習模式一個模式已經行晒成個閉環——所以用佢示範。
+第6頁 對比影片：標題 Same notes, two states／同一份筆記，兩種狀態；
+  中央大影片位(16:9)，係我哋預錄嘅「專心vs分心」系統實錄；
+  旁註：真實錄製，攤位可即場試真平台。
+第7頁 結果儀表板：標題 Not a score — your focus history／唔止分數，係你嘅專注歷史；
+  一張大截圖位＋三個標籤：溫習vs答題分開量、分心後恢復時間、跨場進步趨勢＋PDF/CSV匯出。
+第8頁 實驗與誠實：標題 Evidence & honesty／點樣證明；
+  三點：紙本組vs平台組同教材同卷對照實驗；機制有文獻根據(即時回饋/呼吸調節/重複練習)；
+  誠實講依家係細樣本pilot，長期成效待大規模研究。
+第9頁 市場願景收結：標題 From "focus!" to "train your focus"／由叫你專心到畀你練專心；
+  市場(有webcam就用到，學校/補習/家長)、願景(真EEG閉環、多sensor、大樣本研究)、
+  收結大字：NeuroFocus——將專注力變成睇得到、練得到、量得到嘅技能。
 ```
 
-### 6.4 講稿（分段落 Part A–E・中英對照・唔分邊個講）
+### 6.4 講稿（Part A–E・中英對照・對應 S1–S9）
 
-> 邊個讀邊段你哋自己分。`[NAV]`＝撳邊度；`[DEMO]`＝現場動作。
+> 邊個讀邊段你哋自己分；`[SLIDE]`＝轉頁位，`[VIDEO]`＝影片播放中講。
 
-**A — 問題（Slide 1→2，40s）**
-> **【中】** 各位評判好，我哋係 NeuroFocus。（播片）大家見到呢個畫面——而家嘅年輕人喺短片同通知轟炸下，好容易「睇落清醒，但注意力好碎」：想溫書，五分鐘就摸手機，摸完又唔記得讀到邊。專注力唔係唔想，而係**佢哋根本唔察覺自己幾時走咗神**。
+**A — 開場＋數據問題（S1→S2，50s）**
+> **【中】** 各位評判好，我哋係 NeuroFocus。`[SLIDE S2]` 想先畀四個數字大家睇。**47 秒**——人喺一個螢幕上嘅平均持續專注時間，廿年前係兩分半鐘，而家得返 47 秒。**23 分鐘**——每次分心之後，平均要 23 分鐘先完全返到原本任務。**2 倍**——高頻用數碼媒體嘅青少年，兩年內出現 ADHD 症狀嘅風險係其他人兩倍。**6 至 7 個鐘**——香港青少年每日嘅螢幕時間，接近成人兩倍。唔係後生仔唔想專心，係環境令佢哋愈嚟愈難，而且**冇人教過佢哋點樣拉返**。
 >
-> **【EN】** Good afternoon judges, we are NeuroFocus. (play clip) This is today's reality: under a flood of short videos and notifications, young people look awake but their attention is fragmented. They sit down to study and reach for the phone within five minutes — without even noticing the moment they drifted. It's not that they don't want to focus; they simply **can't sense when they lost it**.
+> **【EN】** Good afternoon judges, we are NeuroFocus. `[SLIDE S2]` Four numbers first. **47 seconds** — the average time we now sustain attention on one screen, down from 2.5 minutes two decades ago. **23 minutes** — the average time to fully return to a task after one distraction. **2×** — teens with heavy digital media use face roughly double the risk of developing ADHD symptoms within two years. **6–7 hours** — Hong Kong teenagers' daily screen time, nearly double that of adults. It's not that young people don't want to focus — the environment makes it ever harder, and **no one ever taught them how to pull themselves back**.
 
-**B — 我哋嘅答案：一個閉環（Slide 3→4，30s）**
-> **【中】** 叫人「專心啲」冇用，番茄鐘只計時間——兩樣都唔會話你知你**幾時**分咗心。所以我哋做嘅唔係三個獨立功能，而係**一個閉環**：即時**偵測**你嘅專注 → 用一隻**船**畀你即刻**睇到** → 分心太耐就彈**呼吸提示**拉你返嚟 → 完場再**量化**你嘅進步。而家我哋用**學習模式**示範，因為佢一個模式已經串起成個閉環。
+**B — 缺口＋一個閉環（S3→S4，40s）**
+> **【中】** `[SLIDE S3]` 而家啲方法點解唔夠？叫你「專心啲」，唔會話你知你**幾時**走咗神；番茄鐘只計時間，唔量狀態；而一次分心要 23 分鐘先返嚟——所以介入一定要**即時**。`[SLIDE S4]` 我哋嘅答案係**一個閉環**：即時**偵測**專注 → 用隻船畀你**睇到** → 分心太耐**呼吸提示**拉你返 → 完場**量化**進步。訊號可以嚟自 EEG 腦電、相機或者模擬——閉環唔變。
 >
-> **【EN】** Telling someone to "focus" doesn't work, and a timer only counts minutes — neither tells you *when* you drifted. So we built **one loop**, not three features: detect your focus in real time → let you **see** it through a boat → if you drift too long, a breathing cue pulls you back → then every session **measures** your progress. We'll demo our **Study mode**, because one mode chains the whole loop.
+> **【EN】** `[SLIDE S3]` Why do current fixes fall short? "Just focus" never tells you *when* you drifted; a timer counts minutes, not state; and one distraction costs 23 minutes — so intervention must be **immediate**. `[SLIDE S4]` Our answer is **one loop**: detect focus in real time → make it **visible** through a boat → a **breathing cue** pulls you back when you drift too long → and every session **measures** your progress. The signal can come from EEG, a camera, or simulation — the loop stays the same.
 
-**C1 — 現場 demo：閱讀＋分心介入（Slide 5，~45s）**
-> `[NAV]` Tab 1：Setup → 學習模式 → 生物 → 基礎 → Simulation →（相機可 skip）→ 閱讀畫面。
+**C — 三種模式＋影片＋儀表板（S5→S6→S7，85s）**
+> **【中】** `[SLIDE S5]` 呢個閉環有三個入口：**訓練模式**冇題目，純練穩定專注嘅基本功；**挑戰模式**加題目壓力，練「一邊做嘢一邊唔散」；**學習模式**係真溫習——讀老師教材、考老師審核嘅卷，全程量埋你嘅專注。學習模式一個模式行晒成個閉環，所以我哋用佢示範。
 >
-> **【中】** 我而家真係用平台溫一頁生物筆記。右邊係閱讀器；左邊呢個指標，就係我**呢一秒**嘅專注度。順帶一提，每頁有 15 秒最短閱讀時間——係故意嘅，防止跳讀。`[DEMO 扮分心、望開]` 而家我扮走神——大家見到指標跌，跟住系統彈出**呼吸提示**，我跟住佢呼吸……個狀態就拉返嚟。呢個就係**即時覺察＋即時介入**，唔使等到溫完書先知自己浪費咗幾多時間。
+> `[SLIDE S6，開影片]` **【中・影片旁述】** 呢段係賽前真實錄製：同一段生物筆記，兩種狀態。專心嗰陣——focus 指標平穩。而家分心——大家睇住個指標跌，系統即刻彈**呼吸提示**，跟住呼吸，狀態拉返。測驗階段——專心時隻船順航；一分心，隻船即刻失速。呢個就係「睇得到嘅專注」。
 >
-> **【EN】** I'm now actually revising one page of biology notes on the platform. The reader is on the right; this meter on the left is my focus **at this very second**. By the way, each page has a 15-second minimum reading time — deliberately, to prevent skim-reading. `[DEMO: drift, look away]` Now I pretend to lose focus — you can see the meter drop, then the system pops a **breathing cue**; I follow it… and my state comes back. That's **real-time awareness plus real-time intervention** — no waiting until the end to find out how much time you wasted.
+> `[SLIDE S7]` **【中】** 完場之後係咁樣嘅報告：**溫習同答題分開量**——知你係讀嗰陣散定答嗰陣散；**每次分心幾快拉返**——呢個先係訓練緊嘅證據；仲有**同之前場次嘅進步趨勢**，一鍵匯出 PDF／CSV 畀老師。
+>
+> **【EN】** `[SLIDE S5]` The loop has three entries: **Training** — no questions, pure stability practice; **Challenge** — questions add pressure, staying focused while working; **Study** — real revision: read the teacher's material, take the teacher-vetted quiz, with focus measured throughout. Study mode runs the whole loop in one mode, so that's our demo. `[SLIDE S6, play video]` **(over video)** This was recorded before the competition: the same biology notes, two states. Focused — the meter stays steady. Now distracted — watch it drop, the **breathing cue** appears, follow it, and the state recovers. In the quiz, the boat sails smoothly while focused and stalls the moment attention breaks. This is focus made visible. `[SLIDE S7]` And here is the report: **revision and quiz measured separately**, **recovery time after each distraction** — the real evidence of training — plus a **cross-session trend**, exportable to PDF/CSV in one click.
 
-**C2 — 測驗（Slide 6，講截圖，~15s）**
-> **【中】** 讀完即刻考。呢部分為咗尊重大家時間，直接睇圖：隻**船返場**——我狀態好，船就順；一分心，船就失速。題目用嘅係**老師審核鎖死嘅固定卷**，保證實驗公平。
+**D — 實驗＋誠實（S8，35s）**
+> **【中】** 點樣證明有用？我哋喺老師指導下設計咗對照實驗：**同一份教材、同一份審核卷**，紙本組同平台組比較測驗成績＋溫習過程嘅專注數據。機制方面有文獻根據——即時回饋建立自我覺察、規律呼吸降低過高喚醒、重複練習訓練恢復力。但要誠實講：而家係 n 得 2 至 3 個學生嘅 pilot，長期成效要更大樣本先證實——我哋分得好清「已做到」同「仲要證實」。
 >
-> **【EN】** Right after reading comes the quiz. To respect your time, here's a snapshot: the **boat returns** — sail smooth when my state is good, stall when I drift. Questions come from a **teacher-vetted, locked paper**, keeping the experiment fair.
+> **【EN】** How do we prove it helps? Under our teacher's guidance we designed a controlled comparison: **same material, same vetted quiz**, paper group versus platform group, comparing test scores plus the focus data recorded during revision. The mechanisms are grounded in literature — real-time feedback builds self-awareness, paced breathing lowers excess arousal, repetition trains recovery. But honestly: this is a pilot of two to three students; long-term efficacy needs a larger study — we keep a clear line between "done" and "to be proven".
 
-**C3 — 儀表板（Slide 7，切 Tab 2，~20s）**
-> `[NAV]` 切去 Tab 2（今朝預先完成嗰場嘅 Results）。
+**E — 市場＋願景＋收結（S9，20s）**
+> **【中】** 因為有 webcam 就用到，任何學生都試得——學校、補習、家長市場都打得開；跨場數據支持訂閱同報表模式。下一步：接返真 EEG 閉環、加眼動／心率等 sensor、同學校做大樣本研究。一句收結：NeuroFocus，將專注力變成**睇得到、練得到、量得到**嘅技能。技術細節歡迎 Q&A，多謝各位！
 >
-> **【中】** 呢個係我哋今朝真係行咗一場嘅結果：唔止分數——有**溫習階段**同**答題階段**分開嘅專注數據、**分心之後幾快拉返**，同埋**同之前場次嘅進步趨勢**，有進步佢會鼓勵你。老師仲可以一鍵匯出 PDF／CSV。
->
-> **【EN】** This is a real session we completed this morning: not just a score — focus data split between **revision** and **quiz** phases, **how fast I recover after each distraction**, and a **progress trend across sessions**, with encouragement when you improve. Teachers can export a PDF/CSV in one click.
+> **【EN】** Since a webcam is enough, any student can try it — opening the school, tutoring and parent markets, with cross-session data supporting subscriptions and reports. Next: the full EEG loop, extra sensors like eye-tracking and HRV, and a larger study with schools. To close: NeuroFocus turns focus into a skill you can **see, train and measure**. We welcome all technical questions in Q&A — thank you!
 
-**D — 成效・市場・願景（Slide 8，40s）**
-> **【中】** 要誠實講：我哋嘅機制有科學根據——即時回饋建立自我覺察、規律呼吸調節喚醒、重複練習訓練「拉返專注」呢個技能——但**長期成效仲需要更大規模研究**；而家係 n 得 2–3 個學生嘅 pilot。市場方面，因為**唔一定要 EEG 頭帶，有鏡頭就用到**，任何學生都試到，可以直入學校同溫習場景。下一步：接返真 EEG 閉環、做大樣本對照研究。
->
-> **【EN】** To be honest: our mechanisms are grounded in science — real-time feedback builds self-awareness, paced breathing regulates arousal, repeated practice trains recovery — but **long-term efficacy still needs a larger study**; today it's a pilot of 2–3 students. On market: since it **needs no EEG headband — a webcam is enough**, any student can try it, going straight into school and revision scenarios. Next: reconnect the full EEG loop and run a proper controlled study.
+### 6.5 預錄影片拍攝清單（賽前必做・S6 用）
 
-**E — 收結（Slide 8，15s）**
-> **【中】** 一句講晒：NeuroFocus 將專注力由「叫你專心」變成「**畀你睇到、練到、量到**」。技術細節——EEG、相機演算法、AI 出題、雲端——我哋好樂意喺 Q&A 詳談。多謝各位。
->
-> **【EN】** In one line: NeuroFocus turns focus from "just concentrate" into something you can **see, train and measure**. All the technical depth — EEG, camera algorithm, AI question generation, cloud — we'd love to cover in Q&A. Thank you.
+**內容（~40 秒，一條片）**
+| 秒數 | 畫面 | 重點 |
+|---|---|---|
+| 0–5 | 標題卡「同一份筆記，兩種狀態 Same notes, two states」 | 定調 |
+| 6–20 | **閱讀階段對比**：專心（指標平穩）vs 分心（望開→指標跌→**呼吸提示彈出**→跟住呼吸拉返） | 即時覺察＋介入 |
+| 21–35 | **測驗階段對比**：專心（船順航、答題順）vs 分心（船失速） | 船＝專注嘅視覺化 |
+| 36–40 | 收尾卡：一句核心訊息 | 扣返主題 |
 
-### 6.5 A0 海報設計大綱（841×1189mm 直度）
+**拍法**
+- 螢幕錄影（QuickTime／OBS），1080p 或以上；片內**保持 focus 指標全程可見**（評判要睇到數字郁）。
+- 對比方式任揀：左右分割同屏，或先後兩段（先專心後分心）。
+- 加大字幕標明「專心中／分心中／呼吸介入」——會場嘈，唔靠聲。
+- 出 MP4 直接嵌入簡報；USB 多帶一份；埋位前試播一次（聲量／解像度）。
+- 加分位：分心嗰段將個手機入鏡（真示範「碌手機」情景），更貼題。
 
-> 目標：**3 米外睇到主訊息，1 米內睇到閉環同截圖**。字級：大題 ≥100pt、段題 ≥54pt、內文 ≥28pt。色跟 PPT（深海藍底、青 accent、白字）。
+### 6.6 A0 海報大綱（841×1189mm 直度）
+
+> 原則：**3 米外睇到主訊息，1 米內睇到閉環同截圖**；每格一個重點，唔好塞滿字。顏色／字體／美術風格由設計隊員決定。
 
 ```
 ┌───────────────────────────────────────────────┐
-│ 頁首：NeuroFocus ＋ 核心訊息(中/EN) ＋ 校/隊/QR │ ← 12%
+│ 頁首：NeuroFocus ＋ 核心訊息(中/EN) ＋ 校/隊/QR │
 ├───────────────┬───────────────┬───────────────┤
-│ ① 問題        │ ④ 閉環大圖     │ ⑥ 儀表板截圖   │
-│ 痛點+短片QR   │ 偵測→睇→提示   │ 趨勢+恢復時間  │
-│               │ →量化（圓環）  │ 圈住「進步」   │
+│ ① 問題數據     │ ④ 閉環大圖     │ ⑥ 儀表板截圖   │
+│ 47秒/23分/2倍/ │ 偵測→睇→提示   │ 趨勢+恢復時間  │
+│ 6-7小時(有源)  │ →量化（圓環）  │ 圈住「進步」   │
 ├───────────────┼───────────────┼───────────────┤
-│ ② 舊方法唔夠  │ ⑤ 學習模式3步  │ ⑦ 成效(誠實)   │
-│ 只計時間✗     │ 閱讀→測驗→結果 │ +市場+願景     │
+│ ② 舊方法唔夠  │ ⑤ 學習模式3步  │ ⑦ 實驗+誠實   │
+│ 只計時間✗     │ 閱讀→測驗→結果 │ 紙本vs平台+   │
+│ 23分先返嚟    │ （三張截圖）   │ 機制有據待驗證 │
 ├───────────────┴───────────────┴───────────────┤
 │ 頁尾：科學依據一行 ＋ 團隊 ＋ 試玩 QR           │
 └───────────────────────────────────────────────┘
 ```
-- **④ 閉環圖係海報主角**（放中欄最大）——直接答「綜合感」。
-- **⑤ 用三張真截圖**（閱讀＋focus 指標／測驗＋船／Results）。
-- **⑦ 誠實三行**：機制✓／pilot n≈2–3／長期待證＋「webcam 就用到」。
-- 唔好塞滿字；每格一個重點；截圖加圓角陰影。
+- **① 直接用 S2 嗰四個數據**（連來源細字）——海報同 PPT 口徑一致。
+- **④ 閉環圖係海報主角**（中欄最大）。
+- **⑦ 誠實框**：機制✓／pilot n≈2–3／長期待證——評判行埋嚟睇都見到我哋嚴謹。
 
-### 6.6 版本進化對照表（最舊 → 目前・答辯/Q&A 素材）
-
+### 6.7 版本進化對照表（最舊 → 目前・答辯/Q&A 素材）
 
 由 **2026-06-23 第一個 commit「EEG 2026 - Focus Game」** 到 **2026-07 嘅「NeuroFocus」平台**，三個幾星期、約 95 個 commit。核心 gameplay 檔 `runtime.js` 由 **3961 行** 長到 **7615 行**。以下逐項對照——重點唔淨係「加咗嘢」，而係**每一項點樣擴闊市場 + 加強專注訓練嘅說服力**：
 
@@ -409,27 +473,6 @@ graph TD
 - **機制上站得住腳**：(1) **即時神經回饋**幫用戶建立「而家掂唔掂」嘅**自我覺察**——呢個係行為改變嘅第一步；(2) **Box Breathing** 用規律呼吸降低過高喚醒，係有文獻支持嘅情緒／喚醒調節手法；(3) **重複練習 + 恢復數據**訓練嘅係「**分心之後點拉返自己**」呢個技能，唔係一次性表演。呢三樣都係朝住「真正改善」嘅方向設計，而且平台**已經量度到**專注穩定度同恢復時間。
 - **但要 honest**：我哋**未有嚴謹嘅長期實證**——pilot 得 n≈2–3，冇正式對照組／前後測／長期追蹤，用嘅又係消費級單通道 EEG。所以正確講法係：「**機制對齊科學、平台已經量度到學習過程，但長期成效仲未證實**」。定位係**訓練平台原型**，唔係已完成臨床驗證嘅醫療產品；下一步先做更大樣本嘅對照研究。**呢個誠實框架本身就係加分位**——評判最鍾意見到參賽者分得清「已做到」同「仲要證實」。
 
-
-### 6.7 攤位互動 SOP（6 步・中英對照）Booth SOP (6 steps)
-1. **Hook**
-   > **【中】** 頭先台上講嗰套腦波訓練系統，我哋而家可以畀你親身試。
-   > **【EN】** That brainwave-training system we just presented — you can try it yourself right now.
-2. **先講模式 Explain the modes first**
-   > **【中】** 先揀任務模式，再揀訊號來源。
-   > **【EN】** First pick a task mode, then pick a signal source.
-3. **先示範訓練模式 Demo Training first**（`Real EEG → 訓練`）
-   > **【中】** 呢個唔出題，純粹訓練穩定專注。
-   > **【EN】** This one has no questions — it's purely about training steady focus.
-4. **再示範挑戰模式 Then Challenge**
-   > **【中】** 基本功穩定後就加任務壓力，貼近現實。
-   > **【EN】** Once the basics are steady, we add task pressure to mirror real life.
-5. **最後 Results Finish on Results**
-   > **【中】** 每次訓練都量化今次表現——穩定度、恢復速度、呼吸次數，仲有同你之前 session 嘅對比。
-   > **【EN】** Every session quantifies your performance — stability, recovery speed, breathing count, plus a comparison with your previous sessions.
-6. **未來發展點到即止 Touch on the future, lightly**
-   > **【中】** 之後會加長期 progress tracking、個人化難度、更多外界偵測。
-   > **【EN】** Next we'll add long-term progress tracking, personalised difficulty, and more external sensing.
-
 ---
 <a name="part-7"></a>
 ## Part 7 — 評判 Q&A
@@ -442,8 +485,8 @@ graph TD
 - **Q：點解要咁多模式？**
   A：核心其實係**一個閉環**（偵測→睇到→提示→量化），模式只係唔同入口：訓練＝純練、挑戰＝加任務壓力、學習＝閉環最完整嘅示範。所以答辯只 demo 學習模式，其餘留畀攤位深入試。
 
-- **Q：點解唔現場行晒成個學習流程？**
-  A：因為產品**刻意**設計每頁最少 15 秒閱讀鎖（防跳讀、保證溫習質量），加埋 10 條審核題，完整流程要 2–3 分鐘——所以現場示範閱讀＋介入嘅核心體驗，測驗同儀表板用今朝真實完成嗰場。**係產品嚴謹，唔係 demo 唔到。**
+- **Q：點解台上唔現場操作，係播片？**
+  A：兩個原因：（1）產品**刻意**設計每頁最少 15 秒閱讀鎖（防跳讀、保證溫習質量），加埋 10 條審核卷，完整流程要 2–3 分鐘，台上時間行唔晒；（2）預錄影片可以**同屏對比「專心 vs 分心」兩種狀態**，現場單次操作反而示範唔到差異。影片係真實錄製、無加工；**真平台就喺攤位，歡迎即場試**。係產品嚴謹＋展示效率，唔係 demo 唔到。
 
 - **Q：EEG 具體點運作？**
   A：NeuroSky 單通道頭帶讀腦電 → 本地 Python bridge → WebSocket → 網頁，轉成即時專注指標驅動隻船。今日用 Simulation demo；EEG 係另一條獨立輸入路線，接返去閉環一樣行。
@@ -587,10 +630,10 @@ Windows laptop 做現場 demo 機：本地 Python EEG bridge + 本地站 `http:/
 ## Part 10 — 現場檢查清單
 
 ### 上台前
-- [ ] PPT 8 頁完成（Canva，照 Part 6.3），Slide 2 條片可**離線**播
-- [ ] Demo 機 Tab 1 預先登入、去到 Setup；**Tab 2 開定今朝完成場次嘅 Results**
-- [ ] 成個學習流程嘅**備用錄屏**擺喺 PPT 尾
-- [ ] 講稿分工講清楚：Part 6.4 A–E 邊個讀邊段，大家夾好；計時 ≤3.5 分鐘行過一次
+- [ ] PPT 9 頁完成（Canva，照 Part 6.3），S2 數據卡嘅來源已再核實
+- [ ] **S6 對比影片**（專心 vs 分心，照 6.5 清單拍）已嵌入 PPT，**離線播到**、聲畫正常；USB 有備份
+- [ ] 講稿分工講清楚：Part 6.4 A–E 邊個讀邊段，大家夾好；連影片計時行過一次 ≤3 分 50 秒
+- [ ] 手提機開定真平台 standby（評判 Q&A 想睇即場開；答辯本身零現場操作）
 - [ ] iPad 已開網址，停 `Home`（攤位用）
 - [ ] Windows 電腦喺攤位，`eeg_bridge.py` 運行中
 - [ ] EEG 頭帶喺電腦旁，方便即時佩戴（攤位試玩用；答辯唔靠佢）
@@ -649,7 +692,7 @@ Windows laptop 做現場 demo 機：本地 Python EEG bridge + 本地站 `http:/
 3. **核心功能亮點**（中，圖為主）：遊戲截圖（天氣共感前後對比）、黃金時刻暖金畫面、Results 航海報告截圖、心流星/航標圖示——每張一句 caption。
 4. **技術架構**（右/下）：MindWave→Python bridge→WebSocket→Three.js→Vercel/Supabase 簡化架構圖 ＋「三層輸入：EEG / 相機 / 模擬」示意。
 5. **證據與誠實邊界**（底部）：跨場趨勢圖截圖（「點證明有進步」）＋ 一行誠實聲明（訓練原型、非醫療器材）＋ 未來路線三點。
-- **製作規格**：A0 直向、300dpi、大字（標題 ≥100pt、內文 ≥28pt）、深底金/藍青主色（跟 Results 色系）；**帶磁石/長尾夾/雙面膠**（官方只俾 10 個扣針）。
+- **製作規格**：A0 直向、300dpi、字要夠大（3 米外讀到標題為準）；顏色／字體由設計隊員決定；**帶磁石/長尾夾/雙面膠**（官方只俾 10 個扣針）。
 - **加分位**：枱面放埋「一頁式 A4 傳單」俾評判帶走＋Results 頁 A4 打印版（評判追問證據時直接遞）。
 
 ### 🎒 攜帶裝置清單（Steven 確認 + 按官方 checklist 補充）
