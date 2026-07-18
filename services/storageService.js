@@ -135,9 +135,13 @@ export async function getSessionHistory(limit = HISTORY_LIMIT) {
     const { supabase, userId } = await getCloudSession();
     if (supabase && userId) {
         try {
+            // RLS already scopes rows to the signed-in user; the eq() filter is
+            // defense-in-depth so a misconfigured policy never shows someone
+            // else's history.
             const { data, error } = await supabase
                 .from('session_history')
                 .select('*')
+                .eq('user_id', userId)
                 .order('ts', { ascending: false })
                 .limit(limit);
             if (!error && Array.isArray(data)) {
@@ -188,7 +192,7 @@ export async function getCumulativeCloudDistance() {
     const { supabase, userId } = await getCloudSession();
     if (!supabase || !userId) return null;
     try {
-        const { data, error } = await supabase.from('session_history').select('distance');
+        const { data, error } = await supabase.from('session_history').select('distance').eq('user_id', userId);
         if (error || !Array.isArray(data)) return null;
         return data.reduce((sum, row) => sum + Math.max(0, Number(row.distance) || 0), 0);
     } catch (e) {

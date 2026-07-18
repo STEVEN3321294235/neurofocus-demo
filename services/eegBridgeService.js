@@ -1,4 +1,4 @@
-import { importGameRuntime } from './runtimeLoader.js?v=2026-07-17-2';
+import { importGameRuntime } from './runtimeLoader.js?v=2026-07-18-1';
 
 async function getRuntime() {
     return importGameRuntime('/pages/game/runtime.js');

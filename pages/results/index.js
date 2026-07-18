@@ -1,7 +1,7 @@
-import { t } from '../../app/i18n.js?v=2026-07-17-2';
+import { t } from '../../app/i18n.js?v=2026-07-18-1';
 import { getState, resetFlowState, setState } from '../../app/state.js';
-import { disposeMode, syncRuntimeState } from '../../services/eegBridgeService.js?v=2026-07-17-2';
-import { importGameRuntime } from '../../services/runtimeLoader.js?v=2026-07-17-2';
+import { disposeMode, syncRuntimeState } from '../../services/eegBridgeService.js?v=2026-07-18-1';
+import { importGameRuntime } from '../../services/runtimeLoader.js?v=2026-07-18-1';
 import { syncUserEmail } from '../../services/authService.js';
 
 async function getRuntime() {

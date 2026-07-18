@@ -1,7 +1,7 @@
-import { t } from '../../app/i18n.js?v=2026-07-17-2';
+import { t } from '../../app/i18n.js?v=2026-07-18-1';
 import { getState, setState } from '../../app/state.js';
-import { activateEEGMode, activateSimulationMode, disposeMode, syncRuntimeState } from '../../services/eegBridgeService.js?v=2026-07-17-2';
-import { attachCameraPreview, detachCameraPreview, requestCameraPreview, stopCameraPreview } from '../../services/focusInputService.js?v=2026-07-17-2';
+import { activateEEGMode, activateSimulationMode, disposeMode, syncRuntimeState } from '../../services/eegBridgeService.js?v=2026-07-18-1';
+import { attachCameraPreview, detachCameraPreview, requestCameraPreview, stopCameraPreview } from '../../services/focusInputService.js?v=2026-07-18-1';
 import { resetAllData, deleteAccountData } from '../../services/storageService.js';
 
 // Study Mode is live (D3 complete, 2026-07-16). The card is fully enterable;
@@ -598,7 +598,7 @@ export default {
                             }
                             if (message) {
                                 if (eegResult?.reason === 'no-live-data') {
-                                    message.textContent = '已連接到本機 bridge，但仍未收到真實腦波。請確認頭帶已開機、重新配對並保持感測器貼合。';
+                                    message.textContent = t('setup_eeg_no_live_data');
                                 } else {
                                     message.textContent = t('setup_eeg_unavailable');
                                 }

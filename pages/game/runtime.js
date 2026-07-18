@@ -9,7 +9,7 @@ import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { SMAAPass } from 'three/addons/postprocessing/SMAAPass.js';
 import { setState, getState } from '../../app/state.js';
-import { getCameraFocusScore, getCameraTrackingStatus, stopCameraPreview } from '../../services/focusInputService.js?v=2026-07-17-2';
+import { getCameraFocusScore, getCameraTrackingStatus, stopCameraPreview } from '../../services/focusInputService.js?v=2026-07-18-1';
 import { appendSessionSummary, getSessionHistory, getLocalVoyageLog, appendVoyageLog, getCumulativeCloudDistance } from '../../services/storageService.js';
 import { initVoyage, resetVoyage, updateVoyage, getVoyageStats, getBuoysInWindow, routeXAt, routeYawAt, CHECKPOINT_SPACING, setVoyageVisible } from './voyage.js';
 import { getStudyMaterial, STUDY_PAGE_LIMIT_MS, STUDY_PAGE_MIN_MS } from './studyMaterials.js';
@@ -198,6 +198,7 @@ function applyAudioVolumes() {
     if (SOUNDS.bgmNature) SOUNDS.bgmNature.volume = 0.3 * (bgmVolumePct / 100);
     if (SOUNDS.correct) SOUNDS.correct.volume = 0.8 * (sfxVolumePct / 100);
     if (SOUNDS.wrong) SOUNDS.wrong.volume = 0.8 * (sfxVolumePct / 100);
+    if (SOUNDS.alert) SOUNDS.alert.volume = 0.8 * (sfxVolumePct / 100);
 }
 
 function setBgmVolume(pct) {
@@ -768,7 +769,8 @@ const ASSET_URLS = {
     hdrNight: new URL('../../assets/sky_moon.hdr', import.meta.url).href,
     bgmNature: new URL('../../bgm/nature.mp3', import.meta.url).href,
     bgmRight: new URL('../../bgm/rightanswer.mp3', import.meta.url).href,
-    bgmWrong: new URL('../../bgm/error.mp3', import.meta.url).href
+    bgmWrong: new URL('../../bgm/error.mp3', import.meta.url).href,
+    bgmAlert: new URL('../../bgm/focusalert.mp3', import.meta.url).href
 };
 
 const HUD_GRADIENTS = {
@@ -1032,7 +1034,8 @@ const SOUNDS = {
     bgmOcean: null,
     bgmNature: new Audio(ASSET_URLS.bgmNature),
     correct: new Audio(ASSET_URLS.bgmRight),
-    wrong: new Audio(ASSET_URLS.bgmWrong)
+    wrong: new Audio(ASSET_URLS.bgmWrong),
+    alert: new Audio(ASSET_URLS.bgmAlert)
 };
 
 Object.values(SOUNDS).forEach((sound) => {
@@ -1046,6 +1049,7 @@ if (SOUNDS.bgmOcean) SOUNDS.bgmOcean.volume = 0.5;
 SOUNDS.bgmNature.volume = 0.3;
 SOUNDS.correct.volume = 0.8;
 SOUNDS.wrong.volume = 0.8;
+SOUNDS.alert.volume = 0.8;
 // Re-apply the user's stored volume settings on top of the base mix.
 applyAudioVolumes();
 
@@ -1533,6 +1537,9 @@ function showBreathingPrompt(message = langText('請留意呼吸，慢慢將注�
     }
 
     if (textEl) textEl.textContent = message;
+    // The game loop calls this every frame while focus stays low — only chime
+    // on the frame the prompt actually appears.
+    if (!promptEl.classList.contains('active')) playAlertSound();
     promptEl.style.display = 'flex';
     promptEl.classList.add('active');
 }
@@ -7255,6 +7262,22 @@ function playWrongSound() {
     if (SOUNDS.wrong) {
         SOUNDS.wrong.currentTime = 0;
         SOUNDS.wrong.play().catch(e => console.warn("Audio play blocked:", e));
+    }
+}
+
+// The focus prompt can flicker when the signal hovers around the threshold;
+// one chime per distraction episode is enough (episodes run ≥5s before the
+// breathing intervention takes over).
+const ALERT_SOUND_COOLDOWN_MS = 6000;
+let lastAlertSoundAt = 0;
+
+function playAlertSound() {
+    const now = performance.now();
+    if (now - lastAlertSoundAt < ALERT_SOUND_COOLDOWN_MS) return;
+    if (SOUNDS.alert) {
+        lastAlertSoundAt = now;
+        SOUNDS.alert.currentTime = 0;
+        SOUNDS.alert.play().catch(e => console.warn("Audio play blocked:", e));
     }
 }
 
