@@ -75,6 +75,7 @@
 > ㊶ **A0 海報對齊隊員 template**：手冊 **6.6** 重寫成隊員 Canva template 實際版面（頁首＋2×2 細格＋大格＋闊格＋References），每格有齊可直接抄嘅內容＋附圖清單＋截圖規格；**頁首英文 Overview 句要修文法**（見 6.6）；Part 11 嘅舊五區海報計劃已併入 6.6（唔再兩邊維護）。
 > ㊷ **全站文案 sweep（第二輪）**：冇發現任何過度宣稱／醫療聲稱（掃齊「臨床/醫療/治療/proven/保證/大數據」等關鍵字全部乾淨，Home 有齊「數據僅供演示」聲明）；修復 setup EEG「未收到真實腦波」訊息**淨中文冇英文**嘅雙語缺口（新 i18n key `setup_eeg_no_live_data`）。細位（唔急）：Home 中文 hero「掌握專注，釋放專注力潛能」重複「專注」、第一張 feature 卡係書面語同其餘口語唔一致——留 Steven 逐句 review 時一齊拍板。
 > ㊸ **代碼／安全審查（F1 之上新發現）**：① `session_history` 雲端讀取加 `user_id` client-side filter 做 **RLS 雙保險**（RLS 設錯都唔會顯示他人數據；RLS 本身仍要照 F1 條 SQL 人手核實）；② 相機 lifecycle 核實正確（遊戲完→Results 已熄相機，全程本地處理不上傳）；③ 量化死 code：i18n 有 **~60 個無引用 key**（home_*/results_*/dash_* 大部分——Results 版面實際由 runtime `langText()` 畫）＋ runtime 內部 legacy `ROUTER`/`initApp`——**照 F1 政策賽後先清**，賽前唔郁大檔。模組版本 `2026-07-18-1`。
+> ㊹ **Results「冇最近一場數據」修復（Steven 07-18 回報，影 S7 相時發現）**：根因——快照只存喺**玩嗰部機**嘅 localStorage，換機／清咗數據就得個零。已修：冇快照時自動 fallback 攞**跨場歷史最新一場**（登入攞雲端、否則本機 mirror）重畫 hero＋四格指標＋前後半 badge（逐秒曲線 history 冇存 sample，維持空狀態屬預期）。Playwright 三情境實測（即場完成／refresh／無快照）全部有真數據。**S7＋海報用嘅四張淺色截圖已由 Claude headless 出咗**（訓練 Results 連 3 局趨勢／Study Results 8/10 兩階段／閱讀器／測驗船返場）。隊員 A0 template 已命名四細格（The Gap／Solution／Three Sessions' Goal／Technical），手冊 6.6 已對應；**PPT 審查發現 5 個要修位**（S2 圖表 Average 殘留＋來源切斷、S5「simulated distractions」講咗冇嘅功能、S8 Gloria Mark 引用錯配＋「需要提及係」草稿句）——詳見對話記錄。模組版本 `2026-07-18-2`。
 
 ---
 

@@ -459,7 +459,7 @@ graph TD
 - Overview 英文句要修返文法：改成「**NeuroFocus turns focus — normally invisible and willpower-dependent — into a skill you can see, train and measure.**」（template 而家斷咗做兩句，「Turn into」唔啱文法）；下面配中文一句「將專注力變成睇得到、練得到、量得到嘅技能」。
 - 「\*\*DEMO ONLY」建議改做「**Demo build — try it at our booth / 歡迎親身試玩**」——「DEMO ONLY」對評判係扣分暗示，「嚟攤位玩」係邀請。
 
-**每格內容＋附圖建議**
+**每格內容＋附圖建議**（隊員 template 已為四細格命名：① The Gap ② Solution ③ Three Sessions' Goal ④ Technical——同下表一一對應；③ 英文建議改「**Three Session Goals**」或「Three Modes, One Loop」，「Three Sessions' Goal」文法唔自然）
 | 格 | 標題（中／EN） | 內容（可直接抄） | 附圖 |
 |---|---|---|---|
 | **①** | 注意力，正在碎片化 / Attention is fragmenting | S2 四個大數字：**47 秒**（單一螢幕平均專注；2004 年 2.5 分鐘）、**23 分 15 秒**（每次打斷後返到原任務）、**2 倍**（高頻數碼媒體青少年 ADHD 症狀風險，JAMA 2018）、**6–7 小時**（香港青少年日均螢幕時間）；結論句：「唔係唔想專心，係冇人教過點拉返」 | 2.5min→75s→47s **落跌趨勢線**；四個數字用大字排版本身就係圖 |

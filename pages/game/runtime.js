@@ -9,7 +9,7 @@ import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { SMAAPass } from 'three/addons/postprocessing/SMAAPass.js';
 import { setState, getState } from '../../app/state.js';
-import { getCameraFocusScore, getCameraTrackingStatus, stopCameraPreview } from '../../services/focusInputService.js?v=2026-07-18-1';
+import { getCameraFocusScore, getCameraTrackingStatus, stopCameraPreview } from '../../services/focusInputService.js?v=2026-07-18-2';
 import { appendSessionSummary, getSessionHistory, getLocalVoyageLog, appendVoyageLog, getCumulativeCloudDistance } from '../../services/storageService.js';
 import { initVoyage, resetVoyage, updateVoyage, getVoyageStats, getBuoysInWindow, routeXAt, routeYawAt, CHECKPOINT_SPACING, setVoyageVisible } from './voyage.js';
 import { getStudyMaterial, STUDY_PAGE_LIMIT_MS, STUDY_PAGE_MIN_MS } from './studyMaterials.js';
@@ -4053,6 +4053,37 @@ function applySnapshotToMemory() {
     return true;
 }
 
+// Last-resort restore for a browser that never ran the session (new device,
+// cleared storage): rebuild the summary-level display state from the newest
+// cross-session history entry. History rows carry no per-sample data, so the
+// hero, metric cards and halves badge show real numbers while the focus curve
+// and per-question review stay empty.
+function applyHistorySummaryToMemory(entry) {
+    if (!entry) return false;
+    const durationMs = Math.max(0, Number(entry.durationMs) || 0);
+    CONFIG.testMode = entry.testMode === 'challenge' ? 'challenge' : 'training';
+    CONFIG.difficulty = entry.difficulty ?? null;
+    CONFIG.score = Math.round(((Number(entry.accuracy) || 0) / 100) * TOTAL_QUESTIONS);
+    CONFIG.totalDistance = Number(entry.distance) || 0;
+    CONFIG.accumulatedPlayTime = durationMs;
+    CONFIG.gameStartTime = 0;
+    CONFIG.gameEndTime = durationMs;
+    CONFIG.wrongAnswers = [];
+    trainingAnalytics.focusedTimeMs = ((Number(entry.focusedRatio) || 0) / 100) * durationMs;
+    trainingAnalytics.recoveryDurationsMs = (Number(entry.avgRecoveryMs) || 0) > 0 ? [Number(entry.avgRecoveryMs)] : [];
+    trainingAnalytics.interventionCount = Number(entry.breathingCount) || 0;
+    trainingAnalytics.flowStars = 0;
+    trainingAnalytics.checkpointCount = 0;
+    trainingAnalytics.goldenTimeMs = 0;
+    trainingAnalytics.focusSamples = [];
+    lastStudyReport = null;
+    lastSessionSummary = entry;
+    lastNewRecords = { isNewDist: false, isNewAcc: false, isNewTime: false };
+    // The page shell picked its mode before this data existed — align it.
+    document.querySelector('.results-shell')?.setAttribute('data-mode', CONFIG.testMode);
+    return true;
+}
+
 // Live finish: stamp the end time, record bests, build the session summary, and
 // (once only) commit it to cross-session history + the voyage log. Re-entrant:
 // a re-mount within the same load (e.g. language switch) repaints without
@@ -4616,10 +4647,19 @@ function renderResults() {
     if (liveSessionInMemory) {
         // A real session ran in this module instance: compute + persist it.
         commitLiveResults();
-    } else {
-        // Refreshed straight into the results page: restore the last session
-        // from storage so we repaint real numbers instead of zeros.
-        applySnapshotToMemory();
+    } else if (!applySnapshotToMemory()) {
+        // No local snapshot either (new device / cleared storage): fall back to
+        // the newest cross-session history entry — cloud when signed in, local
+        // mirror otherwise — so the page shows the most recent session instead
+        // of zeros. Async: repaint once it lands.
+        getSessionHistory(1).then((entries) => {
+            const latest = Array.isArray(entries) && entries.length ? entries[entries.length - 1] : null;
+            if (!latest || liveSessionInMemory) return;
+            if (applyHistorySummaryToMemory(latest)) {
+                paintResults();
+                renderSessionDashboard();
+            }
+        }).catch(() => { /* offline + empty local mirror: zeros stand */ });
     }
 
     paintResults();
