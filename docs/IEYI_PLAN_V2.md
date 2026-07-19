@@ -76,6 +76,11 @@
 > ㊷ **全站文案 sweep（第二輪）**：冇發現任何過度宣稱／醫療聲稱（掃齊「臨床/醫療/治療/proven/保證/大數據」等關鍵字全部乾淨，Home 有齊「數據僅供演示」聲明）；修復 setup EEG「未收到真實腦波」訊息**淨中文冇英文**嘅雙語缺口（新 i18n key `setup_eeg_no_live_data`）。細位（唔急）：Home 中文 hero「掌握專注，釋放專注力潛能」重複「專注」、第一張 feature 卡係書面語同其餘口語唔一致——留 Steven 逐句 review 時一齊拍板。
 > ㊸ **代碼／安全審查（F1 之上新發現）**：① `session_history` 雲端讀取加 `user_id` client-side filter 做 **RLS 雙保險**（RLS 設錯都唔會顯示他人數據；RLS 本身仍要照 F1 條 SQL 人手核實）；② 相機 lifecycle 核實正確（遊戲完→Results 已熄相機，全程本地處理不上傳）；③ 量化死 code：i18n 有 **~60 個無引用 key**（home_*/results_*/dash_* 大部分——Results 版面實際由 runtime `langText()` 畫）＋ runtime 內部 legacy `ROUTER`/`initApp`——**照 F1 政策賽後先清**，賽前唔郁大檔。模組版本 `2026-07-18-1`。
 > ㊹ **Results「冇最近一場數據」修復（Steven 07-18 回報，影 S7 相時發現）**：根因——快照只存喺**玩嗰部機**嘅 localStorage，換機／清咗數據就得個零。已修：冇快照時自動 fallback 攞**跨場歷史最新一場**（登入攞雲端、否則本機 mirror）重畫 hero＋四格指標＋前後半 badge（逐秒曲線 history 冇存 sample，維持空狀態屬預期）。Playwright 三情境實測（即場完成／refresh／無快照）全部有真數據。**S7＋海報用嘅四張淺色截圖已由 Claude headless 出咗**（訓練 Results 連 3 局趨勢／Study Results 8/10 兩階段／閱讀器／測驗船返場）。隊員 A0 template 已命名四細格（The Gap／Solution／Three Sessions' Goal／Technical），手冊 6.6 已對應；**PPT 審查發現 5 個要修位**（S2 圖表 Average 殘留＋來源切斷、S5「simulated distractions」講咗冇嘅功能、S8 Gloria Mark 引用錯配＋「需要提及係」草稿句）——詳見對話記錄。模組版本 `2026-07-18-2`。
+>
+> **2026-07-18 第十一輪（Steven：Study 跨局追蹤＋PPT 覆審＋refs 整合）**：
+> ㊺ **Study Results 加跨場趨勢**：新開**獨立本地 store `nf_study_history`**（唔入 `session_history`，唔污染訓練/挑戰趨勢；同 CSV 一樣本地、綁編號式學生 ID、reset/delete 會清）。追蹤**最有價值嘅兩個指標**：① **溫習專注穩定度 %**（sustained attention 質素）② **分心恢復時間**（旗艦——直接對應老師實驗 metric #2「介入後拉返專注嘅時間」＝訓練有效嘅硬證據）。**分數／正確率刻意唔入趨勢**（固定審核卷＝同一份題，分數升只反映記憶唔係專注訓練——會俾評判捉，留喺答題卡）。趨勢卡＝穩定度 bar＋恢復 bar＋「恢復快咗 X%」headline，同訓練趨勢同一套視覺；只喺 study mode 顯示，PDF 匯出會印埋。headless 實測（seed 2 場＋跑 1 場真 session＝3 條 bar、append 正確、訓練趨勢維持隱藏、零錯）。模組版本 `2026-07-18-3`。
+> ㊻ **PPT 覆審（第二版）**：上輪 5 個要修位**全部已改**（S2 Average 殘留冇咗＋來源完整、S5 移走 simulated distractions、S8 Gloria Mark 抽走＋草稿句修好）。PPT 主體收貨。餘下細位（唔急）：S4 閉環圖 Detect 淨寫 webcam（建議加返「EEG／相機／模擬」）、S1 中文「的技能」書面 vs 全 deck 口語、S9 英文雙空格。
+> ㊼ **References 整合**：隊員交咗 18 條學術 refs（6 類：ADHD 注意力訓練／EEG neurofeedback／Box Breathing／遊戲化／相機隱私 HCI／前後測實驗設計，存 refs docx）＋ Claude 提供嘅 S2 數據來源＋技術 attribution → 併成**海報底部 References 區＋PPT 尾頁**建議（curated，唔全塞）。內容見手冊 6.6 References 段。
 
 ---
 

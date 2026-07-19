@@ -9,8 +9,8 @@ import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { SMAAPass } from 'three/addons/postprocessing/SMAAPass.js';
 import { setState, getState } from '../../app/state.js';
-import { getCameraFocusScore, getCameraTrackingStatus, stopCameraPreview } from '../../services/focusInputService.js?v=2026-07-18-2';
-import { appendSessionSummary, getSessionHistory, getLocalVoyageLog, appendVoyageLog, getCumulativeCloudDistance } from '../../services/storageService.js';
+import { getCameraFocusScore, getCameraTrackingStatus, stopCameraPreview } from '../../services/focusInputService.js?v=2026-07-18-3';
+import { appendSessionSummary, getSessionHistory, getLocalVoyageLog, appendVoyageLog, getCumulativeCloudDistance, appendStudyHistory, getStudyHistory } from '../../services/storageService.js';
 import { initVoyage, resetVoyage, updateVoyage, getVoyageStats, getBuoysInWindow, routeXAt, routeYawAt, CHECKPOINT_SPACING, setVoyageVisible } from './voyage.js';
 import { getStudyMaterial, STUDY_PAGE_LIMIT_MS, STUDY_PAGE_MIN_MS } from './studyMaterials.js';
 
@@ -4131,6 +4131,27 @@ function commitLiveResults() {
         lastStudyReport = buildStudyReport();
     }
 
+    // Study Mode: commit a summary to the SEPARATE local study history (never
+    // the shared session_history, so the training/challenge trend stays clean).
+    // Once per session — guarded by the same commit flag as training below.
+    if (isStudyMode() && !sessionResultsCommitted && lastStudyReport) {
+        const r = lastStudyReport.reading || {};
+        const q = lastStudyReport.quiz || {};
+        appendStudyHistory({
+            student: lastStudyReport.student || '',
+            subject: lastStudyReport.subject || '',
+            depth: lastStudyReport.depth || '',
+            readingFocusPct: Number(r.focusPct) || 0,
+            readingRecoveryMs: Number(r.avgRecoveryMs) || 0,
+            readingDistractions: Number(r.distractions) || 0,
+            readingInterventions: Number(r.interventions) || 0,
+            quizFocusPct: Number(q.focusPct) || 0,
+            quizCorrect: Number(q.correct) || 0,
+            quizTotal: Number(q.total) || 0
+        });
+        sessionResultsCommitted = true;
+    }
+
     // Commit to cross-session history + voyage log exactly once per session, so
     // repainting the results page (language switch, etc.) never double-counts.
     // Study sessions stay OUT of the shared history/voyage — the experiment
@@ -4827,6 +4848,86 @@ async function renderHistoryTrend() {
             </div>
         </div>
         <p class="dash-trend-note">${langText(`最近 ${trendHistory.length} 局，最右邊係今次。恢復時間 0 = 嗰局冇分心要救。`, `Last ${trendHistory.length} sessions; rightmost is this one. Recovery 0 = no distraction to recover from.`)}</p>`;
+}
+
+// Shared bar renderer for the trend charts (each bar labels its own value; a
+// genuine zero can render as a muted "—" when zeroIsNoData is set).
+function renderTrendBars(values, formatter, zeroIsNoData = false) {
+    const max = Math.max(...values, 1);
+    return values.map((v, i) => {
+        const ratio = Math.max(0.06, v / max);
+        const isLatest = i === values.length - 1;
+        const isZero = zeroIsNoData && !(v > 0);
+        const label = isZero ? '—' : formatter(v);
+        return `<div class="dash-bar-wrap" title="${label}">
+            <span class="dash-bar-value ${isLatest ? 'is-latest' : ''} ${isZero ? 'is-muted' : ''}">${label}</span>
+            <div class="dash-bar ${isLatest ? 'is-latest' : ''} ${isZero ? 'is-muted' : ''}" style="height:${Math.round(ratio * 82)}%"></div>
+        </div>`;
+    }).join('');
+}
+
+// Study Mode cross-session trend. Tracks the two metrics that matter most for
+// the focus-training claim (and the teacher's paper-vs-platform experiment):
+//   • Reading focus stability % — sustained attention quality while studying.
+//   • Distraction recovery time — the flagship "training works" evidence
+//     (maps to the experiment's avgRecoveryMs metric).
+// Quiz SCORE is deliberately NOT trended: the reviewed paper is fixed, so a
+// rising score would reflect memorisation, not focus training. Score/accuracy
+// stay in the per-session quiz card instead.
+function renderStudyHistoryTrend() {
+    const host = document.getElementById('dash-study-trend');
+    if (!host) return;
+
+    const history = getStudyHistory(12);
+    if (!Array.isArray(history) || history.length < 2) {
+        host.innerHTML = `<p class="dash-empty">${langText('再做多一兩次學習模式，就會解鎖你嘅跨場趨勢。', 'Do a couple more study sessions to unlock your cross-session trend.')}</p>`;
+        return;
+    }
+
+    const focusValues = history.map((s) => Math.max(0, Math.min(100, Number(s.readingFocusPct) || 0)));
+    const recoveryValues = history.map((s) => Math.max(0, (Number(s.readingRecoveryMs) || 0) / 1000));
+
+    // Headline: recovering faster than the student's own recent average?
+    let headline = '';
+    const withRecovery = recoveryValues.filter((v) => v > 0);
+    if (withRecovery.length >= 2) {
+        const latest = recoveryValues[recoveryValues.length - 1];
+        const previous = recoveryValues.slice(0, -1).filter((v) => v > 0);
+        const prevAvg = previous.length ? previous.reduce((s, v) => s + v, 0) / previous.length : 0;
+        if (latest > 0 && prevAvg > 0) {
+            const diffPct = ((prevAvg - latest) / prevAvg) * 100;
+            if (diffPct >= 5) {
+                headline = `<div class="trend-headline is-up"><span class="trend-arrow">▲</span> ${langText(
+                    `溫習時分心後拉返專注快咗 ${diffPct.toFixed(0)}%（對比你之前幾場平均）`,
+                    `You recover from distraction while studying ${diffPct.toFixed(0)}% faster than your recent average`
+                )}</div>`;
+            } else if (diffPct <= -5) {
+                headline = `<div class="trend-headline is-down"><span class="trend-arrow">▼</span> ${langText(
+                    `今場恢復速度慢過之前平均 ${Math.abs(diffPct).toFixed(0)}%，好正常，繼續練`,
+                    `Recovery was ${Math.abs(diffPct).toFixed(0)}% slower than your recent average — keep training`
+                )}</div>`;
+            } else {
+                headline = `<div class="trend-headline is-flat"><span class="trend-arrow">▶</span> ${langText(
+                    '恢復速度同你最近平均相若',
+                    'Recovery speed is in line with your recent average'
+                )}</div>`;
+            }
+        }
+    }
+
+    host.innerHTML = `
+        ${headline}
+        <div class="dash-trend-grid">
+            <div class="dash-trend-block">
+                <h4>${langText('溫習專注穩定度 %', 'Reading Focus Stability %')}</h4>
+                <div class="dash-bars">${renderTrendBars(focusValues, (v) => `${v.toFixed(0)}%`)}</div>
+            </div>
+            <div class="dash-trend-block">
+                <h4>${langText('分心恢復時間（秒）', 'Recovery Time (s)')}</h4>
+                <div class="dash-bars">${renderTrendBars(recoveryValues, (v) => `${v.toFixed(1)}s`, true)}</div>
+            </div>
+        </div>
+        <p class="dash-trend-note">${langText(`最近 ${history.length} 場學習模式，最右邊係今次。恢復時間 0 = 嗰場冇分心要救。分數用固定卷，屬記憶影響，唔放趨勢。`, `Last ${history.length} study sessions; rightmost is this one. Recovery 0 = no distraction to recover from. Quiz score uses a fixed paper, so it is kept out of the trend.`)}</p>`;
 }
 
 // Alias for compatibility if needed, but we should use ROUTER
@@ -7658,6 +7759,7 @@ export {
     renderResults,
     renderSessionDashboard,
     renderHistoryTrend,
+    renderStudyHistoryTrend,
     exportStudyCsv,
     exportStudyPdf,
     setEEGConnectionState,

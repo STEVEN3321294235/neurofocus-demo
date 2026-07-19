@@ -1,7 +1,7 @@
-import { t } from '../../app/i18n.js?v=2026-07-18-2';
+import { t } from '../../app/i18n.js?v=2026-07-18-3';
 import { getState, resetFlowState, setState } from '../../app/state.js';
-import { disposeMode, syncRuntimeState } from '../../services/eegBridgeService.js?v=2026-07-18-2';
-import { importGameRuntime } from '../../services/runtimeLoader.js?v=2026-07-18-2';
+import { disposeMode, syncRuntimeState } from '../../services/eegBridgeService.js?v=2026-07-18-3';
+import { importGameRuntime } from '../../services/runtimeLoader.js?v=2026-07-18-3';
 import { syncUserEmail } from '../../services/authService.js';
 
 async function getRuntime() {
@@ -83,6 +83,18 @@ export default {
                             <div id="dash-history-trend"></div>
                         </section>
 
+                        <!-- 5b. Study-Mode cross-session trend (shown only in
+                             Study Mode; reads the separate local study history). -->
+                        <section class="results-card" id="results-study-trend-card">
+                            <div class="results-card-head">
+                                <div>
+                                    <h2>${t('dash_study_trend_title')}</h2>
+                                    <p class="results-card-sub">${t('dash_study_trend_lead')}</p>
+                                </div>
+                            </div>
+                            <div id="dash-study-trend"></div>
+                        </section>
+
                         <!-- 6. Next goal (painted by runtime) -->
                         <section class="results-nextgoal" id="results-nextgoal"></section>
 
@@ -116,6 +128,7 @@ export default {
         runtime.renderResults();
         runtime.renderSessionDashboard();
         runtime.renderHistoryTrend().catch(() => {});
+        try { runtime.renderStudyHistoryTrend(); } catch (e) { /* study trend is best-effort */ }
         // Backfill the login email so the PDF export header can show it, even
         // for users who signed in before we started storing it.
         syncUserEmail().catch(() => {});

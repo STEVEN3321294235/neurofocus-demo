@@ -841,9 +841,12 @@ html[data-platform="windows"] .results-nextgoal {
 /* Print-only student header (hidden on screen, shown in the PDF export). */
 .results-print-header { display: none; }
 
-/* Study Mode: hide the cross-session trend (it's training/challenge history,
-   not this study session — study data is in the reading/quiz cards + CSV). */
+/* Study Mode: hide the training/challenge cross-session trend (it's a different
+   history) and show the dedicated Study-Mode trend instead. Non-study modes do
+   the opposite. */
+#results-study-trend-card { display: none; }
 .results-shell[data-mode="study"] #results-trend-card { display: none; }
+.results-shell[data-mode="study"] #results-study-trend-card { display: block; }
 
 /* PDF export via the browser's print-to-PDF: capture the results as a clean,
    light page with the student header + all charts, and drop interactive

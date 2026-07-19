@@ -5,10 +5,12 @@ const STORAGE_KEYS = {
     theme: 'theme',
     user: 'current_user',
     history: 'session_history',
-    voyage: 'voyage_log'
+    voyage: 'voyage_log',
+    studyHistory: 'nf_study_history'
 };
 
 const HISTORY_LIMIT = 10;
+const STUDY_HISTORY_LIMIT = 12;
 
 export function getLang() {
     return localStorage.getItem(STORAGE_KEYS.lang) || 'hk';
@@ -42,7 +44,7 @@ export function clearCurrentUser() {
 // Local keys that hold a player's PROGRESS/RESULTS (not their preferences or
 // login). Cleared on "reset all data" and "delete account".
 const GAME_DATA_KEYS = [
-    'session_history', 'voyage_log', 'last_session_snapshot_v1',
+    'session_history', 'voyage_log', 'last_session_snapshot_v1', 'nf_study_history',
     'best_distance', 'best_accuracy', 'best_time', 'best_session_stars',
     'quality_mode', 'camera_distance_scale', 'bgm_volume_pct', 'sfx_volume_pct',
     'last_session_mode', 'last_session_difficulty', 'nf_study_dev_unlock'
@@ -231,4 +233,36 @@ export async function appendSessionSummary(summary) {
     } catch (e) {
         return { stored: 'local' };
     }
+}
+
+// --- Study Mode history (LOCAL only, kept separate from session_history) ------
+// Study sessions deliberately stay out of the training/challenge trend so they
+// never skew it. They live in their own local store instead — tied to the
+//編號式 student id (S01/S02…), never uploaded (same privacy stance as the CSV
+// export). This powers the Study Results cross-session trend.
+//
+// Summary shape:
+// { ts, student, subject, depth, readingFocusPct, readingRecoveryMs,
+//   readingDistractions, readingInterventions, quizFocusPct, quizCorrect, quizTotal }
+
+export function getStudyHistory(limit = STUDY_HISTORY_LIMIT) {
+    try {
+        const raw = localStorage.getItem(STORAGE_KEYS.studyHistory);
+        const parsed = raw ? JSON.parse(raw) : [];
+        return Array.isArray(parsed) ? parsed.slice(-limit) : [];
+    } catch (e) {
+        return [];
+    }
+}
+
+export function appendStudyHistory(summary) {
+    const entry = { ...summary, ts: summary.ts || new Date().toISOString() };
+    try {
+        const existing = getStudyHistory(STUDY_HISTORY_LIMIT);
+        existing.push(entry);
+        localStorage.setItem(STORAGE_KEYS.studyHistory, JSON.stringify(existing.slice(-STUDY_HISTORY_LIMIT)));
+    } catch (e) {
+        /* storage full/blocked: study trend is best-effort */
+    }
+    return entry;
 }
