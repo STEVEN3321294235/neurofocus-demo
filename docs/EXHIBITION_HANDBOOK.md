@@ -434,26 +434,39 @@ graph TD
 > 原則不變：**3 米外睇到主訊息，1 米內睇到閉環同截圖**；每格一個重點，唔好塞滿字；顏色／字體／美術由設計隊員決定；**同 9 頁 PPT 口徑一致**（評判台上台下見到同一套故事）。
 
 ```
-┌───────────────────────────────────────────────┐
-│ 頁首：NeuroFocus＋Overview＋校名 │ 作者＋QR    │
-├───────────────────────┬───────────────────────┤
-│ ① 問題：注意力碎片化   │ ② 答案：一個閉環       │
-│ 47秒/23分15秒/2倍/    │ 偵測→睇到(船)→介入     │
-│ 6-7小時＋一句結論      │ (呼吸)→量化（圓環圖）  │
-├───────────────────────┼───────────────────────┤
-│ ③ 三種模式             │ ④ 技術架構             │
-│ 訓練/挑戰/學習各一行   │ EEG→bridge→3D＋三層輸入│
-├───────────────────────┴───────────────────────┤
-│ ⑤ 大格：學習模式完整旅程（海報主角，圖為主）    │
-│ 閱讀器→測驗(船返場)→Study Results 三張大截圖   │
-│ ＋「專心晴天 vs 分心起霧」對比小圖              │
-├───────────────────────────────────────────────┤
-│ ⑥ 闊格：證據＋誠實＋未來                        │
-│ 趨勢截圖＋實驗設計小流程＋誠實聲明＋未來三點    │
-├───────────────────────────────────────────────┤
-│ References：S2 四個數據來源＋技術 attribution   │
-└───────────────────────────────────────────────┘
+┌────────────────────────────────────────────────────────────────┐
+│ 頁首 HEADER                                                      │
+│  NeuroFocus（大 logo 字）          │ AUTHORS（四人全名）         │
+│  一句定位 Overview（中＋EN）        │ NeuroFocus Web ▸ [大 QR]    │
+│  STFA Cheng Yu Tung Secondary Sch.  │ "Try it at our booth"       │
+├────────────────────────────┬───────────────────────────────────┤
+│ ① THE GAP（細格）           │ ② SOLUTION（細格）                 │
+│  大字：47 秒 · 23 分鐘       │  圓環大圖（本格主視覺）：           │
+│  一句：叫人「專心啲」冇用    │   Detect→See(船)→Cue(呼吸)→Measure │
+│   ——佢唔會話你幾時走神       │  一句：一個閉環，唔係三件事         │
+│  [細圖:2004→2024 落跌線]     │  訊號＝EEG／相機／模擬，閉環唔變     │
+├────────────────────────────┼───────────────────────────────────┤
+│ ③ THREE SESSION GOALS（細格）│ ④ TECHNICAL（細格）                │
+│  訓練｜挑戰｜學習 三細卡      │  架構線：MindWave→bridge→WS→3D    │
+│  各一行 concept              │  三層輸入 EEG／相機／模擬            │
+│  一句：學習模式行晒閉環       │  雲端 Vercel＋Supabase（數據屬你）  │
+│  [三張細截圖]                │  [五-icon 架構圖＋戴頭帶相]         │
+├────────────────────────────┴───────────────────────────────────┤
+│ ⑤ HERO 大格：STUDY MODE — THE FULL LOOP（海報主角・圖為主）      │
+│  [閱讀器截圖] ─▸ [測驗船返場截圖] ─▸ [Study Results 截圖]        │
+│    讀：專注全程被量        考：分心船即失速     報告：溫習vs答題＋恢復│
+│  旁邊：晴天(專心) ↔ 起霧(分心) 對比孖圖（唔識字都睇得明）         │
+├──────────────────────────────────────────────────────────────────┤
+│ ⑥ EVIDENCE & FUTURE 闊格                                         │
+│  [實驗流程:紙本組 vs 平台組→同教材同卷→比成績＋專注數據]         │
+│  [跨場趨勢截圖:圈住「恢復時間↓」]  誠實框:機制✓／pilot n≈2-3／待驗證│
+│  未來三點：真 EEG 旗艦 · 多 sensor · 學校大樣本                   │
+├──────────────────────────────────────────────────────────────────┤
+│ REFERENCES（英文細字，見下）＋ Tech / Acknowledgements            │
+└──────────────────────────────────────────────────────────────────┘
 ```
+
+**成張海報嘅閱讀動線（3 米 → 1 米 → 埋身）**：3 米外先食到**頁首大標題＋② 圓環圖＋⑤ 大格截圖**（呢三樣要最大、最搶）；行到 1 米睇到**① 兩個大數字＋③ 三模式＋⑥ 誠實框**；埋身先睇 **④ 技術架構＋References 細字**。所以美術上「由大到細」嘅字級排序係：頁首標題 > ⑤ 截圖 caption ＝ ② 圓環 > ① 數字 > ③④⑥ 內文 > References。每格**一個重點**，寧願留白都唔好塞爆。
 
 **頁首（用 template 現有結構，兩個修正）**
 - Overview 英文句要修返文法：改成「**NeuroFocus turns focus — normally invisible and willpower-dependent — into a skill you can see, train and measure.**」（template 而家斷咗做兩句，「Turn into」唔啱文法）；下面配中文一句「將專注力變成睇得到、練得到、量得到嘅技能」。
@@ -472,47 +485,83 @@ graph TD
 
 > ③ 英文 template 寫「Three Sessions' Goal」文法唔自然，建議改「**Three Session Goals**」或「Three Modes, One Loop」。
 
-**每格內容＋附圖建議**（下表係「唔想揭返 PPT」時嘅 copy-ready 版，同上面 slide 對照一致）
-| 格 | 標題（中／EN） | 內容（可直接抄） | 附圖 |
-|---|---|---|---|
-| **①** | 注意力，正在碎片化 / Attention is fragmenting | S2 四個大數字：**47 秒**（單一螢幕平均專注；2004 年 2.5 分鐘）、**23 分 15 秒**（每次打斷後返到原任務）、**2 倍**（高頻數碼媒體青少年 ADHD 症狀風險，JAMA 2018）、**6–7 小時**（香港青少年日均螢幕時間）；結論句：「唔係唔想專心，係冇人教過點拉返」 | 2.5min→75s→47s **落跌趨勢線**；四個數字用大字排版本身就係圖 |
-| **②** | 一個閉環，唔係三件事 / One loop, not three features | 兩句：系統即時偵測專注→船畀你睇到→分心太耐呼吸提示（連提示音）拉你返→完場量化進步；訊號可以係 EEG／相機／模擬，閉環唔變 | **圓環圖**（Detect→See→Cue→Measure 四節點首尾相連，Canva 畫）——呢格係 3 米外要認得嘅圖 |
-| **③** | 一個閉環，三個入口 / Three entries | 訓練＝純練穩定專注；挑戰＝壓力下維持專注；學習＝真溫習場景順便量專注；一句：**學習模式一個模式行晒成個閉環** | 三張**細**截圖：訓練（海洋＋能量環）／挑戰（題目卡）／學習（閱讀器） |
-| **④** | 點樣做到 / How it works | 簡化架構：MindWave 頭帶→Python bridge→WebSocket→瀏覽器 3D（Three.js）；三層輸入：**EEG／相機（本地處理不上傳）／模擬**；雲端：Vercel＋Supabase（數據只屬於你） | **架構箭嘴圖**（五個 icon 一條線）＋一張**真人戴頭帶**相 |
-| **⑤ 大格** | 學習模式：由閱讀到報告 / Study Mode, the full loop | 圖為主、每張一句 caption：讀（專注全程被量度）→ 考（船返場，分心船即失速）→ 報告（溫習/答題分開量＋恢復時間）；旁邊配「**專心＝晴天 vs 分心＝起霧**」對比小圖——唔識字都睇得明 | **三張大截圖**（閱讀器／測驗階段連船／Study Results）＋天氣共感**對比孖圖** |
-| **⑥ 闊格** | 證據與誠實 / Evidence & honesty | 左：實驗設計小流程（**紙本組 vs 平台組→同教材同卷→比較成績＋專注數據**）；中：Results 跨場趨勢截圖（圈住「恢復時間」）；右：**誠實框**——「機制有文獻根據✓／pilot n≈2–3／長期成效待大樣本驗證」＋未來三點（真 EEG 旗艦體驗、多 sensor、學校合作大樣本） | 實驗流程圖＋**Results 趨勢截圖**（如 pilot 完成，加 CSV 數據小表） |
+**每格詳細規格（copy-ready・同上面 slide 對照一致）**
 
-**References ＋ 致謝（海報底部同 PPT 尾頁通用・2026-07-18 整合隊員 18 條學術 refs）**
+**① THE GAP（細格左上）— S2＋S3**
+- **標題**：注意力，正在碎片化 / Attention is fragmenting
+- **主視覺**：兩個超大數字 **47 秒** 同 **23 分鐘**（呢兩個最狠，1 米外要一眼睇到）。
+- **文字（可抄）**：
+  - `47 秒` — 人喺單一螢幕上嘅平均持續專注（2004 年係 2.5 分鐘）。
+  - `23 分 15 秒` — 每次被打斷後，平均要咁耐先完全返到原本任務。
+  - 一句 gap：**「叫人『專心啲』冇用——佢唔會話你幾時走神，等你發現已經遲咗。」**
+- **細圖**：2004→2024 專注時長落跌線（可直接用 S2 嗰條）。
+- **排版**：數字大、解說細；上面擺數字，落面一行 gap 金句。
 
-> 原則：**唔好 18 條全塞**。分兩類 —— **A. 數據來源**（S2 嗰四個數字，一定要標，否則評判當你老作）；**B. 機制／方法文獻**（撐「訓練有效＋呼吸有用＋遊戲化＋實驗設計嚴謹」，每類揀最強 1–2 條）。海報底部用**精簡版**（3 米外都係細字，貴精不貴多），PPT 尾頁用**完整版**（評判會逐條睇，展示你哋做足功課）。分類已對應產品聲稱，Q&A 被追問邊個機制就指返嗰類。
+**② SOLUTION（細格右上）— S4**
+- **標題**：一個閉環，唔係三件事 / One loop, not three features
+- **主視覺**：**圓環圖**（本格靈魂，3 米外要認得）：`Detect 偵測 → See 睇到(船) → Cue 介入(呼吸) → Measure 量化` 四節點首尾相連。
+- **文字（可抄）**：即時偵測你嘅專注 → 用一隻船畀你「睇到」自己狀態 → 分心太耐用呼吸提示（連提示音）拉你返 → 完場量化進步。**訊號可以係 EEG／相機／模擬——閉環唔變。**
+- **排版**：圓環圖佔本格 ⅔，文字兩句喺底。
 
-**▍海報底部 References（精簡版・約 8 條＋技術行）**
+**③ THREE SESSION GOALS（細格左中）— S5**
+- **標題**：一個閉環，三個入口 / One loop, three entries
+- **文字（可抄，三行）**：
+  - **訓練 Training** — 冇題目，純練維持穩定專注（基本功）。
+  - **挑戰 Challenge** — 加 Stroop／邏輯題，壓力下維持專注（貼近考試）。
+  - **學習 Study** — 真溫習場景，讀教材考卷順便量專注。
+  - 收尾大字：**學習模式一個模式已經行晒成個閉環——所以用佢示範。**
+- **細圖**：三張細截圖（訓練海洋＋能量環／挑戰題目卡／學習閱讀器），每張一個 chip 標模式名。
+
+**④ TECHNICAL（細格右中）— Q&A / Part 7（PPT 冇專頁）**
+- **標題**：點樣做到 / How it works
+- **主視覺**：**五-icon 架構線**：`MindWave 頭帶 → Python bridge → WebSocket → 瀏覽器 3D (Three.js) → 雲端 (Vercel＋Supabase)`。
+- **文字（可抄）**：三層輸入 —— **EEG 腦電／相機臉部偵測（本地處理・不上傳）／模擬曲線**；帳戶同進度存 Supabase，**數據只屬於你**。
+- **細圖**：架構箭嘴圖 ＋ 一張**真人戴頭帶**相（令「真 EEG」睇得到）。
+
+**⑤ HERO 大格 — S6＋S7（海報主角・圖為主）**
+- **標題**：學習模式：由閱讀到報告 / Study Mode — the full loop
+- **主視覺**：**三張大截圖橫向排**，中間用箭嘴串起：
+  1. **閱讀器**（caption：讀嘅時候，專注全程被量度）
+  2. **測驗階段·船返場**（caption：一分心，隻船即刻失速）
+  3. **Study Results**（caption：溫習 vs 答題分開量，仲有分心恢復時間）
+- **旁邊孖圖**：**晴天(專心) ↔ 起霧(分心)** 天氣共感對比——唔識字都睇得明。
+- **排版**：本格最大、最搶，截圖闊度 ≥15cm；三步之間箭嘴要明顯。
+
+**⑥ EVIDENCE & FUTURE 闊格 — S8＋S9**
+- **標題**：證據與誠實 / Evidence & honesty
+- **左｜實驗設計小流程**：**紙本組 vs 平台組 → 同教材同卷 → 比較測驗成績＋溫習專注數據**。
+- **中｜證據截圖**：Results **跨場趨勢圖**（圈住「恢復時間↓」——越練越快＝訓練有效嘅硬證據）。
+- **右｜誠實框**：機制有文獻根據 ✓／pilot n≈2–3／長期成效待大樣本驗證；下面**未來三點**：真 EEG 旗艦體驗 · 多 sensor（眼動／HRV） · 同學校做大樣本研究。
+- **排版**：三欄平均分，誠實框用淺色底框住，令評判行埋嚟都覺得你嚴謹。
+
+**References ＋ Acknowledgements（海報底部同 PPT 尾頁通用）**
+
+**▍海報底部 References（精簡版・約 8 條＋技術行，全英文直接落版）**
 ```
-數據來源 Data
-· 專注時長 47 秒／中斷後 23 分 15 秒：Mark et al., UC Irvine（gloriamark.com）
-· 數碼媒體與青少年 ADHD 症狀 2 倍風險：Ra et al., JAMA 2018
-· 香港青少年日均螢幕 6–7 小時：香港青少年調查 2024/25（news.gov.hk）
-科學基礎 Evidence
-· 注意力／認知訓練（ADHD）：computerized cognitive training RCT 元分析, PMC10208955
-· EEG 神經反饋機制：Neurofeedback & QEEG biomarkers, PMC12321976
-· 方盒呼吸調節喚醒：Brief structured breathing, Balban et al. 2023（PMC9873947）
-· 遊戲化增訓練依從：Gamification of cognitive training 元分析, PMC7445616
-· 前後測實驗設計範本：RCT protocol, BMJ Open 2024（e079917）
-技術 Tech：NeuroSky MindWave · MediaPipe(Google) · Three.js · Supabase · Vercel
-音效 Audio：Universfield (Pixabay)
+DATA
+· Sustained attention ~47 s; ~23 min 15 s to fully refocus after an interruption
+  — Mark et al., UC Irvine
+· ~2× risk of ADHD symptoms with heavy digital-media use — Ra et al., JAMA 2018
+· 6–7 h average daily screen time, HK teens — HK Youth Survey 2024/25 (news.gov.hk)
+EVIDENCE
+· Computerized cognitive training in ADHD — meta-analysis of RCTs (PMC10208955)
+· EEG neurofeedback & QEEG biomarkers (PMC12321976)
+· Structured breathing lowers physiological arousal — Balban et al., 2023 (PMC9873947)
+· Gamification improves cognitive-training adherence — meta-analysis (PMC7445616)
+· Pre/post RCT design template — BMJ Open, 2024 (e079917)
+TECH: NeuroSky MindWave · MediaPipe (Google) · Three.js · Supabase · Vercel
+AUDIO: Universfield (Pixabay)　·　Study material prepared by our team
 ```
 
-**▍PPT 尾頁 References & Acknowledgements（完整版・分 6 類，每類挑 1–2 條）**
-- **數據來源（S2）**：① Mark et al.（UC Irvine）螢幕專注時長／中斷恢復；② Ra et al., *JAMA* 2018, 高頻數碼媒體與青少年 ADHD 症狀（fullarticle/2687861）；③ 香港青少年螢幕時間調查 2024/25（The Standard HK／news.gov.hk）。
-- **① ADHD／持續注意力訓練**：Computerized cognitive training in ADHD: a meta-analysis of RCTs（PMC10208955）；Training Cognition in ADHD（綜述, PMC3441933）。
-- **② EEG 神經反饋**：Neurofeedback for ADHD — QEEG & brainwave modulation（PMC12321976）；Are treatment effects related to successful regulation of brain activity?（自我調控機制, PMC4376076）。
-- **③ 方盒呼吸／喚醒調節**：Brief structured respiration practices enhance mood and reduce arousal（Balban et al. 2023, PMC9873947）；Cyclic sighing vs box breathing（2026, Taylor & Francis）。
-- **④ 遊戲化認知訓練**：Effects of gamification on computerized cognitive training — 元分析（PMC7445616）；Serious games in attention rehabilitation（PMC8898139）。
-- **⑤ 相機隱私／本地運算（P1）**：Consent in Context（USENIX SOUPS 2025）；瀏覽器本地端影像處理（WebAssembly，數據不上傳）。
-- **⑥ 前後測實驗設計／量化指標**：RCT protocol（BMJ Open 2024, e079917，含基線／恢復時間指標）；Quiet Eye Training（前後測＋反應時間範本, *J. Human Kinetics* 2023）。
-- **技術致謝 Tech / Acknowledgements**：NeuroSky MindWave · MediaPipe (Google) · Three.js · Supabase · Vercel；提示音效 Universfield (Pixabay)；教材由本校生物科老師審核提供。
-
-> **口徑提醒**：ADHD／neurofeedback 嗰兩類文獻**效果係「混合、有潛力」唔係「已證實根治」**——同 S8 誠實框一致，評判追問就答「有科學基礎、機制站得住，但長期成效要更大樣本」。呢個誠實態度本身係加分位，唔好吹過龍變「已證明治療 ADHD」。
+**▍PPT 尾頁 References & Acknowledgements（完整版・6 類，每類 1–2 條，全英文）**
+- **Data Sources (S2):** Mark et al. (UC Irvine) — screen attention span & interruption-recovery time; Ra et al., *JAMA* 2018 — heavy digital-media use & ADHD symptoms in adolescents (fullarticle/2687861); Hong Kong Youth Screen-Time Survey 2024/25 (The Standard HK / news.gov.hk).
+- **Attention & Cognitive Training (ADHD):** Computerized cognitive training in ADHD: a meta-analysis of RCTs (PMC10208955); Training Cognition in ADHD — review (PMC3441933).
+- **EEG Neurofeedback:** Neurofeedback for ADHD — QEEG & brainwave modulation (PMC12321976); Treatment effects & self-regulation of brain activity (PMC4376076).
+- **Box Breathing / Arousal Regulation:** Brief structured respiration practices enhance mood and reduce physiological arousal — Balban et al., 2023 (PMC9873947); Cyclic sighing vs box breathing, 2026 (Taylor & Francis).
+- **Gamification / Serious Games:** Effects of gamification on computerized cognitive training — meta-analysis (PMC7445616); Serious games in attention rehabilitation (PMC8898139).
+- **Camera Privacy / On-Device Processing (P1):** Consent in Context — USENIX SOUPS 2025; privacy-first in-browser local image processing (data never uploaded).
+- **Pre/Post Experimental Design & Focus Metrics:** RCT protocol — BMJ Open 2024 (e079917), with baseline & recovery-time measures; Quiet Eye Training — pre/post design with reaction-time metrics, *J. Human Kinetics* 2023.
+- **Tech & Acknowledgements:** NeuroSky MindWave · MediaPipe (Google) · Three.js · Supabase · Vercel; alert sound by Universfield (Pixabay); study material prepared by our team.
 
 **截圖規格（俾負責 cap 圖嘅隊員）**
 - 瀏覽器全螢幕 cap（F11／⌘⇧F），收起 devtools；**淺色模式**做海報主圖（白底海報上淺色截圖更搶眼、慳墨），深色可以留一兩張做對比。

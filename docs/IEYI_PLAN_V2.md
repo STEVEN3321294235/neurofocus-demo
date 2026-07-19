@@ -81,6 +81,7 @@
 > ㊺ **Study Results 加跨場趨勢**：新開**獨立本地 store `nf_study_history`**（唔入 `session_history`，唔污染訓練/挑戰趨勢；同 CSV 一樣本地、綁編號式學生 ID、reset/delete 會清）。追蹤**最有價值嘅兩個指標**：① **溫習專注穩定度 %**（sustained attention 質素）② **分心恢復時間**（旗艦——直接對應老師實驗 metric #2「介入後拉返專注嘅時間」＝訓練有效嘅硬證據）。**分數／正確率刻意唔入趨勢**（固定審核卷＝同一份題，分數升只反映記憶唔係專注訓練——會俾評判捉，留喺答題卡）。趨勢卡＝穩定度 bar＋恢復 bar＋「恢復快咗 X%」headline，同訓練趨勢同一套視覺；只喺 study mode 顯示，PDF 匯出會印埋。headless 實測（seed 2 場＋跑 1 場真 session＝3 條 bar、append 正確、訓練趨勢維持隱藏、零錯）。模組版本 `2026-07-18-3`。
 > ㊻ **PPT 覆審（第二版）**：上輪 5 個要修位**全部已改**（S2 Average 殘留冇咗＋來源完整、S5 移走 simulated distractions、S8 Gloria Mark 抽走＋草稿句修好）。PPT 主體收貨。餘下細位（唔急）：S4 閉環圖 Detect 淨寫 webcam（建議加返「EEG／相機／模擬」）、S1 中文「的技能」書面 vs 全 deck 口語、S9 英文雙空格。
 > ㊼ **References 整合**：隊員交咗 18 條學術 refs（6 類：ADHD 注意力訓練／EEG neurofeedback／Box Breathing／遊戲化／相機隱私 HCI／前後測實驗設計，存 refs docx）＋ Claude 提供嘅 S2 數據來源＋技術 attribution → 併成**海報底部 References 區＋PPT 尾頁**建議（curated，唔全塞）。內容見手冊 6.6 References 段。
+> ㊽ **海報 6.6 深化（Steven 07-18）**：References 段**改晒全英文**（直接落版用）＋致謝改「study material prepared by our team」（教材由隊員提供）＋刪走提醒句；構圖用返原本 ASCII 但**加密每格內容**＋補「3 米→1 米→埋身」閱讀動線文句；每格由表格改成**逐格 copy-ready 詳細規格**（標題／主視覺／可抄文字／排版）。純文件改動。
 
 ---
 
