@@ -79,20 +79,48 @@
 <a name="part-3"></a>
 ## Part 3 — 技術架構（最新，已反映 2026-07 sprint）
 
-### 資料流
+### 資料流 System Architecture & Data Flow（全英文版・poster 直接用）
 ```mermaid
-graph LR
-    subgraph 本地硬體
-      HW[MindWave 頭帶] -->|serial| BR[eeg_bridge.py<br/>pyserial + asyncio]
+flowchart LR
+    subgraph INPUT["THREE INPUT LAYERS 三層訊號輸入"]
+        direction TB
+        HW["EEG Headset<br/>NeuroSky MindWave Mobile 2<br/>(single-channel: attention · meditation · signal quality)"]
+        CAM["Webcam<br/>MediaPipe FaceLandmarker<br/>(on-device processing — video never uploaded)"]
+        SIM["Built-in Focus Profile<br/>(simulation fallback — runs on any device)"]
     end
-    BR -->|WebSocket ws://127.0.0.1| FE[前端 runtime.js]
-    CAM[相機 MediaPipe] -.camera 模式.-> FE
-    SIM[內建 focus profile] -.fallback.-> FE
-    FE -->|POST /api/questions| PX[Vercel Serverless Proxy]
-    PX -->|server-side key| DS[DeepSeek API]
-    FE -->|auth / 歷史| SB[(Supabase<br/>auth + session_history)]
-    FE --> UI[Three.js 3D 場景 + HUD]
+
+    subgraph LOCAL["LOCAL MACHINE 本機"]
+        BR["Python EEG Bridge<br/>pyserial + asyncio + websockets<br/>(auto port-scan · auto reconnect)"]
+    end
+
+    subgraph BROWSER["BROWSER — FOCUS ENGINE 瀏覽器・專注引擎"]
+        direction TB
+        FE["Real-time Focus Engine<br/>(closed loop: Detect → See → Cue → Measure)"]
+        UI["Three.js 3D Ocean + HUD<br/>(boat speed & steering driven by focus)"]
+        BB["Box-Breathing Intervention Layer<br/>(triggered by adaptive focus threshold)"]
+        RES["Results Dashboard<br/>(session report · cross-session trends · PDF/CSV export)"]
+        FE --> UI
+        FE --> BB
+        FE --> RES
+    end
+
+    subgraph CLOUD["CLOUD 雲端"]
+        direction TB
+        PX["Vercel Serverless Proxy<br/>/api/questions<br/>(AI key stays server-side — never in the browser)"]
+        DS["DeepSeek API<br/>(live question generation)"]
+        SB[("Supabase<br/>account auth + session history<br/>(row-level security — each user reads own data only)")]
+        PX --> DS
+    end
+
+    HW -->|"serial (Bluetooth SPP)"| BR
+    BR -->|"WebSocket · localhost only"| FE
+    CAM -.->|"camera mode"| FE
+    SIM -.->|"fallback"| FE
+    FE -->|"HTTPS"| PX
+    FE -->|"HTTPS"| SB
 ```
+
+> **Poster 用法**：呢個 mermaid 圖 GitHub 會自動 render，crop 得；但**建議直接用 Claude 出嗰張高清 PNG**（同一內容、poster 米白色系、300dpi）——見對話記錄。三個要點記得喺 poster 度保留：① 三層輸入（EEG／webcam／simulation）任缺一都行到；② privacy 標明 on-device、video never uploaded；③ AI key server-side。
 
 ### 技術清單
 - **前端基礎**：HTML5 單頁 + **Vanilla JS ES Modules**（非 React/Vue，輕量、易 Vercel 靜態部署）+ **Import Maps**（直接指 `three`、`@mediapipe/tasks-vision`、`@supabase/supabase-js`）+ **Hash Router**。
@@ -430,7 +458,8 @@ graph TD
 
 ### 6.6 A0 海報大綱（841×1189mm 直度・2026-07-18 對齊隊員 Canva Template）
 
-> 隊員 template 實際版面（已定）：**頁首**（左：NeuroFocus 大字＋Project Overview＋學校名；右：Authors 四人＋NeuroFocus Web QR＋「**DEMO ONLY」）→ **兩行細格（2×2）** → **一個大格** → **一個闊格** → 底部 **References**。
+> 隊員 template 實際版面（已定）：**頁首**（左：NeuroFocus 大字＋Project Overview＋學校名；右：Authors 四人＋NeuroFocus Web QR）→ **兩行細格（2×2：The Problems／Our Solution／Three Session Goals／Technical）** → **一個大格** → **一個闊格** → 底部 **References**。
+> **語言決定（Steven 07-20 拍板）**：presentation 用英文講 3 分鐘，**poster 落版全英文**；本手冊每段配**中文對照**俾隊員理解＋備稿，唔使貼上海報。
 > 原則不變：**3 米外睇到主訊息，1 米內睇到閉環同截圖**；每格一個重點，唔好塞滿字；顏色／字體／美術由設計隊員決定；**同 9 頁 PPT 口徑一致**（評判台上台下見到同一套故事）。
 
 ```
@@ -440,7 +469,7 @@ graph TD
 │  一句定位 Overview（中＋EN）        │ NeuroFocus Web ▸ [大 QR]    │
 │  STFA Cheng Yu Tung Secondary Sch.  │ "Try it at our booth"       │
 ├────────────────────────────┬───────────────────────────────────┤
-│ ① THE GAP（細格）           │ ② SOLUTION（細格）                 │
+│ ① THE PROBLEMS（細格）      │ ② OUR SOLUTION（細格）             │
 │  大字：47 秒 · 23 分鐘       │  圓環大圖（本格主視覺）：           │
 │  一句：叫人「專心啲」冇用    │   Detect→See(船)→Cue(呼吸)→Measure │
 │   ——佢唔會話你幾時走神       │  一句：一個閉環，唔係三件事         │
@@ -468,15 +497,11 @@ graph TD
 
 **成張海報嘅閱讀動線（3 米 → 1 米 → 埋身）**：3 米外先食到**頁首大標題＋② 圓環圖＋⑤ 大格截圖**（呢三樣要最大、最搶）；行到 1 米睇到**① 兩個大數字＋③ 三模式＋⑥ 誠實框**；埋身先睇 **④ 技術架構＋References 細字**。所以美術上「由大到細」嘅字級排序係：頁首標題 > ⑤ 截圖 caption ＝ ② 圓環 > ① 數字 > ③④⑥ 內文 > References。每格**一個重點**，寧願留白都唔好塞爆。
 
-**頁首（用 template 現有結構，兩個修正）**
-- Overview 英文句要修返文法：改成「**NeuroFocus turns focus — normally invisible and willpower-dependent — into a skill you can see, train and measure.**」（template 而家斷咗做兩句，「Turn into」唔啱文法）；下面配中文一句「將專注力變成睇得到、練得到、量得到嘅技能」。
-- 「\*\*DEMO ONLY」建議改做「**Demo build — try it at our booth / 歡迎親身試玩**」——「DEMO ONLY」對評判係扣分暗示，「嚟攤位玩」係邀請。
-
 **邊格抄邊張 PPT slide（九成內容直接由 PPT 搬，唔使重寫）**
 | 海報格（template 名） | 抄邊張 slide | 一句點抄 |
 |---|---|---|
-| ① **The Gap**（細格左上） | **S2＋S3** | S2 四個數字揀最狠嗰兩個（47 秒＋23 分鐘）＋ S3 一句「叫人專心冇用——佢唔會話你幾時走神」 |
-| ② **Solution**（細格右上） | **S4** | 直接搬 S4 圓環圖＋「一個閉環，唔係三件事」 |
+| ① **The Problems**（細格左上） | **S2＋S3** | S2 四個數字揀最狠嗰兩個（47 秒＋23 分鐘）＋ S3 一句「叫人專心冇用——佢唔會話你幾時走神」 |
+| ② **Our Solution**（細格右上） | **S4** | 直接搬 S4 圓環圖＋「一個閉環，唔係三件事」 |
 | ③ **Three Session Goals**（細格左中） | **S5** | 搬 S5 三張模式卡文字（訓練／挑戰／學習各一行）＋「學習模式行晒成個閉環」 |
 | ④ **Technical**（細格右中） | **Q&A（Part 7）** | PPT 冇專頁——用架構圖：MindWave→bridge→3D＋三層輸入（EEG／相機／模擬） |
 | ⑤ **大格** | **S6＋S7** | demo 對比＋Results 三張大截圖（海報主角，圖為主） |
@@ -485,54 +510,109 @@ graph TD
 
 > ③ 英文 template 寫「Three Sessions' Goal」文法唔自然，建議改「**Three Session Goals**」或「Three Modes, One Loop」。
 
-**每格詳細規格（copy-ready・同上面 slide 對照一致）**
+**每格詳細規格（正式中英對照版・2026-07-20）**
 
-**① THE GAP（細格左上）— S2＋S3**
-- **標題**：注意力，正在碎片化 / Attention is fragmenting
-- **主視覺**：兩個超大數字 **47 秒** 同 **23 分鐘**（呢兩個最狠，1 米外要一眼睇到）。
-- **文字（可抄）**：
-  - `47 秒` — 人喺單一螢幕上嘅平均持續專注（2004 年係 2.5 分鐘）。
-  - `23 分 15 秒` — 每次被打斷後，平均要咁耐先完全返到原本任務。
-  - 一句 gap：**「叫人『專心啲』冇用——佢唔會話你幾時走神，等你發現已經遲咗。」**
-- **細圖**：2004→2024 專注時長落跌線（可直接用 S2 嗰條）。
-- **排版**：數字大、解說細；上面擺數字，落面一行 gap 金句。
+> **用法**：Poster 落版**只用英文**（presentation 用英文講 3 分鐘，海報同口徑）；每段下面嘅中文係**對照翻譯**，俾隊員理解內容＋present 前溫稿用，唔使貼上海報。英文全部係 finished copy，直接 copy-paste。
 
-**② SOLUTION（細格右上）— S4**
-- **標題**：一個閉環，唔係三件事 / One loop, not three features
-- **主視覺**：**圓環圖**（本格靈魂，3 米外要認得）：`Detect 偵測 → See 睇到(船) → Cue 介入(呼吸) → Measure 量化` 四節點首尾相連。
-- **文字（可抄）**：即時偵測你嘅專注 → 用一隻船畀你「睇到」自己狀態 → 分心太耐用呼吸提示（連提示音）拉你返 → 完場量化進步。**訊號可以係 EEG／相機／模擬——閉環唔變。**
-- **排版**：圓環圖佔本格 ⅔，文字兩句喺底。
+---
 
-**③ THREE SESSION GOALS（細格左中）— S5**
-- **標題**：一個閉環，三個入口 / One loop, three entries
-- **文字（可抄，三行）**：
-  - **訓練 Training** — 冇題目，純練維持穩定專注（基本功）。
-  - **挑戰 Challenge** — 加 Stroop／邏輯題，壓力下維持專注（貼近考試）。
-  - **學習 Study** — 真溫習場景，讀教材考卷順便量專注。
-  - 收尾大字：**學習模式一個模式已經行晒成個閉環——所以用佢示範。**
-- **細圖**：三張細截圖（訓練海洋＋能量環／挑戰題目卡／學習閱讀器），每張一個 chip 標模式名。
+**① THE PROBLEMS（細格左上）— 抄 S2＋S3**
 
-**④ TECHNICAL（細格右中）— Q&A / Part 7（PPT 冇專頁）**
-- **標題**：點樣做到 / How it works
-- **主視覺**：**五-icon 架構線**：`MindWave 頭帶 → Python bridge → WebSocket → 瀏覽器 3D (Three.js) → 雲端 (Vercel＋Supabase)`。
-- **文字（可抄）**：三層輸入 —— **EEG 腦電／相機臉部偵測（本地處理・不上傳）／模擬曲線**；帳戶同進度存 Supabase，**數據只屬於你**。
-- **細圖**：架構箭嘴圖 ＋ 一張**真人戴頭帶**相（令「真 EEG」睇得到）。
+*EN（落版）：*
+> **The Problems — Attention Is Fragmenting**
+> **47 seconds** — the average time we now sustain attention on one screen, down from 2.5 minutes in 2004 (Mark et al., UC Irvine).
+> **23 min 15 s** — the average time to fully return to a task after a single interruption.
+> *Being told to "just focus" doesn't help — it never tells you **when** you drifted, and by the time you notice, it is already too late.*
 
-**⑤ HERO 大格 — S6＋S7（海報主角・圖為主）**
-- **標題**：學習模式：由閱讀到報告 / Study Mode — the full loop
-- **主視覺**：**三張大截圖橫向排**，中間用箭嘴串起：
-  1. **閱讀器**（caption：讀嘅時候，專注全程被量度）
-  2. **測驗階段·船返場**（caption：一分心，隻船即刻失速）
-  3. **Study Results**（caption：溫習 vs 答題分開量，仲有分心恢復時間）
-- **旁邊孖圖**：**晴天(專心) ↔ 起霧(分心)** 天氣共感對比——唔識字都睇得明。
-- **排版**：本格最大、最搶，截圖闊度 ≥15cm；三步之間箭嘴要明顯。
+*中文對照：*
+> **問題——注意力正在碎片化**：47 秒——而家人喺單一螢幕上嘅平均持續專注時間（2004 年係 2.5 分鐘）；23 分 15 秒——每次被打斷後平均要咁耐先完全返到原本任務。叫人「專心啲」冇用——佢唔會話你知你**幾時**走咗神，發現嗰陣已經太遲。
 
-**⑥ EVIDENCE & FUTURE 闊格 — S8＋S9**
-- **標題**：證據與誠實 / Evidence & honesty
-- **左｜實驗設計小流程**：**紙本組 vs 平台組 → 同教材同卷 → 比較測驗成績＋溫習專注數據**。
-- **中｜證據截圖**：Results **跨場趨勢圖**（圈住「恢復時間↓」——越練越快＝訓練有效嘅硬證據）。
-- **右｜誠實框**：機制有文獻根據 ✓／pilot n≈2–3／長期成效待大樣本驗證；下面**未來三點**：真 EEG 旗艦體驗 · 多 sensor（眼動／HRV） · 同學校做大樣本研究。
-- **排版**：三欄平均分，誠實框用淺色底框住，令評判行埋嚟都覺得你嚴謹。
+- **主視覺**：兩個超大數字 47 s／23 min（1 米外一眼睇到）；細圖用 S2 嗰條 2004→2024 落跌線。
+- **排版**：數字大、解說細；底部一行斜體 gap 金句。
+
+---
+
+**② OUR SOLUTION（細格右上）— 抄 S4**
+
+*EN（落版）：*
+> **Our Solution — One Loop, Not Three Features**
+> NeuroFocus closes the loop in real time: **Detect** your focus → **See** it as a sailing boat → **Cue** a guided breathing exercise (with an audio alert) the moment you drift → **Measure** your progress after every session.
+> *The signal can come from an EEG headset, a webcam, or a built-in simulation — the loop never changes.*
+
+*中文對照：*
+> **我哋嘅方案——一個閉環，唔係三件事**：NeuroFocus 實時閉環——**偵測**你嘅專注 → 用一隻帆船畀你**睇到**自己狀態 → 一分心就**介入**（呼吸引導＋提示音）→ 每場完結**量化**你嘅進步。訊號可以嚟自 EEG 頭帶、webcam 或內置模擬——閉環永遠不變。
+
+- **主視覺**：圓環圖 `Detect → See → Cue → Measure` 首尾相連（本格靈魂，3 米外要認得），佔本格 ⅔。
+
+---
+
+**③ THREE SESSION GOALS（細格左中）— 抄 S5**
+
+*EN（落版）：*
+> **Three Session Goals — One Loop, Three Entries**
+> **🧘 Training** — no questions; build stable focus fundamentals and establish your baseline.
+> **⚡ Challenge** — Stroop and logic questions under time stress; sustain focus in exam-like conditions.
+> **📚 Study** — a real revision session: read the material, take the vetted quiz, with focus measured throughout.
+> ***Study Mode runs the complete loop in one authentic session — that is why it is our primary demo.***
+
+*中文對照：*
+> **三個 Session 目標——一個閉環，三個入口**：訓練模式——冇題目，純練穩定專注、建立個人基線；挑戰模式——Stroop／邏輯題加時間壓力，喺類似考試環境下維持專注；學習模式——真溫習場景：讀教材、考審核卷，全程量度專注。**學習模式一個模式行晒成個閉環——所以係我哋嘅主示範。**
+
+- **細圖**：三張細截圖（訓練海洋＋能量環／挑戰題目卡／學習閱讀器），每張加模式名 chip。
+
+---
+
+**④ TECHNICAL（細格右中）— 用 Claude 出嗰張架構 PNG**
+
+*EN（落版）：*
+> **Technical — How It Works**
+> Three interchangeable signal inputs — **EEG headset** (NeuroSky MindWave, via a local Python bridge), **webcam** (MediaPipe face tracking, processed entirely on-device — video is never uploaded), and a **built-in simulation profile** — all feed one real-time focus engine rendered as a 3D ocean (Three.js/WebGL) in the browser.
+> Cloud: **Vercel** hosts the site and proxies AI question generation (the API key never reaches the browser); **Supabase** stores accounts and session history with row-level security — *each user can only read their own data.*
+
+*中文對照：*
+> **技術——點樣做到**：三層可互換訊號輸入——EEG 頭帶（NeuroSky MindWave，經本地 Python bridge）、webcam（MediaPipe 臉部追蹤，全程本地處理、影像永不上傳）、內置模擬曲線——全部餵入同一個實時專注引擎，喺瀏覽器用 Three.js/WebGL 畫成 3D 海洋。雲端：Vercel 寄存網站＋代理 AI 出題（API key 永不落瀏覽器）；Supabase 存帳戶同場次歷史，行 row-level security——每個用戶只讀到自己嘅數據。
+
+- **主視覺**：直接放 **Claude 出嗰張 System Architecture PNG**（全英文、poster 米白色系、7080px 闊）；有位再加一張真人戴頭帶相。
+
+---
+
+**⑤ HERO 大格 — 抄 S6＋S7（海報主角・圖為主）**
+
+*EN（落版）：*
+> **Study Mode — From Reading to Report**
+> Screenshot captions（每張截圖配一句）:
+> 1. Reader — *"Focus is measured continuously while you read."*
+> 2. Quiz (boat returns) — *"The moment attention breaks, the boat stalls."*
+> 3. Study Results — *"Reading and quiz measured separately — plus your distraction-recovery time and cross-session trend."*
+> Weather pair — *"Focused = clear skies · Distracted = fog rolls in. Focus made visible — no reading required."*
+
+*中文對照：*
+> **學習模式——由閱讀到報告**。截圖 caption：① 閱讀器——「閱讀時專注全程被量度」；② 測驗（船返場）——「一分心，隻船即刻失速」；③ Study Results——「溫習同答題分開量，仲有分心恢復時間＋跨場趨勢」。天氣孖圖——「專心＝晴天・分心＝起霧。專注睇得見——唔識字都明」。
+
+- **排版**：本格最大最搶；三張大截圖橫排、箭嘴串連，闊度 ≥15cm；天氣孖圖放側邊。
+
+---
+
+**⑥ EVIDENCE & FUTURE 闊格 — 抄 S8＋S9**
+
+*EN（落版）：*
+> **Evidence & Honesty**
+> **Controlled pilot:** paper group vs. platform group — same material, same vetted quiz — comparing test scores *and* focus data recorded during revision.
+> **Grounded mechanisms:** real-time feedback builds self-awareness; paced box breathing lowers excess arousal; repeated practice trains recovery (neuroplasticity).
+> **Honest limits:** this is a small-sample pilot (n ≈ 2–3). Long-term efficacy requires larger studies — we keep a clear line between "done" and "to be proven".
+> **What's next:** full EEG closed-loop as the flagship experience · multi-sensor fusion (eye-tracking, HRV) · large-sample school studies.
+
+*中文對照：*
+> **證據與誠實**：對照 pilot——紙本組 vs 平台組，同教材同審核卷，比較測驗成績**同**溫習過程專注數據；機制有文獻根據——即時回饋建立自我覺察、規律呼吸降低過度喚醒、重複練習訓練恢復力（神經可塑性）；誠實講——細樣本 pilot（n≈2–3），長期成效要更大研究——我哋分得清「已做到」同「仲要證實」；下一步——真 EEG 閉環旗艦體驗、多 sensor 融合（眼動／HRV）、學校大樣本研究。
+
+- **排版**：三欄——左實驗流程、中跨場趨勢截圖（圈住「恢復時間↓」）、右誠實框＋未來三點；誠實框用淺色底框住。
+
+---
+
+**頁首 Overview（EN 落版・已修文法）**
+> *NeuroFocus turns focus — normally invisible and willpower-dependent — into a skill you can **see, train and measure**.*
+> （中文對照：將專注力——一樣平時睇唔到、齋靠意志力頂嘅嘢——變成睇得到、練得到、量得到嘅技能。）
+> QR 旁字句建議：**"Demo build — try it live at our booth!"**（中文對照：示範版本——歡迎嚟攤位即場試玩。）
 
 **References ＋ Acknowledgements（海報底部同 PPT 尾頁通用）**
 

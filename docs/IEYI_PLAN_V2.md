@@ -82,6 +82,11 @@
 > ㊻ **PPT 覆審（第二版）**：上輪 5 個要修位**全部已改**（S2 Average 殘留冇咗＋來源完整、S5 移走 simulated distractions、S8 Gloria Mark 抽走＋草稿句修好）。PPT 主體收貨。餘下細位（唔急）：S4 閉環圖 Detect 淨寫 webcam（建議加返「EEG／相機／模擬」）、S1 中文「的技能」書面 vs 全 deck 口語、S9 英文雙空格。
 > ㊼ **References 整合**：隊員交咗 18 條學術 refs（6 類：ADHD 注意力訓練／EEG neurofeedback／Box Breathing／遊戲化／相機隱私 HCI／前後測實驗設計，存 refs docx）＋ Claude 提供嘅 S2 數據來源＋技術 attribution → 併成**海報底部 References 區＋PPT 尾頁**建議（curated，唔全塞）。內容見手冊 6.6 References 段。
 > ㊽ **海報 6.6 深化（Steven 07-18）**：References 段**改晒全英文**（直接落版用）＋致謝改「study material prepared by our team」（教材由隊員提供）＋刪走提醒句；構圖用返原本 ASCII 但**加密每格內容**＋補「3 米→1 米→埋身」閱讀動線文句；每格由表格改成**逐格 copy-ready 詳細規格**（標題／主視覺／可抄文字／排版）。純文件改動。
+>
+> **2026-07-20 第十二輪（Steven：poster 全英文＋架構圖＋PPT 三審）**：
+> ㊾ **語言拍板**：presentation 英文講 3 分鐘 → **poster 落版全英文**；手冊 6.6 每格重寫成**正式中英對照**（EN 係 finished copy 直接落版；中文對照俾隊員理解＋備稿，唔上海報）。格名對齊隊員最新 template（The Problems／Our Solution／Three Session Goals／Technical）。
+> ㊿ **技術架構圖**：手冊 Part 3 mermaid 重寫成**全英文詳細版**（三層輸入／瀏覽器 focus engine／雲端，privacy 標註齊）；另出咗一張 **7080×3720 高清 PNG**（poster 米白色系、全英文）直接落 poster ④ Technical 格——poster 唔使 crop GitHub render。純文件改動（冇郁 app code，唔使 bump 版本）。
+> 51 **PPT 三審**：冇新問題；隊員仲未執嘅 4 個細位——S7 **Results 截圖仲未貼**（有現成相）、S4 Detect 淨寫 webcam（EEG 冇提）、S9 "sustained  growth" 雙空格、S2 X 軸「2004年」中文「年」字（英文 deck 建議拎走）。
 
 ---
 
