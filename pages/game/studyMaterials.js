@@ -1,14 +1,14 @@
 // Study Mode reading materials (D3).
 //
-// Subject: Biology — "Cell Membrane & Transport". Content is the teacher-
-// provided material (2026-07-16), digitised into note-style bilingual pages
-// plus reviewed multiple-choice papers.
+// Subject: Biology — "Cell Membrane & Transport". Content is authored by our
+// team (2026-07-16), written as note-style bilingual pages plus a fixed
+// multiple-choice paper.
 //   - foundation = 材料一 (AB groups), junior-secondary depth, 4 sub-topics.
 //   - advanced   = 材料二 (CD groups), senior-secondary depth, deeper, with an
 //     extra synthesis section added for a bit more challenge.
 // Each material's first page is an overview ("what this lesson covers"); the
-// preset quiz has 10 reviewed MCQs (the teacher paper's 8, plus 2 written to
-// the same standard to reach 10). All text is bilingual { hk, en }.
+// preset quiz has 10 MCQs, locked as a fixed paper so the paper-vs-platform
+// comparison stays fair. All text is bilingual { hk, en }.
 //
 // Content is authored as structured BLOCKS (never raw HTML), rendered into DOM
 // text nodes so the reader shows clean notes while staying injection-safe.
@@ -24,7 +24,7 @@
 // Quiz shape (matches the game's validated question schema, bilingual):
 //   { question, options: { hk:[4], en:[4] }, answer: 0-3, explanation }
 
-export const STUDY_PAGE_LIMIT_MS = 3 * 60 * 1000; // teacher's cap: 3 min / page
+export const STUDY_PAGE_LIMIT_MS = 3 * 60 * 1000; // cap: 3 min / page
 export const STUDY_PAGE_MIN_MS = 15 * 1000;       // must read >= 15s / page
 
 const BIOLOGY_FOUNDATION = {

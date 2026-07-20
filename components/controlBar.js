@@ -1,6 +1,6 @@
 import { getState, setState } from '../app/state.js';
 import { setLang as persistLang, setTheme as persistTheme } from '../services/storageService.js';
-import { importGameRuntime } from '../services/runtimeLoader.js?v=2026-07-18-3';
+import { importGameRuntime } from '../services/runtimeLoader.js?v=2026-07-20-1';
 
 function applyTheme(theme) {
     document.body.classList.toggle('light-mode', theme === 'light');

@@ -87,6 +87,11 @@
 > ㊾ **語言拍板**：presentation 英文講 3 分鐘 → **poster 落版全英文**；手冊 6.6 每格重寫成**正式中英對照**（EN 係 finished copy 直接落版；中文對照俾隊員理解＋備稿，唔上海報）。格名對齊隊員最新 template（The Problems／Our Solution／Three Session Goals／Technical）。
 > ㊿ **技術架構圖**：手冊 Part 3 mermaid 重寫成**全英文詳細版**（三層輸入／瀏覽器 focus engine／雲端，privacy 標註齊）；另出咗一張 **7080×3720 高清 PNG**（poster 米白色系、全英文）直接落 poster ④ Technical 格——poster 唔使 crop GitHub render。純文件改動（冇郁 app code，唔使 bump 版本）。
 > 51 **PPT 三審**：冇新問題；隊員仲未執嘅 4 個細位——S7 **Results 截圖仲未貼**（有現成相）、S4 Detect 淨寫 webcam（EEG 冇提）、S9 "sustained  growth" 雙空格、S2 X 軸「2004年」中文「年」字（英文 deck 建議拎走）。
+>
+> **2026-07-20 第十三輪（Steven：刪 PPT 大綱＋教材 provenance 統一）**：
+> 52 **刪 PPT 逐頁大綱**：PPT 已喺 Canva 完成，手冊 6.3 嘅 9 頁逐頁大綱＋Canva prompt 已移除（留 S1–S9 頁序 breadcrumb 俾 6.4 講稿對照），dangling 連結全修（Part 6 intro／Part 10 checklist／本表）。
+> 53 **教材 provenance 統一＝隊員（Steven 揀 B）**：原本手冊「老師提供教材／老師審核卷／teacher-vetted quiz」同致謝「prepared by our team」自相矛盾——評判追問「份卷邊個整」會穿。全部統一成**隊員編寫**：S5／S8 講稿（中英）、poster S5／S8、Q&A、Pros #5、Part 2、檔案表、`studyMaterials.js` 註解共 ~16 處改晒；「審核卷」→「固定測驗卷」（保留鎖卷＝實驗公平嘅理由）。**特登保留**：老師=市場客戶（學校／老師／家長）、Pros #1 老師讚**課題**貼身（唔關教材事）、內部答辯策略筆記。全 repo syntax／i18n（205=205）／版本號（07-20-1）核對通過。
+> ⚠️ **plan §5 D3 內部歷史仍寫「老師提供教材／老師要求對照實驗」**——係專案歷史記錄（非評判可見），冇改；如要連內部都統一，話我知。
 
 ---
 
