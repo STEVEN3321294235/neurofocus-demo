@@ -9,7 +9,7 @@ import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { SMAAPass } from 'three/addons/postprocessing/SMAAPass.js';
 import { setState, getState } from '../../app/state.js';
-import { getCameraFocusScore, getCameraTrackingStatus, stopCameraPreview } from '../../services/focusInputService.js?v=2026-07-25-3';
+import { getCameraFocusScore, getCameraTrackingStatus, stopCameraPreview } from '../../services/focusInputService.js?v=2026-07-25-4';
 import { appendSessionSummary, getSessionHistory, getLocalVoyageLog, appendVoyageLog, getCumulativeCloudDistance, appendStudyHistory, getStudyHistory } from '../../services/storageService.js';
 import { initVoyage, resetVoyage, updateVoyage, getVoyageStats, getBuoysInWindow, routeXAt, routeYawAt, CHECKPOINT_SPACING, setVoyageVisible } from './voyage.js';
 import { getStudyMaterial, STUDY_PAGE_LIMIT_MS, STUDY_PAGE_MIN_MS } from './studyMaterials.js';
@@ -7052,7 +7052,14 @@ function animate() {
                         //   hasUsableSignal - is the reading worth scoring?
                         //                     (decides whether the clock runs)
                         const linkAlive = attention >= 0 && attention <= 100;
-                        const hasUsableSignal = linkAlive && signal >= EEG_MIN_USABLE_SIGNAL;
+                        // eSense is documented as 1-100; 0 is the "could not be
+                        // calculated" sentinel, which the headset emits while it
+                        // is still building a baseline or when the ear-clip
+                        // reference is not making contact. Scoring it as a real
+                        // 0 kept the clock running and banked the whole warm-up
+                        // as distraction.
+                        const hasAttentionReading = attention > 0;
+                        const hasUsableSignal = linkAlive && signal >= EEG_MIN_USABLE_SIGNAL && hasAttentionReading;
 
                         latestEEG = { attention, meditation, signal };
                         renderSignalChip();
@@ -7075,11 +7082,22 @@ function animate() {
                         } else {
                             smoothedAttention = null;
                             updateFocusFromEEG(0);
-                            setEEGConnectionState('warning', langText(
-                                `訊號太弱（${Math.round(signal)}%），計時已暫停。請調整額頭感測器同耳夾。`,
-                                `Signal too weak (${Math.round(signal)}%) — the timer is paused. Adjust the forehead sensor and ear clip.`
-                            ));
-                            updateConnectBtn(`Poor Signal (${Math.round(signal)}%)`, false, true);
+                            // Good contact but no eSense yet is a different
+                            // problem from bad contact, and needs different
+                            // advice: wait vs adjust the headset.
+                            if (linkAlive && signal >= EEG_MIN_USABLE_SIGNAL) {
+                                setEEGConnectionState('warning', langText(
+                                    `訊號 ${Math.round(signal)}%，但頭帶仲未計到專注值——保持接觸幾秒，計時暫停中。如果一直係 0，請檢查耳夾有冇夾實耳垂。`,
+                                    `Signal ${Math.round(signal)}%, but the headset has no attention reading yet — hold still for a few seconds; the timer is paused. If it stays at 0, check that the ear clip is gripping the earlobe.`
+                                ));
+                                updateConnectBtn(`Waiting for reading (${Math.round(signal)}%)`, false, true);
+                            } else {
+                                setEEGConnectionState('warning', langText(
+                                    `訊號太弱（${Math.round(signal)}%），計時已暫停。請調整額頭感測器同耳夾。`,
+                                    `Signal too weak (${Math.round(signal)}%) — the timer is paused. Adjust the forehead sensor and ear clip.`
+                                ));
+                                updateConnectBtn(`Poor Signal (${Math.round(signal)}%)`, false, true);
+                            }
                         }
 
                         updateDebugOverlay({

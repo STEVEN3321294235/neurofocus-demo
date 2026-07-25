@@ -1,8 +1,8 @@
 import { getState, resetFlowState, setState } from '../../app/state.js';
-import { t } from '../../app/i18n.js?v=2026-07-25-3';
+import { t } from '../../app/i18n.js?v=2026-07-25-4';
 import { logout } from '../../services/authService.js';
-import { disposeMode, syncRuntimeState } from '../../services/eegBridgeService.js?v=2026-07-25-3';
-import { importGameRuntime } from '../../services/runtimeLoader.js?v=2026-07-25-3';
+import { disposeMode, syncRuntimeState } from '../../services/eegBridgeService.js?v=2026-07-25-4';
+import { importGameRuntime } from '../../services/runtimeLoader.js?v=2026-07-25-4';
 
 async function getRuntime() {
     return importGameRuntime('/pages/game/runtime.js');
