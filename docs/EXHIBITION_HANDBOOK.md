@@ -678,6 +678,16 @@ Windows laptop 做現場 demo 機：本地 Python EEG bridge + 本地站 `http:/
 - **已套用修法**：加 `html[data-platform="windows"]` flag，Windows 首頁**關掉** blur filter、hover 放大、重 image filter、連續浮動/雷達動畫;遊戲有 performance profile（降 DPR / 陰影 / 後製 / 粒子）。
 - **已完成（P1，2026-07-11）**：動態畫質 scaling 已上線——FPS 跌自動逐級降質（L0→L3）、回穩再升；遊戲內 ⚙ 設定面板可以手動鎖級／較音量／全螢幕。FPS meter（`DEMO_MODE` 後面）會顯示現行等級。弱機到攤位直接較「低/最低」仲順便慳電（Part 11 電量策略）。
 
+### 🔴 「配對到但攞唔到數據」——已修（2026-07-25）
+- **根因**：Windows 配對 MindWave 會開**兩個 COM port**（outgoing／incoming），只有一個會出數據。舊 bridge 一開得到 port 就當成功、**永遠等落去**，仲彈「Check power and sensor contact」，令人以為係電池／額頭接觸問題——其實只係揀錯 port，而且佢**永遠唔會試另一個**。
+- **修法**：一個 port 開咗但 **12 秒內冇有效封包**，就當佢係錯 port，自動跳去下一個；「檢查電池／接觸」呢句而家只會喺**已經收過真數據之後**先出現，唔會再誤導。
+- **仍然唔通嘅逃生門**：開 bridge 前指定 port（裝置管理員 → 連接埠 睇「Outgoing」嗰個）：
+  ```bat
+  set NEUROFOCUS_EEG_PORT=COM5
+  start_eeg_bridge_windows.bat
+  ```
+- **睇 bridge 視窗嘅字判斷**：`MindWave serial connected: COMx` → 之後見到 `No EEG data … trying the next port.` ＝ 正常換 port 中；見到持續有數據就係搞掂。
+
 ### 緊急清單
 新 AAA 電池、清潔額頭 sensor 接觸、重開 `start_2a_demo_windows.bat`、bridge 失敗即用 Simulation。
 

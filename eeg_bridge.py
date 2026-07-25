@@ -14,6 +14,18 @@ BAUD_RATE = 57600
 PORT_RETRY_SECONDS = 3
 NO_DATA_WARN_SECONDS = 5
 
+# Pairing a MindWave on Windows creates TWO COM ports (an outgoing and an
+# incoming one) and only the outgoing one ever streams. Opening the wrong one
+# SUCCEEDS and then stays silent forever, which used to look exactly like a flat
+# battery or bad sensor contact. So a port that produces no valid packet within
+# this window is treated as the wrong port and the scan moves on to the next
+# candidate instead of waiting there.
+NO_DATA_PORT_TIMEOUT_SECONDS = 12
+
+# Escape hatch when the scan still guesses wrong: set the port explicitly, e.g.
+#   set NEUROFOCUS_EEG_PORT=COM5   (Windows)   before launching the bridge.
+FORCED_PORT = (os.environ.get("NEUROFOCUS_EEG_PORT") or "").strip()
+
 
 class EEGBridge:
     def __init__(self):
@@ -150,7 +162,9 @@ class EEGBridge:
         self.last_data_time = 0
 
     def get_candidate_ports(self):
-        preferred = []
+        # An explicitly configured port always wins, but the scanned ports are
+        # kept behind it so a wrong override still falls back instead of hanging.
+        preferred = [FORCED_PORT] if FORCED_PORT else []
         fallback = []
 
         for port in list_ports.comports():
@@ -230,8 +244,21 @@ class EEGBridge:
                     self.serial_conn = serial.Serial(port, BAUD_RATE, timeout=1)
                     self.enqueue_status(f"MindWave serial connected: {port}", force=True)
                     opened = True
-                    self.read_serial_stream()
-                    break
+                    if self.read_serial_stream():
+                        # Real EEG packets arrived: this is the right port.
+                        break
+                    if not self.capture_enabled or not self.running:
+                        break
+                    # Opened fine but never streamed — almost always the paired
+                    # device's other (incoming) COM port. Move on rather than
+                    # sitting here blaming the headset.
+                    self.enqueue_status(
+                        f"No EEG data on {port} after {NO_DATA_PORT_TIMEOUT_SECONDS}s - trying the next port.",
+                        force=True,
+                    )
+                    self.close_serial()
+                    opened = False
+                    continue
                 except Exception as e:
                     err_text = str(e)
                     last_error = (port, err_text)
@@ -266,9 +293,20 @@ class EEGBridge:
         self.current_port = None
 
     def read_serial_stream(self):
+        """Stream from the open port. Returns True once real EEG packets were
+        decoded, or False if the port stayed silent long enough to be judged the
+        wrong one (see NO_DATA_PORT_TIMEOUT_SECONDS) so the caller can try the
+        next candidate."""
         buffer = bytearray()
+        opened_at = time.time()
+        got_data = False
 
         while self.running and self.capture_enabled and self.serial_conn and self.serial_conn.is_open:
+            # Checked every pass, because a wrong port can also emit garbage
+            # bytes that never decode into a valid packet.
+            if not got_data and time.time() - opened_at > NO_DATA_PORT_TIMEOUT_SECONDS:
+                return False
+
             try:
                 chunk = self.serial_conn.read(256)
             except Exception as e:
@@ -278,12 +316,19 @@ class EEGBridge:
                 break
             if chunk:
                 buffer.extend(chunk)
+                before = self.last_data_time
                 self.process_buffer(buffer)
+                if self.last_data_time > before:
+                    got_data = True
             else:
                 now = time.time()
-                if now - self.last_data_time > NO_DATA_WARN_SECONDS and now - self.last_no_data_warning_at > NO_DATA_WARN_SECONDS:
+                if got_data and now - self.last_data_time > NO_DATA_WARN_SECONDS and now - self.last_no_data_warning_at > NO_DATA_WARN_SECONDS:
+                    # Only meaningful once the port has proven itself: now a
+                    # silence really is power / sensor contact.
                     self.last_no_data_warning_at = now
                     self.enqueue_status("MindWave connected but no EEG data yet. Check power and sensor contact.")
+
+        return got_data
 
     def process_buffer(self, buffer):
         while len(buffer) >= 4:
