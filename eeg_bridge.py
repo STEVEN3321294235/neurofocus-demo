@@ -162,9 +162,17 @@ class EEGBridge:
         self.last_data_time = 0
 
     def get_candidate_ports(self):
-        # An explicitly configured port always wins, but the scanned ports are
-        # kept behind it so a wrong override still falls back instead of hanging.
-        preferred = [FORCED_PORT] if FORCED_PORT else []
+        # An explicit override is used EXCLUSIVELY and retried patiently. The
+        # MindWave's own outgoing port often refuses to open for a while (the
+        # Bluetooth link is established at open time, so a headset that is off,
+        # asleep or low on battery surfaces as WinError 121 "semaphore timeout"
+        # or 233 "no process on the other end"). Rotating away from it in that
+        # window only thrashes the Bluetooth stack, so once the operator names
+        # the port we keep knocking on that door.
+        if FORCED_PORT:
+            return [FORCED_PORT]
+
+        preferred = []
         fallback = []
 
         for port in list_ports.comports():
