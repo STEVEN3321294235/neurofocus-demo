@@ -9,7 +9,7 @@ import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { SMAAPass } from 'three/addons/postprocessing/SMAAPass.js';
 import { setState, getState } from '../../app/state.js';
-import { getCameraFocusScore, getCameraTrackingStatus, stopCameraPreview } from '../../services/focusInputService.js?v=2026-07-25-1';
+import { getCameraFocusScore, getCameraTrackingStatus, stopCameraPreview } from '../../services/focusInputService.js?v=2026-07-25-2';
 import { appendSessionSummary, getSessionHistory, getLocalVoyageLog, appendVoyageLog, getCumulativeCloudDistance, appendStudyHistory, getStudyHistory } from '../../services/storageService.js';
 import { initVoyage, resetVoyage, updateVoyage, getVoyageStats, getBuoysInWindow, routeXAt, routeYawAt, CHECKPOINT_SPACING, setVoyageVisible } from './voyage.js';
 import { getStudyMaterial, STUDY_PAGE_LIMIT_MS, STUDY_PAGE_MIN_MS } from './studyMaterials.js';
@@ -43,6 +43,18 @@ const DEMO_MODE = (() => {
 })();
 const MEDITATION_FLOW_THRESHOLD = 50;
 
+// Below this signal quality (bridge scale: 100 = perfect, 0 = off the head)
+// the headset's attention output is noise, so the session is treated as having
+// no input: focus reads 0 and the timer pauses rather than silently recording a
+// "distracted" stretch that was really a slipped sensor.
+const EEG_MIN_USABLE_SIGNAL = 30;
+
+// eSense attention arrives once a second and jitters by several points even
+// when the wearer is steady. A light exponential smoothing keeps the boat and
+// the breathing trigger responsive without reacting to single-sample noise.
+const EEG_SMOOTHING = 0.4;
+let smoothedAttention = null;
+
 // Latest live EEG channels (Real EEG mode only). meditation/signal stay null
 // in Simulation/camera modes so nothing is ever faked.
 let latestEEG = { attention: 0, meditation: null, signal: null };
@@ -68,13 +80,16 @@ function renderSignalChip() {
     }
     chip.style.display = '';
     const s = latestEEG.signal;
-    // MindWave signal_quality: 0 = perfect contact, 100+ = no contact.
-    let label = langText('訊號良好', 'Good signal');
-    let cls = 'sig-good';
-    if (s >= 50) { label = langText('冇接觸', 'No contact'); cls = 'sig-bad'; }
-    else if (s >= 20) { label = langText('訊號弱', 'Weak signal'); cls = 'sig-weak'; }
+    // eeg_bridge.py already converts ThinkGear's POOR_SIGNAL byte into a
+    // quality percentage: 100 = perfect contact, 0 = nothing on the head.
+    // This chip used to read it the other way round, so a headset sitting on
+    // the table (0%) proudly reported "Good signal".
+    let label = langText('冇接觸', 'No contact');
+    let cls = 'sig-bad';
+    if (s >= 70) { label = langText('訊號良好', 'Good signal'); cls = 'sig-good'; }
+    else if (s >= EEG_MIN_USABLE_SIGNAL) { label = langText('訊號弱', 'Weak signal'); cls = 'sig-weak'; }
     if (chip.className !== `eeg-signal-chip ${cls}`) chip.className = `eeg-signal-chip ${cls}`;
-    chip.textContent = `📶 ${label}`;
+    chip.textContent = `📶 ${label} ${Math.round(s)}%`;
 }
 
 // Live meditation readout inside the breathing overlay (Real EEG mode only) —
@@ -305,6 +320,8 @@ let lastSessionSummary = null;
 // memory (i.e. after a refresh), rehydrate from that snapshot and repaint the
 // last real session instead of zeros.
 const LAST_SESSION_SNAPSHOT_KEY = 'last_session_snapshot_v1';
+// Marks a machine where Real EEG has been confirmed working (the booth laptop).
+const EEG_STATION_KEY = 'nf_eeg_station';
 // True once a real game session has run in THIS module instance. Never set by
 // snapshot rehydration, so it cleanly distinguishes "live finish" from
 // "refreshed into results".
@@ -1091,9 +1108,28 @@ const DEFAULT_FOCUS_TRAINING = {
     boostDurationMs: 5000
 };
 
+// Real-EEG thresholds. The defaults above are tuned to the simulation/camera
+// focus curve, which sits much higher than a headset's eSense attention:
+// NeuroSky documents 40-60 as NEUTRAL, 20-40 as reduced and 60+ as elevated.
+// Judging a real wearer against a 50 "stable" bar therefore marked ordinary
+// neutral attention as drifting and fired the breathing cue almost constantly.
+// These bands follow NeuroSky's own scale instead.
+const EEG_FOCUS_TRAINING = {
+    stableThreshold: 40,    // holding neutral attention or better = on task
+    lowThreshold: 30,       // into the "reduced attention" band = really drifting
+    recoveryThreshold: 45
+};
+
 // Per-session copy: adaptive personalization reassigns this at session start;
 // the shared defaults above are never mutated.
 let FOCUS_TRAINING = { ...DEFAULT_FOCUS_TRAINING };
+
+// Base profile for this session's input source (EEG reads on a different scale).
+function baseFocusTraining() {
+    return selectedInputMode === 'eeg'
+        ? { ...DEFAULT_FOCUS_TRAINING, ...EEG_FOCUS_TRAINING }
+        : { ...DEFAULT_FOCUS_TRAINING };
+}
 
 // --- Flow charge (training mode's countable win) ---
 // Hold focus at/above the personal stable threshold and the ring charges; a
@@ -1287,7 +1323,8 @@ function updateGoldenMoment(deltaMs) {
 // Fewer than 3 past sessions -> pure defaults (first-timers never face a
 // harder bar).
 async function resolveAdaptiveFocusTraining() {
-    FOCUS_TRAINING = { ...DEFAULT_FOCUS_TRAINING };
+    const base = baseFocusTraining();
+    FOCUS_TRAINING = { ...base };
     try {
         const history = await getSessionHistory(5);
         if (!Array.isArray(history) || history.length < 3) {
@@ -1298,14 +1335,16 @@ async function resolveAdaptiveFocusTraining() {
         const avgFocusedRatio = avg(history.map((s) => Math.max(0, Math.min(100, s.focusedRatio || 0))));
         const avgRecoveryMs = avg(history.map((s) => Math.max(0, s.avgRecoveryMs || 0)));
 
+        // Personalisation nudges the session's own base upward; it must not drag
+        // an EEG session back onto the simulation scale.
         const recoveryThreshold = Math.round(
-            Math.min(65, Math.max(55, 55 + (avgFocusedRatio - 50) * 0.2))
+            Math.min(base.recoveryThreshold + 10, Math.max(base.recoveryThreshold, base.recoveryThreshold + (avgFocusedRatio - 50) * 0.2))
         );
         const triggerDurationMs = Math.round(
             Math.min(5000, Math.max(3500, 3500 + avgRecoveryMs * 0.15))
         );
 
-        FOCUS_TRAINING = { ...DEFAULT_FOCUS_TRAINING, recoveryThreshold, triggerDurationMs };
+        FOCUS_TRAINING = { ...base, recoveryThreshold, triggerDurationMs };
         console.info('[Adaptive] Personalized thresholds for this session:', {
             sessions: history.length,
             avgFocusedRatio: Math.round(avgFocusedRatio * 10) / 10,
@@ -2222,6 +2261,9 @@ let hasLiveEEGData = false;
 let connectionWatchdogInterval = null;
 let bridgeReconnectTimeoutId = null;
 let lastEEGDataTime = 0;
+// Last packet that carried a USABLE signal — this, not raw packet arrival, is
+// what keeps the session clock running in EEG mode.
+let lastValidEEGDataTime = 0;
 let bridgeReconnectAttempts = 0;
 let suppressBridgeAutoReconnect = false;
 const MAX_BRIDGE_RECONNECT_ATTEMPTS = 12;
@@ -2462,9 +2504,12 @@ function updateGameLogic(delta) {
     // Condition 2b: in-game settings panel is open
     if (settingsPauseActive) shouldPause = true;
 
-    // Condition 3: EEG data missing in EEG mode
+    // Condition 3: no USABLE EEG in EEG mode. Packets alone are not enough —
+    // a headset that has slipped off keeps streaming attention 0 at signal 0,
+    // which used to let the timer run and bank the whole stretch as
+    // "distracted". Only a reading with usable signal quality keeps time.
     if (selectedInputMode === 'eeg' && typeof eegModeActive !== 'undefined' && eegModeActive) {
-        if (Date.now() - lastEEGDataTime > 2000) {
+        if (Date.now() - lastValidEEGDataTime > 2000) {
             shouldPause = true;
         }
     }
@@ -3802,6 +3847,8 @@ function resetFocusTelemetry(usePlaceholder = false) {
         boatSpeed = 0;
         isHeadsetConnected = false;
         hasLiveEEGData = false;
+        smoothedAttention = null;
+        lastValidEEGDataTime = 0;
         trainingAnalytics.promptActive = false;
         trainingAnalytics.interventionActive = false;
         trainingAnalytics.boostActive = false;
@@ -6993,7 +7040,10 @@ function animate() {
                         const attention = Number(msg.attention || 0);
                         const meditation = Number(msg.meditation || 0);
                         const signal = Number(msg.signal_quality ?? 0);
-                        const hasValidSignal = signal > 0 && attention >= 0 && attention <= 100;
+                        // A slipped sensor still streams packets, just with a
+                        // useless signal quality — treat that as "no input"
+                        // rather than as a genuine attention reading of 0.
+                        const hasValidSignal = signal >= EEG_MIN_USABLE_SIGNAL && attention >= 0 && attention <= 100;
 
                         latestEEG = { attention, meditation, signal };
                         renderSignalChip();
@@ -7003,14 +7053,22 @@ function animate() {
                             isHeadsetConnected = true;
                             hasLiveEEGData = true;
                             bridgeReconnectAttempts = 0;
-                            updateFocusFromEEG(attention);
+                            lastValidEEGDataTime = Date.now();
+                            smoothedAttention = smoothedAttention === null
+                                ? attention
+                                : smoothedAttention + EEG_SMOOTHING * (attention - smoothedAttention);
+                            updateFocusFromEEG(smoothedAttention);
                             setEEGConnectionState('streaming', `Live MindWave data received. Signal ${signal.toFixed(0)}%, attention ${attention}, meditation ${meditation}.`);
                             updateConnectBtn(`EEG Ready (${signal}%)`, false, true);
                         } else {
                             isHeadsetConnected = false;
                             hasLiveEEGData = false;
+                            smoothedAttention = null;
                             updateFocusFromEEG(0);
-                            setEEGConnectionState('warning', 'Headset connected but signal quality is still too weak. Adjust the sensor and ear clip.');
+                            setEEGConnectionState('warning', langText(
+                                '訊號太弱，計時已暫停。請調整額頭感測器同耳夾。',
+                                'Signal too weak — the timer is paused. Adjust the forehead sensor and ear clip.'
+                            ));
                             updateConnectBtn("Poor Signal", false, true);
                         }
 
@@ -7133,6 +7191,9 @@ function animate() {
             clearTimeout(bridgeReconnectTimeoutId);
             bridgeReconnectTimeoutId = null;
         }
+        // Explicitly unplugging the headset also retires this machine as the
+        // EEG station, so the confirmation dialog comes back next time.
+        clearEegStation();
         suppressBridgeAutoReconnect = true;
         bridgeReconnectAttempts = 0;
         if (bridgeSocket) {
@@ -7602,7 +7663,21 @@ async function activateEEGMode() {
         'streaming',
         langText('真實 EEG 已確認連接，可以開始遊戲。', 'Live EEG confirmed. You can start the game now.')
     );
+    // Remember that this machine is the EEG station. A page refresh or a trip
+    // back to Home wipes the in-memory mode, and at a booth that meant
+    // re-confirming the headset dialog for every single visitor.
+    try { localStorage.setItem(EEG_STATION_KEY, '1'); } catch (e) { /* best-effort */ }
     return { ok: true, reason: 'live' };
+}
+
+// True when Real EEG has already been confirmed working on this machine, so the
+// setup flow can go straight back to the headset instead of asking again.
+function isEegStation() {
+    try { return localStorage.getItem(EEG_STATION_KEY) === '1'; } catch (e) { return false; }
+}
+
+function clearEegStation() {
+    try { localStorage.removeItem(EEG_STATION_KEY); } catch (e) { /* best-effort */ }
 }
 
 function setupLandingPage() {
@@ -7764,6 +7839,8 @@ window.getBoatLoadedPromise = () => boatLoadedPromise;
 
 export {
     activateEEGMode,
+    isEegStation,
+    clearEegStation,
     CONFIG,
     GAME_STATS,
     ROUTER,

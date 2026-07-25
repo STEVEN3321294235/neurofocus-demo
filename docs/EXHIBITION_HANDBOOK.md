@@ -688,6 +688,12 @@ Windows laptop 做現場 demo 機：本地 Python EEG bridge + 本地站 `http:/
   ```
 - **睇 bridge 視窗嘅字判斷**：`MindWave serial connected: COMx` → 之後見到 `No EEG data … trying the next port.` ＝ 正常換 port 中；見到持續有數據就係搞掂。
 
+### 🧠 真 EEG 行為（2026-07-25 首次實機跑通後修正）
+- **訊號 chip 而家準確**：bridge 送出嘅 `signal_quality` 係 **100 = 接觸完美、0 = 冇接觸**，但 HUD 之前讀反咗，所以頭帶放喺枱面（0%）都會寫「訊號良好」。已修，chip 而家顯示 `📶 訊號良好 92%` 咁樣連數字一齊出：**≥70 良好／30–69 弱／<30 冇接觸**。
+- **訊號唔夠就自動暫停計時**：頭帶滑咗一樣會繼續送封包（attention 0、signal 0），舊 code 只檢查「有冇封包」，所以計時照行、嗰段被當成「分心」入數。而家要**有可用訊號**先計時，否則暫停並提示調整感測器。
+- **門檻已按 NeuroSky 官方 eSense 分級調整**：eSense 40–60 = 中性、20–40 = 下降、60+ = 提升。舊門檻（穩定 50／低 45）係跟模擬曲線調嘅，用真頭帶時**中性專注都被判為分心**，呼吸提示不停彈。EEG 模式而家用 **穩定 40／低 30／恢復 45**，另加輕度平滑（eSense 每秒一個值、抖動大）。
+- **攤位免重複確認**：真 EEG 一旦連通，呢部機會記住（`nf_eeg_station`），之後 refresh／返主頁再入都唔會再彈「確認頭帶」對話框。撳「斷開」就會取消記住。
+
 ### 緊急清單
 新 AAA 電池、清潔額頭 sensor 接觸、重開 `start_2a_demo_windows.bat`、bridge 失敗即用 Simulation。
 

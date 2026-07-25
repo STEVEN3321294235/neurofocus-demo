@@ -1,7 +1,7 @@
-import { t } from '../../app/i18n.js?v=2026-07-25-1';
+import { t } from '../../app/i18n.js?v=2026-07-25-2';
 import { getState, setState } from '../../app/state.js';
-import { activateEEGMode, activateSimulationMode, disposeMode, syncRuntimeState } from '../../services/eegBridgeService.js?v=2026-07-25-1';
-import { attachCameraPreview, detachCameraPreview, requestCameraPreview, stopCameraPreview } from '../../services/focusInputService.js?v=2026-07-25-1';
+import { activateEEGMode, activateSimulationMode, disposeMode, isEegStation, syncRuntimeState } from '../../services/eegBridgeService.js?v=2026-07-25-2';
+import { attachCameraPreview, detachCameraPreview, requestCameraPreview, stopCameraPreview } from '../../services/focusInputService.js?v=2026-07-25-2';
 import { resetAllData, deleteAccountData } from '../../services/storageService.js';
 
 // Study Mode is live (D3 complete, 2026-07-16). The card is fully enterable;
@@ -558,7 +558,11 @@ export default {
 
                 try {
                     if (mode === 'eeg') {
-                        const confirmed = window.confirm(t('setup_confirm_eeg'));
+                        // On a machine where the headset has already been
+                        // confirmed working (the booth laptop), skip the
+                        // confirmation: a refresh or a trip back to Home used to
+                        // put this dialog in front of every visitor.
+                        const confirmed = isEegStation() || window.confirm(t('setup_confirm_eeg'));
                         if (!confirmed) {
                             button.disabled = false;
                             return;
