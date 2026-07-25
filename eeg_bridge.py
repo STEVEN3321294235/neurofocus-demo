@@ -1,7 +1,9 @@
 import asyncio
 import json
 import os
+import re
 import socket
+import sys
 import threading
 import time
 
@@ -22,9 +24,22 @@ NO_DATA_WARN_SECONDS = 5
 # candidate instead of waiting there.
 NO_DATA_PORT_TIMEOUT_SECONDS = 12
 
-# Escape hatch when the scan still guesses wrong: set the port explicitly, e.g.
-#   set NEUROFOCUS_EEG_PORT=COM5   (Windows)   before launching the bridge.
-FORCED_PORT = (os.environ.get("NEUROFOCUS_EEG_PORT") or "").strip()
+# Escape hatch when the scan still guesses wrong. Either way works:
+#   start_eeg_bridge_windows.bat COM5      <- simplest, survives double-clicking
+#   set NEUROFOCUS_EEG_PORT=COM5           <- must be the SAME cmd window as the
+#                                             launcher, which is easy to get wrong
+FORCED_PORT = (
+    (sys.argv[1] if len(sys.argv) > 1 else "")
+    or os.environ.get("NEUROFOCUS_EEG_PORT")
+    or ""
+).strip()
+
+# WinError 121 (semaphore timeout) and 233 (no process on the other end of the
+# pipe) when OPENING a port are not "wrong port" errors — they mean Windows did
+# reach a Bluetooth outgoing port and the headset did not answer. That is the
+# strongest hint available about which COM port actually belongs to the MindWave,
+# so the port that produced them is remembered and retried first.
+BT_NOT_ANSWERING = re.compile(r"None,\s*(121|233)\)")
 
 
 class EEGBridge:
@@ -43,6 +58,8 @@ class EEGBridge:
         self.last_status_message = None
         self.last_no_data_warning_at = 0
         self.permission_blocked = False
+        # COM port that answered like a Bluetooth device (WinError 121/233).
+        self.bt_port_hint = None
 
     def log(self, msg):
         ts = time.strftime("%H:%M:%S")
@@ -172,7 +189,9 @@ class EEGBridge:
         if FORCED_PORT:
             return [FORCED_PORT]
 
-        preferred = []
+        # A port that timed out like a Bluetooth device is the best guess we
+        # have; keep retrying it first instead of rediscovering it every cycle.
+        preferred = [self.bt_port_hint] if self.bt_port_hint else []
         fallback = []
 
         for port in list_ports.comports():
@@ -270,6 +289,18 @@ class EEGBridge:
                 except Exception as e:
                     err_text = str(e)
                     last_error = (port, err_text)
+                    if BT_NOT_ANSWERING.search(err_text):
+                        # Found the headset's port; the headset just is not
+                        # answering. Say so plainly — this used to read like a
+                        # generic serial failure and sent us port-hunting.
+                        self.bt_port_hint = port
+                        self.enqueue_status(
+                            f"{port} is the MindWave's Bluetooth port but the headset is not answering. "
+                            f"Switch the headset OFF then ON now - the bridge keeps retrying {port}.",
+                            force=True,
+                        )
+                        self.close_serial()
+                        continue
                     if "Operation not permitted" in err_text:
                         self.permission_blocked = True
                         self.capture_enabled = False
