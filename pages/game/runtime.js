@@ -9,7 +9,7 @@ import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { SMAAPass } from 'three/addons/postprocessing/SMAAPass.js';
 import { setState, getState } from '../../app/state.js';
-import { getCameraFocusScore, getCameraTrackingStatus, stopCameraPreview } from '../../services/focusInputService.js?v=2026-07-25-2';
+import { getCameraFocusScore, getCameraTrackingStatus, stopCameraPreview } from '../../services/focusInputService.js?v=2026-07-25-3';
 import { appendSessionSummary, getSessionHistory, getLocalVoyageLog, appendVoyageLog, getCumulativeCloudDistance, appendStudyHistory, getStudyHistory } from '../../services/storageService.js';
 import { initVoyage, resetVoyage, updateVoyage, getVoyageStats, getBuoysInWindow, routeXAt, routeYawAt, CHECKPOINT_SPACING, setVoyageVisible } from './voyage.js';
 import { getStudyMaterial, STUDY_PAGE_LIMIT_MS, STUDY_PAGE_MIN_MS } from './studyMaterials.js';
@@ -62,8 +62,12 @@ let latestEEG = { attention: 0, meditation: null, signal: null };
 function renderEegDualAxis() {
     const host = document.getElementById('eeg-dual-axis');
     if (!host) return;
+    // Shown whenever a real headset is streaming. This is the dual-axis
+    // (attention + meditation) readout that makes Real EEG worth wearing, not
+    // developer instrumentation — it used to sit behind DEMO_MODE, so turning
+    // that off for the public site also blanked it on the booth machine.
     const inEEG = selectedInputMode === 'eeg' && latestEEG.meditation !== null;
-    host.style.display = (DEMO_MODE && inEEG) ? '' : 'none';
+    host.style.display = inEEG ? '' : 'none';
     if (!inEEG) return;
     const focusBar = document.getElementById('eeg-attention-bar');
     const relaxBar = document.getElementById('eeg-meditation-bar');
@@ -7040,19 +7044,27 @@ function animate() {
                         const attention = Number(msg.attention || 0);
                         const meditation = Number(msg.meditation || 0);
                         const signal = Number(msg.signal_quality ?? 0);
-                        // A slipped sensor still streams packets, just with a
-                        // useless signal quality — treat that as "no input"
-                        // rather than as a genuine attention reading of 0.
-                        const hasValidSignal = signal >= EEG_MIN_USABLE_SIGNAL && attention >= 0 && attention <= 100;
+                        // Two separate questions, which must not share a gate:
+                        //   linkAlive       - is the headset talking to us at all?
+                        //                     (decides "connected", so a sensor
+                        //                     that has not settled yet still lets
+                        //                     the user into EEG mode)
+                        //   hasUsableSignal - is the reading worth scoring?
+                        //                     (decides whether the clock runs)
+                        const linkAlive = attention >= 0 && attention <= 100;
+                        const hasUsableSignal = linkAlive && signal >= EEG_MIN_USABLE_SIGNAL;
 
                         latestEEG = { attention, meditation, signal };
                         renderSignalChip();
                         renderEegDualAxis();
 
-                        if (hasValidSignal) {
+                        if (linkAlive) {
                             isHeadsetConnected = true;
                             hasLiveEEGData = true;
                             bridgeReconnectAttempts = 0;
+                        }
+
+                        if (hasUsableSignal) {
                             lastValidEEGDataTime = Date.now();
                             smoothedAttention = smoothedAttention === null
                                 ? attention
@@ -7061,15 +7073,13 @@ function animate() {
                             setEEGConnectionState('streaming', `Live MindWave data received. Signal ${signal.toFixed(0)}%, attention ${attention}, meditation ${meditation}.`);
                             updateConnectBtn(`EEG Ready (${signal}%)`, false, true);
                         } else {
-                            isHeadsetConnected = false;
-                            hasLiveEEGData = false;
                             smoothedAttention = null;
                             updateFocusFromEEG(0);
                             setEEGConnectionState('warning', langText(
-                                '訊號太弱，計時已暫停。請調整額頭感測器同耳夾。',
-                                'Signal too weak — the timer is paused. Adjust the forehead sensor and ear clip.'
+                                `訊號太弱（${Math.round(signal)}%），計時已暫停。請調整額頭感測器同耳夾。`,
+                                `Signal too weak (${Math.round(signal)}%) — the timer is paused. Adjust the forehead sensor and ear clip.`
                             ));
-                            updateConnectBtn("Poor Signal", false, true);
+                            updateConnectBtn(`Poor Signal (${Math.round(signal)}%)`, false, true);
                         }
 
                         updateDebugOverlay({
