@@ -3,14 +3,26 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no">
-    <title>EEG Focus 2026</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:wght@500;600;700;800&family=Inter:wght@400;500;600;700&family=Orbitron:wght@400;600;700&display=swap" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
+    <title>NeuroFocus</title>
+    <!-- Fonts are self-hosted from /vendor/fonts so the site renders identically
+         with no internet (booth) and in regions where Google Fonts is blocked. -->
+    <link href="/vendor/fonts/fonts.css?v=2026-07-25-1" rel="stylesheet">
+    <!-- Tailwind is only used by the homepage layout; the game, setup and
+         results pages ship their own CSS. It stays on the CDN for its JIT
+         behaviour, with a pre-compiled copy loaded FIRST as a floor: when the
+         venue network is dead the CDN never arrives and the homepage would
+         otherwise lose all layout. Online, the CDN's own <style> comes later in
+         document order and still wins, so nothing about the current look
+         changes. Rebuild the fallback with:
+           npx tailwindcss -c tailwind.config.js -i in.css -o vendor/tailwind/tailwind.fallback.css --minify
+         The config below must never assume the CDN script loaded either: on a
+         dead network the bare `tailwind.config = …` threw a ReferenceError that
+         killed every page, so the global is defended here. -->
+    <link href="/vendor/tailwind/tailwind.fallback.css?v=2026-07-25-1" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com?plugins=forms,typography"></script>
     <script>
-        tailwind.config = {
+        window.tailwind = window.tailwind || {};
+        window.tailwind.config = {
             darkMode: 'class',
             theme: {
                 extend: {
@@ -82,16 +94,21 @@
         </div>
     </div>
 
+    <!-- Three.js and MediaPipe are served from /vendor (self-hosted) so the game
+         page and camera mode keep working with a dead/slow venue network and in
+         regions where unpkg / jsdelivr / googleapis are unreachable.
+         Supabase stays on the CDN: it already degrades gracefully to a local
+         session when unreachable (services/supabaseClient.js). -->
     <script type="importmap">
         {
             "imports": {
-                "three": "https://unpkg.com/three@0.161.0/build/three.module.js",
-                "three/addons/": "https://unpkg.com/three@0.161.0/examples/jsm/",
-                "@mediapipe/tasks-vision": "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.3/vision_bundle.mjs",
+                "three": "/vendor/three/three.module.js",
+                "three/addons/": "/vendor/three/addons/",
+                "@mediapipe/tasks-vision": "/vendor/mediapipe/vision_bundle.mjs",
                 "@supabase/supabase-js": "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/+esm"
             }
         }
     </script>
-    <script type="module" src="app/main.js?v=2026-07-20-1"></script>
+    <script type="module" src="app/main.js?v=2026-07-25-1"></script>
 </body>
 </html>

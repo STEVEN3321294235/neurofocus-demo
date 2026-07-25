@@ -9,16 +9,38 @@ import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { SMAAPass } from 'three/addons/postprocessing/SMAAPass.js';
 import { setState, getState } from '../../app/state.js';
-import { getCameraFocusScore, getCameraTrackingStatus, stopCameraPreview } from '../../services/focusInputService.js?v=2026-07-20-1';
+import { getCameraFocusScore, getCameraTrackingStatus, stopCameraPreview } from '../../services/focusInputService.js?v=2026-07-25-1';
 import { appendSessionSummary, getSessionHistory, getLocalVoyageLog, appendVoyageLog, getCumulativeCloudDistance, appendStudyHistory, getStudyHistory } from '../../services/storageService.js';
 import { initVoyage, resetVoyage, updateVoyage, getVoyageStats, getBuoysInWindow, routeXAt, routeYawAt, CHECKPOINT_SPACING, setVoyageVisible } from './voyage.js';
 import { getStudyMaterial, STUDY_PAGE_LIMIT_MS, STUDY_PAGE_MIN_MS } from './studyMaterials.js';
 
-// DEMO_MODE shows the raw EEG channels (attention / meditation / signal) for
-// the competition booth. Flip to false in a future product build to hide the
-// raw numbers while keeping the state-level behaviour (dual-axis flow, live
-// breathing feedback) intact.
-const DEMO_MODE = true;
+// DEMO_MODE exposes booth/dev instrumentation: the raw EEG channels
+// (attention / meditation / signal), the FPS + quality-level meter, and the
+// EEG_APP.debug hooks that fire gameplay beats on demand.
+//
+// It is OFF by default so the public site cannot be poked from the console
+// (e.g. debug.earnStar()), and ON for the booth machine, enabled either way
+// WITHOUT a rebuild:
+//   • one-off      -> add ?demo=1 to the URL (?demo=0 turns it back off)
+//   • sticky       -> the choice is remembered in localStorage for that machine
+// State-level behaviour (dual-axis flow, live breathing feedback) is identical
+// in both modes; only the instrumentation is hidden.
+const DEMO_MODE = (() => {
+    try {
+        const flag = new URLSearchParams(window.location.search).get('demo');
+        if (flag === '1' || flag === 'true') {
+            localStorage.setItem('nf_demo_mode', '1');
+            return true;
+        }
+        if (flag === '0' || flag === 'false') {
+            localStorage.removeItem('nf_demo_mode');
+            return false;
+        }
+        return localStorage.getItem('nf_demo_mode') === '1';
+    } catch (e) {
+        return false;
+    }
+})();
 const MEDITATION_FLOW_THRESHOLD = 50;
 
 // Latest live EEG channels (Real EEG mode only). meditation/signal stay null

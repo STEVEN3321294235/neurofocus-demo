@@ -639,16 +639,32 @@ Windows laptop 做現場 demo 機：本地 Python EEG bridge + 本地站 `http:/
 `index.html`、`app/`、`pages/`、`services/`、`styles/`、`components/`、`assets/`、`bgm/`、`server.js`、`eeg_bridge.py`、`requirements-eeg-bridge.txt`、`install_eeg_bridge_windows.bat`、`start_eeg_bridge_windows.bat`、`start_local_site_windows.bat`、`start_2a_demo_windows.bat`。
 
 ### 一次性準備
-1. 裝 Python 3　2. 裝 Node.js　3. Windows 藍牙配對 `MindWave Mobile 2`　4. 雙擊 `install_eeg_bridge_windows.bat`。
+1. 裝 Python 3　2. Windows 藍牙配對 `MindWave Mobile 2`　3. 雙擊 `install_eeg_bridge_windows.bat`。
+> **Node.js 唔再係必需（2026-07-25）**：`start_local_site_windows.bat` 見到冇 Node 會自動改用 **`serve_local.py`**（同一批檔案、同一個 `http://localhost:8000`，MIME 已釘死避免 Windows 登錄檔把 `.js` 當 `text/plain` 令 ES module 起唔到）。有 Node 就照用 `server.js`，行為一樣。
+
+### 🔌 兩種 EEG 接法（都係 bridge 行喺本機，唔存在「bridge 上雲」）
+> EEG bridge 一定要喺**插住頭帶嗰部機**行（佢讀 COM port）。可以變嘅只係**網頁由邊度嚟**：
+
+| 接法 | 點行 | 需要 Node？ | 需要網絡？ | 幾時用 |
+|---|---|:---:|:---:|---|
+| **A. 線上站＋本機 bridge** | 開 `start_eeg_bridge_windows.bat`，瀏覽器入已部署網址 | ❌ | ✅ | 冇裝 Node、想最快試通 |
+| **B. 本機站＋本機 bridge**（攤位建議） | 雙擊 `start_2a_demo_windows.bat`（bridge＋Python 站一齊起） | ❌ | ❌ | 攤位正式 demo：網絡死都行到 |
+
+- 兩種接法**瀏覽器都係連 `ws://127.0.0.1:8765`**（bridge 亦會試 8766）。HTTPS 頁連 `ws://127.0.0.1` 屬 loopback 例外，**Chrome 允許**——所以接法 A 行得通；但 Safari／部分 Firefox 版本會攔，**攤位一律用 Chrome**。
+- 連唔到可以手動指定：網址加 `?bridgeUrl=ws://127.0.0.1:8765`（會記入 localStorage），或 `?bridgeHost=192.168.x.x` 指去另一部機。
+- **接法 B 係攤位建議做法**：三個外部依賴（three.js／MediaPipe／字型）已經自存喺 `/vendor`，實測封鎖晒外網仍然 8/8 通過。
 
 > **Mac 定位（2026-07-11 修訂）：做網站/備援機得，做 EEG 主機唔得。** Code 層面 bridge 支援 macOS 序列埠（/dev/cu.* 掃描＋權限提示），但 **MindWave Mobile 2（藍牙 Classic SPP 老協議）喺近年 macOS 上實測經常配對到但攞唔到數據**——Steven 過往經驗一致，NeuroSky 對 macOS 嘅支援亦早已停更。結論：**真 EEG demo 一律用 Windows 機**；MacBook 用 `start_demo_mac.command` 做本地網站/備援/hotfix 機。
 
 ### 開場步驟
-1. 插電　2. Windows 電源模式設 `Best performance`　3. 開瀏覽器硬件加速　4. 關 Teams / OneDrive 同步 / Discord / 多餘分頁　5. 開頭帶　6. 雙擊 `start_2a_demo_windows.bat`　7. 等兩個視窗（EEG Bridge + Local Site）　8. 瀏覽器開 `http://localhost:8000/#home`　9. Setup 測 `EEG Device`，唔得就即切 `Simulation`。
+1. 插電　2. Windows 電源模式設 `Best performance`　3. 開瀏覽器硬件加速　4. 關 Teams / OneDrive 同步 / Discord / 多餘分頁　5. 開頭帶　6. 雙擊 `start_2a_demo_windows.bat`　7. 等兩個視窗（EEG Bridge + Local Site）　8. **Chrome** 開 `http://localhost:8000/#home?demo=1`（`?demo=1` 開返攤位用嘅 FPS meter＋debug 掣）　9. Setup 測 `EEG Device`，唔得就即切 `Simulation`。
+
+> **`?demo=1` 係咩（2026-07-25 起）**：DEMO_MODE 預設**閂咗**（公開網址唔想俾人喺 console 撳出星星）。攤位機喺網址加一次 `?demo=1` 就會開返 FPS/畫質等級 meter 同 `EEG_APP.debug.*`，**選擇會記住**（要閂返用 `?demo=0`）。
 
 ### 快速驗證
 - **本地站**：`http://localhost:8000/#home` 首頁順、Setup/Auth 唔卡。
 - **EEG bridge**：視窗唔會即刻閃退;顯示 COM port + connected 就入 EEG 模式;連唔到就即用 Simulation。
+- **離線實測**：拔咗網線／熄 Wi-Fi，本機站仍然要入到遊戲（three.js／MediaPipe／字型已自存 `/vendor`）。首頁排版亦有本地 Tailwind 墊底。
 
 ### 裝置分工
 - **Windows Laptop**：主技術 demo 機 + 本地站 + Python bridge + 真 EEG 嘗試;EEG 失敗仍作本地備援機。

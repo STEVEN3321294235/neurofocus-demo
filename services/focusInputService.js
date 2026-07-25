@@ -39,12 +39,14 @@ function getStreamActiveState() {
 async function initFaceLandmarker() {
     if (faceLandmarker) return faceLandmarker;
     try {
-        const vision = await FilesetResolver.forVisionTasks(
-            "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.3/wasm"
-        );
+        // Self-hosted from /vendor/mediapipe: the wasm runtime and the face model
+        // used to come from jsdelivr / storage.googleapis.com, which are slow or
+        // unreachable on a weak venue network and in regions that block Google.
+        // Serving them from our own origin keeps camera mode working offline.
+        const vision = await FilesetResolver.forVisionTasks("/vendor/mediapipe/wasm");
         faceLandmarker = await FaceLandmarker.createFromOptions(vision, {
             baseOptions: {
-                modelAssetPath: "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task",
+                modelAssetPath: "/vendor/mediapipe/face_landmarker.task",
                 delegate: "GPU"
             },
             outputFaceBlendshapes: true,

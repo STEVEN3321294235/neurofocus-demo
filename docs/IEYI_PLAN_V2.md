@@ -101,6 +101,13 @@
 >   - **官方評分 40-30-30**（創意 40％／市場 30％／實用 30％，presentation ＝實用內 10 分）——手冊 Part 9 補評分準則＋Pros 逐項對應。
 >   - **攤位有 data card 上網**（每隊一張）＝Steven「冇 Wi-Fi 行唔到」嘅官方答案；但**仍要離線備份**（Results 截圖／對比影片／PPT／流程圖）——攤位零電源不變。
 >   - ⚠️ **仍待 Steven 決定嘅技術風險**：即使 Windows 行 localhost，前端仍要經網絡攞 three.js／MediaPipe／Supabase／Tailwind／字型（CDN）。data card 慢或斷 = 遊戲頁 boot 唔起。若要真正離線保命，需要將 CDN 依賴 vendor 落本地（改 import map＋多檔＋要 bump 版本＋測試）——屬 code 改動，同 code freeze／今日 poster 死線衝突，故列為決定項，未做。
+> **2026-07-25 第十五輪（code freeze 日：離線保命＋DEMO_MODE 收口＋免 Node 啟動）**：
+> 56 **🔌 前端離線化（賽前最大技術風險已拆）**：`three.js`＋9 個 addon（連傳遞依賴共 16 檔）、**MediaPipe wasm＋人臉模型**、**全部字型 woff2**、**一份預編譯 Tailwind** 全部自存入 `/vendor`，import map 由 unpkg／jsdelivr 改指本機路徑。原因：比賽喺北京，Google／unpkg／jsdelivr 喺內地未必通，而**冇咗 three.js 遊戲頁直接死**。Supabase 維持 CDN（本身已有離線 fallback）。**實測：Playwright 封鎖晒所有非本機 host，8/8 通過**（首頁／字型／訓練 3D／學習模式／Results 全部零錯）。
+> 57 **🐛 順手捉到一個真 bug**：Tailwind CDN 一失敗，`tailwind.config = {…}` 就掟 `ReferenceError` **令每一頁都死**——即係會場冇網時全站崩，唔止「樣衰」。已改成 `window.tailwind = window.tailwind || {}` 防禦；另加本地預編譯 Tailwind 做墊底，冇網時首頁排版仍然完整（有網時 CDN 照覆蓋，外觀零改動）。
+> 58 **DEMO_MODE 由硬編碼改成可切換**：預設 **false**（公開站唔再俾人喺 console 撳 `debug.earnStar()`／睇 FPS meter），攤位機加 `?demo=1` 即開返並記住（`?demo=0` 閂）。唔使為咗攤位同公開站分兩個 build。
+> 59 **免 Node 啟動**：新增 `serve_local.py`（釘死 MIME，避開 Windows 登錄檔把 `.js` 當 `text/plain` 令 ES module 起唔到嘅陷阱）；`start_local_site_windows.bat` 見到冇 Node 自動轉用佢。**攤位機自此只需要 Python**。手冊 Part 8 新增「兩種 EEG 接法」表（線上站＋本機 bridge／本機站＋本機 bridge，兩者都係連 `ws://127.0.0.1:8765`）。模組版本 `2026-07-25-1`。
+> 60 **標題修正**：瀏覽器分頁由 `EEG Focus 2026` 改做 `NeuroFocus`（掃 QR 第一眼嘅品牌一致性）。
+>
 > 55 **PPT／海報截圖出齊**（Claude headless，淺色）：訓練 Results（穩定度 68→90%、恢復 5.2→2.6s、綠色「快 40%」headline）、Study Results（📖 溫習＋✍️ 答題兩階段＋跨場趨勢＋CSV）、閱讀器、測驗船返場、晴天 vs 起霧孖圖——全部零 JS 錯誤，供 PPT S7／poster ③⑤ 直接落版。純文件／資產改動（冇郁 app code，唔使 bump 版本）。
 
 ---

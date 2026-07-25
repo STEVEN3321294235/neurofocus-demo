@@ -1,6 +1,6 @@
 import { setState } from './state.js';
 import { getSessionUser } from '../services/authService.js';
-import { importVersionedModule } from '../services/runtimeLoader.js?v=2026-07-20-1';
+import { importVersionedModule } from '../services/runtimeLoader.js?v=2026-07-25-1';
 import { getLang, getTheme } from '../services/storageService.js';
 
 
