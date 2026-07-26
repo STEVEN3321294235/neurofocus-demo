@@ -10,8 +10,8 @@
 
 | 文件 | 用嚟做咩 |
 |---|---|
-| **[`docs/EXHIBITION_HANDBOOK.md`](docs/EXHIBITION_HANDBOOK.md)** | **展覽 + 答辯總手冊**：產品、技術架構、玩法、現場執行、台上台詞、評判 Q&A、Windows 部署、競爭力分析。展覽當日開嚟用。 |
-| **[`docs/IEYI_PLAN_V2.md`](docs/IEYI_PLAN_V2.md)** | **開發計劃**：目前進度、待辦、可直接貼落 TRAE 嘅 prompt、Vercel/DeepSeek 驗證步驟。 |
+| **[`docs/EXHIBITION_HANDBOOK.md`](docs/EXHIBITION_HANDBOOK.md)** | **現場唯一要開嘅文件**：產品、技術架構、玩法、現場執行、講稿、評判 Q&A（L1–L4）、Windows／EEG 排障、攤位規格、**Pilot 實驗執行指引**。 |
+| **[`docs/IEYI_PLAN_V2.md`](docs/IEYI_PLAN_V2.md)** | **專案計劃**：平台狀態、剩低待辦、時間表、檔案地圖、開發規矩、現場 debug 速查。 |
 | **[`docs/STUDY_MATERIALS_PRINT.md`](docs/STUDY_MATERIALS_PRINT.md)** | **學習模式教材紙本版**（生物・雙語）：由 `scripts/gen_materials_md.mjs` 自動生成，同平台版逐字一致，實驗紙本組直接打印。 |
 
 ---
