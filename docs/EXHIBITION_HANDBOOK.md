@@ -7,11 +7,12 @@
 > | 你想做咩 | 去邊 |
 > |---|---|
 > | 上台講嘢（英文 ≤3:00） | **Part 6**（時間分配／講稿 A–E／90–120 秒 core version） |
-> | 被評判問嘢 | **Part 7**（L1 必背 → L2 → L3 → **L4 弱點題**） |
+> | 被評判問嘢 | **Part 7**（中英對照：L1 必背 → L2 → L3 → **L4 弱點題**） |
 > | 攤位招呼觀眾 | **Part 5.6** 導覽流程 |
 > | 開機／EEG 出問題 | **Part 8**（含「配對到冇數據」「玩完一場 bridge 死咗」修復記錄） |
 > | 酒店跑 pilot 實驗 | **Part 12** ← 逐步指引＋分配表＋紀錄表 |
 > | 攤位規格／賽程／要帶咩 | **Part 11** |
+> | 想拎盡分 | **Part 9.1** — 40-30-30 逐格拆解＋每格 money line |
 > | 出發前 checklist | **Part 10** |
 
 ---
@@ -24,9 +25,9 @@
 4. [遊戲運行邏輯 + UI 機制](#part-4)
 5. [現場執行（答辯線 vs 攤位線）](#part-5)
 6. [正式答辯包（講稿＋影片＋海報記錄）](#part-6)
-7. [評判 Q&A（L1→L4 四層）](#part-7)
+7. [評判 Q&A（中英對照・L1→L4 四層）](#part-7)
 8. [Windows 部署 SOP + 裝置分工 + FPS 已知問題](#part-8)
-9. [競爭力分析（對比賽）](#part-9)
+9. [競爭力分析＋40-30-30 拎分地圖](#part-9)
 10. [現場檢查清單](#part-10)
 11. [IEYI 攤位規格 + 賽程 + 展板計劃](#part-11)
 12. [Pilot 實驗執行指引（酒店一晚版）](#part-12)
@@ -444,147 +445,174 @@ AUDIO: Universfield (Pixabay) · Study material prepared by our team
 
 ---
 <a name="part-7"></a>
-## Part 7 — 評判 Q&A（由淺入深・對應官方評分）
+## Part 7 — 評判 Q&A（中英對照・由淺入深・對應官方評分）
 
-> **點用**：由 **L1 開始答**，評判追問先落 L2／L3。多數評判唔係技術專家，佢哋想聽「呢個解決咩問題、邊個會用、demo 得唔得」——所以 **L1 每題都要背到滾瓜爛熟**，L2/L3 係彈藥，唔使主動出。
-> **每題標住對應嘅官方評分格**：🎨 創意 40%／💰 市場 30%／🛠️ 實用 30%。答嘅時候有意識咁踩返嗰格。
-> **黃金句式**：一句答案 → 一個具體例子 → （對方仲想聽先）技術細節。**唔好一開口就講 WebSocket。**
+> **點用**：由 **L1 答起**，評判追問先落 L2／L3。多數評判唔係技術專家——佢哋想聽「解決咩問題、邊個會用、demo 得唔得」。**L1 七題要背到滾瓜爛熟**；L2/L3 係彈藥，唔使主動出；**L4 係我哋最弱嘅位**，要預先夾定口徑。
+> **語言**：官方要求英文 present，所以**英文版係主答案**，中文版留俾溫稿同萬一評判用中文追問。
+> **黃金句式**：一句答案 → 一個具體例子 →（對方仲想聽先）技術細節。**唔好一開口就講 WebSocket。**
+> **評分標記**：🎨 創意 40%／💰 市場 30%／🛠️ 實用 30% —— 答嘅時候有意識咁踩返嗰格（每格點拎分見 **Part 9.1**）。
 
 ---
 
 ### 🟢 L1 — 人人都會問（非技術評判・必背）
 
-**Q1. 你哋個作品係咩嚟？** 🎨
-> 一個**專注力訓練平台**。你嘅專注度會即時操控一隻帆船：專心，船就穩定向前；一分心，船就會偏離航道。系統見到你分心，會即刻彈一個呼吸引導叫你拉返；每次做完，會話你知你分咗幾多次心、每次用幾耐先拉得返。
+**Q1. 你哋個作品係咩嚟？ / What is your project?** 🎨
+> **【中】** 一個**專注力訓練平台**。你嘅專注度會即時操控一隻帆船：專心，船就穩定向前；一分心，船就會偏離航道。系統見到你分心，會即刻彈呼吸引導叫你拉返；每次做完，會話你知你分咗幾多次心、每次用幾耐先拉得返。
+> **【EN】** A **focus-training platform**. Your attention steers a sailboat in real time: focus and it holds its course, drift and the boat wanders off. When the system sees you drift, it immediately offers a breathing cue to pull you back — and at the end it tells you how often you drifted and how long each recovery took.
 
-**Q2. 解決緊咩問題？** 🎨💰
-> 而家人喺一個螢幕上平均只維持 **47 秒**專注，二十年前係兩分半鐘。而一次分心之後，平均要 **23 分鐘**先完全返到原本件事度。問題係——**你分咗心自己唔知**，等你發現已經太遲。我哋令佢**即時睇得見**。
+**Q2. 解決緊咩問題？ / What problem does it solve?** 🎨💰
+> **【中】** 而家人喺一個螢幕上平均只維持 **47 秒**專注，二十年前係兩分半鐘。一次分心之後，平均要 **23 分鐘**先完全返到原本件事。問題係——**你分咗心自己唔知**，等你發現已經太遲。我哋令佢**即時睇得見**。
+> **【EN】** People now sustain attention on a single screen for about **47 seconds**, down from two and a half minutes twenty years ago. After one interruption it takes on average **23 minutes** to fully return to the task. The real problem is that **you don't notice you've drifted** — by the time you do, it's too late. We make it visible the moment it happens.
 
-**Q3. 同「叫人專心啲」／番茄鐘有咩分別？** 🎨
-> 番茄鐘只計**時間**，唔量**狀態**——25 分鐘倒數完，唔代表你真係專注咗 25 分鐘。我哋量緊嘅係狀態本身，而且**當場**介入。一句講：**由「提醒」變成「回饋」**。
+**Q3. 同「叫人專心啲」／番茄鐘有咩分別？ / How is this different from just telling someone to focus, or a Pomodoro timer?** 🎨
+> **【中】** 番茄鐘只計**時間**，唔量**狀態**——25 分鐘倒數完，唔代表你真係專注咗 25 分鐘。我哋量嘅係狀態本身，而且**當場**介入。一句講：**由「提醒」變成「回饋」**。
+> **【EN】** A timer counts **minutes**, not **state** — finishing a 25-minute block doesn't mean you were focused for 25 minutes. We measure the state itself and intervene **in the moment**. In one line: we turn a reminder into feedback.
 
-**Q4. 邊個會用？** 💰
-> 學生、學校、補習社、家長。**有一個 webcam 就用到**，唔使買任何硬件——所以任何一間學校今日就部署得到。EEG 頭帶係加分體驗，唔係入場券。
+**Q4. 邊個會用？ / Who is this for?** 💰
+> **【中】** 學生、學校、補習社、家長。**有一個 webcam 就用到**，唔使買任何硬件——所以任何一間學校今日就部署得到。EEG 頭帶係加分體驗，唔係入場券。
+> **【EN】** Students, schools, tutoring centres and parents. **A webcam is enough** — no hardware purchase — so a school could deploy it today. The EEG headset is a premium experience, not an entry requirement.
 
-**Q5. 你哋點知佢真係有效？** 🛠️💰
-> 分兩層答：**已做到嘅**——平台已經量到專注穩定度、分心次數、每次恢復時間，仲有跨場次趨勢。**未做到嘅**——我哋只做咗 n≈2–3 嘅小型 pilot，長期成效要更大樣本先講得。我哋分得好清「已經做到」同「仲要證實」。
+**Q5. 你哋點知佢真係有效？ / How do you know it works?** 🛠️💰
+> **【中】** 分兩層答。**已做到嘅**：平台已經量到專注穩定度、分心次數、每次恢復時間，仲有跨場次趨勢。**未做到嘅**：我哋只做咗細樣本 pilot，長期成效要更大研究先講得。我哋分得好清「已經做到」同「仲要證實」。
+> **【EN】** Two layers. **What we have done**: the platform already measures focus stability, how often attention drops, recovery time after each drop, and the trend across sessions. **What we have not**: this is a small-sample pilot; long-term efficacy needs a larger study. We keep a clear line between "done" and "to be proven".
 
-**Q6. 可以畀我試吓嗎？** 🛠️
-> 當然可以。（→ 攤位即場開 Simulation／相機模式，1 分鐘體驗；EEG 頭帶當日穩定就戴。）
+**Q6. 可以畀我試吓嗎？ / Can I try it?** 🛠️
+> **【中】** 當然可以。（→ 攤位即場開 Simulation／相機模式，1 分鐘體驗；EEG 頭帶當日穩定就戴。）
+> **【EN】** Of course — please do. *(Open Simulation/camera mode at the booth: a one-minute try. Offer the EEG headset if it's behaving that day.)*
 
-**Q7. 你哋自己做咗幾多？** 🎨
-> 全部。三個幾星期由零開始：3D 遊戲引擎、EEG 硬件橋接、相機視覺、雲端後端、雙語介面、教材同測驗卷，全部係我哋四個人做。
+**Q7. 你哋自己做咗幾多？ / How much of this did you build yourselves?** 🎨
+> **【中】** 全部。五個星期由零開始：3D 遊戲引擎、EEG 硬件橋接、相機視覺、雲端後端、雙語介面、教材同測驗卷，全部係我哋四個人做。
+> **【EN】** All of it. Five weeks from nothing: the 3D engine, the EEG hardware bridge, the camera vision pipeline, the cloud backend, the bilingual interface, and the study material and quiz — the four of us.
 
 ---
 
 ### 🟡 L2 — 中度追問（評判想睇深入啲）
 
-**Q8. 「專注度」實際上係點量出嚟？** 🎨🛠️
-> 三條可以互換嘅輸入線：① **EEG 頭帶**——NeuroSky 單通道，讀 attention／meditation 兩個指標；② **Webcam**——用 MediaPipe 追蹤面部朝向同眼部狀態估算專注，**全程喺你部機計算，影像永不上傳**；③ **內建模擬曲線**——保證任何裝置都示範到。三條線出嚟都係同一個 0–100 嘅專注值，**閉環完全唔使改**。
+**Q8. 「專注度」實際上係點量出嚟？ / How is focus actually measured?** 🎨🛠️
+> **【中】** 三條可以互換嘅輸入線：① **EEG 頭帶**——NeuroSky 單通道，讀 attention／meditation；② **Webcam**——MediaPipe 追蹤面部朝向同眼部狀態，**全程喺你部機計算，影像永不上傳**；③ **內建模擬曲線**——保證任何裝置都示範到。三條線出嚟都係同一個 0–100 專注值，**閉環完全唔使改**。
+> **【EN】** Three interchangeable inputs: ① an **EEG headset** — single-channel NeuroSky, giving attention and meditation; ② a **webcam** — MediaPipe face tracking, **processed entirely on-device; video is never uploaded**; ③ a **built-in simulation profile** so any device can demonstrate the system. All three produce the same 0–100 focus value, and the loop behind them never changes.
 
-**Q9. 點解要有三個模式？** 🎨
-> 其實核心係**一個閉環**：偵測 → 睇到 → 提示 → 量化。三個模式只係三個入口——**訓練**練基本功、**挑戰**加題目壓力、**學習**係真溫習場景。學習模式一個模式就行晒成個閉環，所以我哋用佢做主示範。
+**Q9. 點解要有三個模式？ / Why three modes?** 🎨
+> **【中】** 核心其實係**一個閉環**：偵測 → 睇到 → 提示 → 量化。三個模式只係三個入口——**訓練**練基本功、**挑戰**加題目壓力、**學習**係真溫習場景。學習模式一個模式就行晒成個閉環，所以用佢做主示範。
+> **【EN】** The core is really **one loop** — detect, see, cue, measure. The modes are just three entry points: **Training** builds the basics, **Challenge** adds task pressure, **Study** is a real revision session. Study Mode runs the entire loop in one session, which is why it's our main demo.
 
-**Q10. 呢個係咪醫療產品？可以治 ADHD 嗎？** 🛠️
-> **唔係，我哋唔會咁講。** 定位係教育／訓練用嘅神經回饋原型，目標係幫用戶建立**自我覺察**同**自我調節**嘅能力。冇臨床試驗就唔可以講治療——呢條線我哋守得好緊。
+**Q10. 呢個係咪醫療產品？可以治 ADHD 嗎？ / Is this a medical device? Can it treat ADHD?** 🛠️
+> **【中】** **唔係，我哋唔會咁講。** 定位係教育／訓練用嘅神經回饋原型，目標係幫用戶建立**自我覺察**同**自我調節**能力。冇臨床試驗就唔可以講治療——呢條線我哋守得好緊。
+> **【EN】** **No, and we don't claim it is.** It's an educational neurofeedback prototype for building self-awareness and self-regulation. Without clinical trials we will not use the word treatment — that's a line we hold firmly.
 
-**Q11. 呼吸引導點解有用？** 🎨
-> 用規律呼吸（吸 4 秒／停 4 秒／呼 4 秒）短時間降低過高嘅生理喚醒，呢個係有文獻支持嘅調節手法（Balban et al., 2023）。重點係**時機**：一次分心要 23 分鐘先返到嚟，所以介入一定要喺當下，唔係事後。
+**Q11. 呼吸引導點解有用？ / Why does the breathing exercise help?** 🎨
+> **【中】** 用規律呼吸（吸 4 秒／停 4 秒／呼 4 秒）短時間降低過高嘅生理喚醒，係有文獻支持嘅調節手法（Balban et al., 2023）。重點係**時機**：一次分心要 23 分鐘先返到嚟，所以介入一定要喺當下。
+> **【EN】** Paced breathing — four seconds in, four hold, four out — lowers excess physiological arousal, which is supported in the literature (Balban et al., 2023). The key is **timing**: since one distraction costs 23 minutes, the intervention has to arrive in the moment, not afterwards.
 
-**Q12. 數據存喺邊？私隱點處理？** 🛠️💰
-> 帳戶同場次歷史存喺 Supabase，行 row-level security，**每個用戶只讀到自己嘅數據**；本機有離線鏡像。**相機影像全程本地處理、永不上傳**。做實驗嗰陣學生用編號 S01／S02／S03，唔收真名。
+**Q12. 數據存喺邊？私隱點處理？ / Where is the data stored? What about privacy?** 🛠️💰
+> **【中】** 帳戶同場次歷史存喺 Supabase，行 row-level security，**每個用戶只讀到自己嘅數據**；本機有離線鏡像。**相機影像全程本地處理、永不上傳。** 做實驗嗰陣學生用編號 S01／S02，唔收真名。
+> **【EN】** Accounts and session history live in Supabase with row-level security, so **each user can only read their own data**; there's a local mirror for offline use. **Camera frames are processed on-device and never uploaded.** In our pilot, participants are identified by code — S01, S02 — never by name.
 
-**Q13. 商業模式係點？** 💰
-> 短期：學校體驗工作坊、STEAM 教材。中期：軟件訂閱＋畀老師／家長睇嘅進度報表（跨場次數據就係呢個鈎）。長期：多 sensor 版本、個人化難度。因為零硬件門檻，邊際成本好低。
+**Q13. 商業模式係點？ / What's the business model?** 💰
+> **【中】** 短期：學校體驗工作坊、STEAM 教材。中期：軟件訂閱＋畀老師／家長睇嘅進度報表（跨場次數據就係呢個鈎）。長期：多 sensor 版本、個人化難度。因為零硬件門檻，邊際成本好低。
+> **【EN】** Near term: school workshops and STEAM teaching material. Mid term: a software subscription plus progress reports for teachers and parents — that's what the cross-session data unlocks. Long term: a multi-sensor version with personalised difficulty. With no hardware requirement, our marginal cost stays low.
 
-**Q14. 點解台上播片唔現場玩？** 🛠️
-> 兩個原因。第一，產品**刻意**設計每頁最少讀 15 秒防止跳讀，加埋十條題，完整流程要 2–3 分鐘，台上時間唔夠。第二，預錄可以**同屏對比「專心 vs 分心」兩種狀態**，現場玩一次反而示範唔到對比。片係真實錄製、冇加工，**真平台就喺攤位，歡迎即場試**。
+**Q14. 點解台上播片唔現場玩？ / Why show a video instead of a live demo?** 🛠️
+> **【中】** 兩個原因。第一，產品**刻意**設計每頁最少讀 15 秒防止跳讀，加埋十條題，完整流程要 2–3 分鐘，台上時間唔夠。第二，預錄可以**同屏對比「專心 vs 分心」兩種狀態**，現場玩一次反而示範唔到對比。片係真實錄製、冇加工；**真平台就喺攤位，歡迎即場試**。
+> **【EN】** Two reasons. First, the product **deliberately** enforces a 15-second minimum per page to stop skim-reading; with ten quiz questions the full flow takes two to three minutes — longer than our slot. Second, a recording lets us show **focused and distracted side by side**, which a single live run cannot. The footage is real and unedited, and the live platform is at our booth for anyone who wants to try it.
 
 ---
 
 ### 🔴 L3 — 技術深入（工程／科學背景評判）
 
-**Q15. EEG 由頭帶到畫面，條技術鏈點行？** 🎨
-> MindWave 經藍牙 SPP 出 ThinkGear 協議 → 本機 Python bridge 解析封包（同步位元組、checksum 校驗、eSense 解碼）→ WebSocket 推去瀏覽器 → 專注值驅動 Three.js／WebGL 嘅 3D 海洋。**EEG 數據唔上雲**，全部喺本機。
+**Q15. EEG 由頭帶到畫面，條技術鏈點行？ / Walk me through the EEG pipeline.** 🎨
+> **【中】** MindWave 經藍牙 SPP 出 ThinkGear 協議 → 本機 Python bridge 解析封包（同步位元組、checksum 校驗、eSense 解碼）→ WebSocket 推去瀏覽器 → 專注值驅動 Three.js／WebGL 嘅 3D 海洋。**EEG 數據唔上雲**，全部喺本機。
+> **【EN】** The MindWave streams the ThinkGear protocol over Bluetooth SPP; a local Python bridge parses the packets — sync bytes, checksum validation, eSense decoding — and pushes them over a WebSocket to the browser, where the focus value drives a Three.js/WebGL ocean. **The EEG data never leaves the machine.**
 
-**Q16. 單通道消費級 EEG，準唔準？** 🛠️
-> 我哋用佢做**訓練輸入同展示**，唔會講成研究級腦狀態診斷——呢個係誠實嘅設計取捨。單通道拎到嘅係 NeuroSky 嘅 eSense 指標，官方定義 40–60 為中性、60 以上為提升。我哋嘅門檻**直接跟返呢個分級**去設定，唔係自己老作數字。將來要更準就加多通道或者多 sensor 交叉驗證。
+**Q16. 單通道消費級 EEG，準唔準？ / Single-channel consumer EEG — is it accurate?** 🛠️
+> **【中】** 我哋用佢做**訓練輸入同展示**，唔會講成研究級腦狀態診斷——呢個係誠實嘅設計取捨。單通道拎到嘅係 NeuroSky 嘅 eSense 指標，官方定義 40–60 為中性、60 以上為提升。**我哋嘅門檻直接跟返呢個分級**，唔係自己老作數字。要更準就加多通道或者多 sensor 交叉驗證。
+> **【EN】** We use it as a **training input and a demonstration**, not as research-grade brain-state measurement — that's a deliberate, honest trade-off. What a single channel gives is NeuroSky's eSense scale, where 40–60 is defined as neutral and above 60 as elevated. **Our thresholds follow that published scale** rather than numbers we invented. Greater accuracy would need more channels or sensor fusion.
 
-**Q17. 訊號差／頭帶跌咗會點？數據會唔會污糟？** 🛠️
-> 呢個位我哋特別處理過。頭帶滑咗一樣會繼續送封包，只不過訊號質素同 attention 都係 0——**如果照計，嗰段時間會被錯誤記錄成「用戶分心」**。所以我哋要「訊號質素足夠 **而且** attention 唔係 0」先計時；唔夠就暫停計時同提示調整。另外 eSense 規格入面 **0 係「算唔到」嘅特殊值，唔係零分**，我哋亦按呢點處理。
+**Q17. 訊號差／頭帶跌咗會點？數據會唔會污糟？ / What if the signal is poor or the headset slips — does that corrupt your data?** 🛠️
+> **【中】** 呢個位我哋特別處理過。頭帶滑咗一樣會繼續送封包，只不過訊號質素同 attention 都係 0——**如果照計，嗰段時間會被錯誤記錄成「用戶分心」**。所以我哋要「訊號質素足夠 **而且** attention 唔係 0」先計時；唔夠就暫停計時同提示調整。另外 eSense 規格入面 **0 係「算唔到」嘅特殊值，唔係零分**，我哋亦按呢點處理。
+> **【EN】** We handled this explicitly. A slipped headset keeps streaming packets, just with zero signal quality and zero attention — **if we counted that, the whole stretch would be recorded as the user being distracted.** So the clock only advances when signal quality is sufficient **and** attention is non-zero; otherwise it pauses and prompts the wearer to adjust. We also treat eSense 0 as its documented "cannot be calculated" sentinel rather than a real score of zero.
 
-**Q18. 「專注門檻」係固定定自適應？** 🎨
-> 自適應。系統會睇你過往場次嘅平均表現去收緊恢復門檻同觸發時間——即係**你進步咗，個標準會跟住升**，所以係真訓練而唔止量度。同時 EEG 同模擬用兩套唔同基準，因為兩者嘅數值分佈根本唔同。
+**Q18. 「專注門檻」係固定定自適應？ / Are your focus thresholds fixed or adaptive?** 🎨
+> **【中】** 自適應。系統會睇你過往場次嘅平均表現去收緊恢復門檻同觸發時間——即係**你進步咗，個標準會跟住升**，所以係真訓練而唔止量度。同時 EEG 同模擬用兩套唔同基準，因為兩者嘅數值分佈根本唔同。
+> **【EN】** Adaptive. The system tightens the recovery threshold and trigger timing based on your own recent sessions — **as you improve, the bar rises with you**, which is what makes it training rather than just measurement. EEG and simulation also use separate baselines, because their value distributions are genuinely different.
 
-**Q19. 會場冇網／網絡差會點？** 🛠️
-> 唔會死。three.js、MediaPipe 模型、字型全部**自存喺我哋自己 server**，唔靠任何外部 CDN；題目有本地題庫；雲端連唔到就自動轉本地 session。我哋實測過**封鎖晒所有外部連線**，成個流程照行。攤位主機仲係行本機版本。
+**Q19. 會場冇網／網絡差會點？ / What happens if the venue network is down?** 🛠️
+> **【中】** 唔會死。three.js、MediaPipe 模型、字型全部**自存喺我哋自己 server**，唔靠任何外部 CDN；題目有本地題庫；雲端連唔到就自動轉本地 session。我哋實測過**封鎖晒所有外部連線**，成個流程照行。攤位主機仲係行本機版本。
+> **【EN】** It still runs. Three.js, the MediaPipe model and the fonts are **served from our own origin**, not a third-party CDN; questions fall back to a local bank; and if the cloud is unreachable the app switches to a local session. We tested it with **every external connection blocked** and the full flow still worked — and the booth machine runs locally anyway.
 
-**Q20. AI 出題點運作？點防止出錯題？** 🎨🛠️
-> 挑戰模式會叫 DeepSeek 即場出題，但**API key 只存喺伺服器端，永遠唔會落到瀏覽器**。收到題之後有本地驗證：唯一正解、拒絕重複選項、拒絕「以上皆是」、必須有解釋——唔合格就自動換返本地驗證過嘅題庫。**做實驗嗰陣就完全唔用 AI**，用鎖死嘅固定卷確保公平。
+**Q20. AI 出題點運作？點防止出錯題？ / How does the AI question generation work, and how do you stop bad questions?** 🎨🛠️
+> **【中】** 挑戰模式會叫 DeepSeek 即場出題，但 **API key 只存喺伺服器端，永遠唔會落到瀏覽器**。收到題之後有本地驗證：唯一正解、拒絕重複選項、拒絕「以上皆是」、必須有解釋——唔合格就自動換返本地驗證過嘅題庫。**做實驗嗰陣就完全唔用 AI**，用鎖死嘅固定卷確保公平。
+> **【EN】** Challenge Mode calls DeepSeek to generate questions, but the **API key stays server-side and never reaches the browser**. Every returned item is validated locally — exactly one correct answer, no duplicate options, no "all of the above", explanation required — and anything that fails is swapped for a vetted local question. **The experiment uses no AI at all**: it runs a fixed paper so the comparison stays fair.
 
-**Q21. 實驗設計具體係點？** 🛠️💰
-> 同一份教材、同一份固定測驗卷，比較「紙本溫習」同「平台溫習」兩組嘅測驗成績。要講清楚一點：**紙本組冇 sensor，所以量唔到佢嘅專注數據**——分數比較係睇有冇幫到學習，專注數據係睇機制有冇運作，兩者答唔同問題。樣本細（n≈2–3），所以我哋只報描述性數據，唔會講「顯著」。
+**Q21. 實驗設計具體係點？ / What exactly is your experimental design?** 🛠️💰
+> **【中】** 同一份教材、同一份固定測驗卷，比較「紙本溫習」同「平台溫習」兩組嘅測驗成績；每位參加者**兩種條件都做**，次序同教材對調平衡。要講清楚一點：**紙本組冇 sensor，所以量唔到佢嘅專注數據**——分數比較係睇有冇幫到學習，專注數據係睇機制有冇運作，兩者答唔同問題。樣本細，所以只報描述性數據。
+> **【EN】** Same material, same fixed quiz, comparing paper revision against platform revision; **each participant does both conditions**, with order and material counterbalanced. One thing to be clear about: **the paper group has no sensor, so we cannot measure their focus** — the score comparison asks whether it helped learning, while the focus data shows whether the mechanism works. They answer different questions. With a small sample we report descriptive results only.
 
-**Q22. 下一步會做咩？** 💰🎨
-> 三件事：完整 EEG 閉環做旗艦體驗、加多 sensor（眼動／心率變異）做交叉驗證、同學校合作跑大樣本前後測研究。
+**Q22. 下一步會做咩？ / What's next?** 💰🎨
+> **【中】** 三件事：完整 EEG 閉環做旗艦體驗、加多 sensor（眼動／心率變異）做交叉驗證、同學校合作跑大樣本前後測研究。
+> **【EN】** Three things: the full EEG closed loop as our flagship experience, sensor fusion with eye-tracking and heart-rate variability for cross-validation, and a larger pre/post study with schools.
 
 ---
 
 ### ⚫ L4 — 聽完 present／睇完海報之後最可能問（**我哋目前最弱嘅位**）
 
-> 呢一節係**由觀眾角度倒推**出嚟：一個評判坐低聽完 3 分鐘、行到海報前望完六格，佢腦入面會剩低咩疑問？
-> 呢十題係**我哋現時答得最弱、但最有機會被問**嘅。每題有：⚠️ 點解係弱點 → ✅ 最佳誠實答法。
-> **共通心法**：呢啲題**唔可以靠 hea 答**。承認限制 + 講清楚我哋點樣分開「已做到」同「未做到」，反而係拎 Usability 同信任分嘅位。
+> 呢一節由**觀眾角度倒推**：評判聽完三分鐘、望完海報六格之後，腦入面會剩低咩疑問？
+> 每題有：⚠️ 點解係弱點 → ✅ 最佳誠實答法（中英）。**唔可以靠 hea 答**——承認限制＋講清楚我哋點分「已做到 vs 未做到」，反而係拎信任分嘅位。
 
----
-
-**L4-1. 你哋海報上面幅 Paper vs Platform 圖係「示意圖」，即係你哋根本未做過實驗？** 🛠️
+**L4-1. 海報幅 Paper vs Platform 圖係「示意圖」，即係你哋根本未做過實驗？ / Your poster chart is labelled illustrative — so you haven't actually run the study?** 🛠️
 > ⚠️ **最大弱點。** 海報自己標住 ILLUSTRATIVE，睇得仔細嘅評判一定捉。
-> ✅ 「係，嗰張係**設計示意圖**，我哋特登標明咗，因為當時實驗未跑。我哋唔想用假數據扮有結果。實驗喺 ___ 晚已經跑咗（n＝___），呢度係真實 CSV／截圖。（→ 攞出嚟）數據太細唔足以下結論，但流程同量度方法已經驗證得到。」
-> 💡 **跑完 pilot 之後，一定要將真數據帶埋落攤位**（印一張 A4 或者留喺手提機），呢題就由弱點變成加分位。
+> **【中】** 「係，嗰張係**設計示意圖**，我哋特登標明咗，因為當時實驗未跑——我哋唔想用假數據扮有結果。實驗喺 ___ 已經跑咗（n＝___），呢度係真實 CSV／截圖。數據太細唔足以下結論，但流程同量度方法已經驗證得到。」
+> **【EN】** "Yes — that chart is a **design mock-up**, and we labelled it as such because the study hadn't run yet. We didn't want to present invented data as results. We ran it on ___ with ___ participants; here is the actual export. The sample is far too small to conclude anything, but it does show the protocol and the measurements work."
+> 💡 **跑完 pilot 一定要將真數據帶埋落攤位**（印一張 A4／留喺手提機），呢題就由弱點變加分位。
 
-**L4-2. 你哋話「23 分鐘先返到專注」，但你個 Results 寫住恢復時間得 2.6 秒——邊個先啱？** 🎨🛠️
-> ⚠️ **內部矛盾，好易被捉。** 海報同 dashboard 用咗同一個詞（recovery）指兩樣完全唔同嘅嘢。
-> ✅ 「兩個係唔同嘅量度。**23 分鐘**係文獻講嘅『被打斷之後完全返到原本件任務』——包括切換情境、搵返做到邊。我哋量嘅係**訊號層面嘅微觀恢復**：專注值跌穿門檻之後，幾快升返上去。前者係任務層面、後者係狀態層面，數量級唔同好正常。我哋唔會用 2.6 秒去挑戰 23 分鐘嗰個發現。」
+**L4-2. 你哋話「23 分鐘先返到專注」，但 Results 寫住恢復時間得 2.6 秒——邊個先啱？ / Your poster says 23 minutes to refocus but your dashboard shows 2.6 seconds. Which is it?** 🎨🛠️
+> ⚠️ **內部矛盾，好易被捉**——同一個英文詞（recovery）用咗喺兩個唔同構念。
+> **【中】** 「兩個係唔同嘅量度。**23 分鐘**係文獻講嘅『被打斷之後完全返到原本任務』，包括切換情境、搵返做到邊。我哋量嘅係**訊號層面嘅微觀恢復**：專注值跌穿門檻之後幾快升返。前者係任務層面、後者係狀態層面，數量級唔同好正常。我哋唔會用 2.6 秒去挑戰 23 分鐘嗰個發現。」
+> **【EN】** "They measure different things. The **23 minutes** is the published figure for fully returning to the original task after an interruption — it includes context switching and finding your place again. What we log is a **signal-level micro-recovery**: how quickly the focus value climbs back above threshold after it dips. One is task-level, the other is state-level, so the difference in magnitude is expected. We are not claiming our 2.6 seconds contradicts that finding."
 
-**L4-3. 用 webcam 睇住我塊面，其實你只係知我望唔望住個螢幕，唔係知我專唔專心。** 🎨🛠️
+**L4-3. 用 webcam 睇住我塊面，其實你只係知我望唔望住螢幕，唔係知我專唔專心。 / A webcam only tells you whether I'm looking at the screen, not whether I'm concentrating.** 🎨🛠️
 > ⚠️ **最尖銳嘅技術批評，而且佢係啱嘅。**
-> ✅ 「你講得啱，相機量嘅係**注意力朝向嘅代理指標**——面部朝向、視線離開、臉部居中程度——唔係腦活動。所以我哋將佢定位成**無門檻嘅入門線**，而**EEG 先係真正量緊生理訊號嗰條線**。兩條線餵同一個閉環，但我哋唔會講相機等於量到腦。呢個取捨我哋喺技術格入面寫明咗。」
+> **【中】** 「你講得啱。相機量嘅係**注意力朝向嘅代理指標**——面部朝向、視線離開、臉部居中程度——唔係腦活動。所以我哋將佢定位成**無門檻嘅入門線**，而 **EEG 先係真正量緊生理訊號嗰條線**。兩條線餵同一個閉環，但我哋唔會講相機等於量到腦。」
+> **【EN】** "You're right, and we say so. The camera measures a **proxy for attentional orientation** — head pose, gaze leaving the screen, how centred the face is — not brain activity. That's why we position it as the **zero-barrier entry path**, while the **EEG is the line that actually measures a physiological signal**. Both feed the same loop, but we never claim the camera reads your brain."
 
-**L4-4. 咁我對住螢幕發吽哣，你個系統咪照畀高分？** 🛠️
+**L4-4. 咁我對住螢幕發吽哣，你個系統咪照畀高分？ / So if I stare blankly at the screen, your system still scores me as focused?** 🛠️
 > ⚠️ 承接上題，係實際可以「呃」到系統嘅情況。
-> ✅ 「相機模式的確有呢個限制——望住螢幕發呆會被當成專注。有兩點紓緩：一係**挑戰同學習模式有題目**，發吽哣答唔到題，分數會反映；二係戴 EEG 就避開晒呢個問題，因為量嘅係腦電。長遠加眼動追蹤可以再收窄。」
+> **【中】** 「相機模式的確有呢個限制——望住螢幕發呆會被當成專注。有兩點紓緩：一係**挑戰同學習模式有題目**，發吽哣答唔到題，分數會反映；二係戴 EEG 就避開晒呢個問題，因為量嘅係腦電。長遠加眼動追蹤可以再收窄。」
+> **【EN】** "In camera mode, yes — that's a real limitation. Two things mitigate it: **Challenge and Study Mode include questions**, so a blank stare shows up in the score; and the EEG path avoids the problem entirely because it reads electrical activity. Eye-tracking would narrow the gap further."
 
-**L4-5. 學習模式係要溫書，但你畀隻船同海畀我睇——本身咪好分心？** 🎨
+**L4-5. 學習模式要溫書，但你畀隻船同海睇——本身咪好分心？ / Study Mode is for revision, but you show a boat and an ocean — isn't that distracting?** 🎨
 > ⚠️ 好合理嘅 UX 質疑，而且我哋**真係為咗呢個改過設計**——答得好會變加分位。
-> ✅ 「我哋一開始都擔心，所以**閱讀階段係收起隻船同航道嘅**，淨返海景同左邊一個細 HUD。船只會喺**測驗階段**返場。連『閱讀時角落加隻細船』呢個提案我哋都否決咗，就係怕分散注意力。」
+> **【中】** 「我哋一開始都擔心，所以**閱讀階段係收起隻船同航道嘅**，淨返海景同左邊一個細 HUD。船只會喺**測驗階段**返場。連『閱讀時角落加隻細船』呢個提案我哋都否決咗，就係怕分散注意力。」
+> **【EN】** "We worried about exactly that, so during the **reading phase the boat and the route are hidden** — only the calm seascape and a small HUD remain. The boat returns for the **quiz phase**. We even rejected a proposal to keep a small boat in the corner while reading, for that reason."
 
-**L4-6. 份教材同測驗卷邊個寫？點知條卷測得準？** 🛠️💰
+**L4-6. 份教材同測驗卷邊個寫？點知條卷測得準？ / Who wrote your material and quiz? How do you know the quiz is valid?** 🛠️💰
 > ⚠️ 教材同卷都係隊員自己寫，冇經專業審核。
-> ✅ 「教材同十條題都係我哋隊員按課程內容自己編寫嘅，**冇經第三方驗證**——所以我哋唔會用佢嚟聲稱『學習成效』。佢喺實驗入面嘅角色只係**一把固定嘅尺**：兩組用完全一樣嘅材料同卷，咁比較先公平。要做正式研究就一定要用標準化評估工具。」
+> **【中】** 「教材同十條題都係我哋隊員按課程內容自己編寫，**冇經第三方驗證**——所以我哋唔會用佢嚟聲稱『學習成效』。佢喺實驗入面嘅角色只係**一把固定嘅尺**：兩組用完全一樣嘅材料同卷，咁比較先公平。要做正式研究就一定要用標準化評估工具。」
+> **【EN】** "Our team wrote both, based on the syllabus, and **they have not been externally validated** — which is precisely why we don't use them to claim learning gains. In the study their only job is to be a **constant ruler**: both conditions get identical material and identical questions, so the comparison is fair. A formal study would need standardised instruments."
 
-**L4-7. 三個模式，但你淨係 demo 一個——另外兩個係咪未做完？** 🛠️
-> ⚠️ 台上只示範學習模式，容易畀人以為其餘係空殼。
-> ✅ 「三個都完成咗，可以即場試（→ 攤位開）。台上揀學習模式係因為佢**一個模式就行晒成個閉環**——讀、分心、介入、測驗、報告。三分鐘要示範完整故事，佢最有效率。」
+**L4-7. 三個模式，但你淨係 demo 一個——另外兩個係咪未做完？ / You demo one mode out of three — are the other two finished?** 🛠️
+> **【中】** 「三個都完成咗，可以即場試（→ 攤位開）。台上揀學習模式係因為佢**一個模式就行晒成個閉環**——讀、分心、介入、測驗、報告。三分鐘要示範完整故事，佢最有效率。」
+> **【EN】** "All three are complete — you can try any of them right now at our booth. We demo Study Mode on stage because it **runs the entire loop in one session**: reading, drifting, intervention, quiz, report. With three minutes, it tells the whole story most efficiently."
 
-**L4-8. 你哋收幾錢？學校點解要買你哋而唔係封鎖手機／用現成 App？** 💰
+**L4-8. 你哋收幾錢？學校點解要買你哋而唔係封鎖手機？ / What would you charge? Why buy this instead of just banning phones?** 💰
 > ⚠️ **市場格佔 30%，但 present 同海報都冇講價錢同競品對比。**
-> ✅ 「定位係**學校 site licence ＋ 家長訂閱**兩條線；因為零硬件門檻，邊際成本主要係雲端，所以定價可以做到好低。同封鎖手機嘅分別係：封鎖係**限制**，我哋係**訓練**——學生離開咗管制環境之後，得到嘅係一個可以自己用嘅技能。同 Forest 嗰類 App 嘅分別係佢哋計時間，我哋量狀態同即時介入。」
+> **【中】** 「定位係**學校 site licence ＋ 家長訂閱**兩條線；零硬件門檻，邊際成本主要係雲端，所以定價可以做得低。同封鎖手機嘅分別係：封鎖係**限制**，我哋係**訓練**——學生離開咗管制環境之後，得到嘅係一個自己用得著嘅技能。同 Forest 嗰類 App 嘅分別係佢哋計時間，我哋量狀態同即時介入。」
+> **【EN】** "A school site licence plus a parent subscription. With no hardware requirement our marginal cost is essentially cloud, so the price point can stay low. The difference from banning phones is that a ban is a **restriction** while this is **training** — the student keeps the skill once they leave the controlled environment. And unlike apps such as Forest, which count time, we measure state and intervene in the moment."
 
-**L4-9. 你哋喺同學身上做測試，有冇同意程序？** 🛠️
-> ⚠️ 涉及未成年人實驗，評判（尤其教育背景）會問。
-> ✅ 「有。參加者係自願、事前解釋清楚做咩、隨時可以停；**唔收真名，用編號 S01/S02**；數據只存喺本機同我哋自己嘅帳戶。我哋亦清楚咁講明呢個係 pilot 而唔係正式研究，所以冇宣稱任何醫療或學習成效。」
+**L4-9. 你哋喺同學身上做測試，有冇同意程序？ / Did you obtain consent for testing on students?** 🛠️
+> **【中】** 「有。參加者係自願、事前解釋清楚做咩、隨時可以停；**唔收真名，用編號 S01/S02**；數據只存喺本機同我哋自己嘅帳戶。我哋亦清楚講明呢個係 pilot 而唔係正式研究，所以冇宣稱任何醫療或學習成效。」
+> **【EN】** "Yes. Participation was voluntary, we explained the procedure beforehand, and anyone could stop at any time. **We record a code — S01, S02 — never a name**, and the data stays on the local machine and our own account. We also state plainly that this is a pilot, not a formal study, so we make no medical or educational efficacy claims."
 
-**L4-10. 比賽完之後仲會唔會繼續？** 💰
-> ⚠️ 評判想知係「一次性作品」定「有機會落地嘅產品」。
-> ✅ 「會。下一步好具體：① 同學校合作跑大樣本前後測；② 加多 sensor（眼動／心率變異）做交叉驗證；③ 完整 EEG 閉環做旗艦體驗。平台本身已經上線可以用，唔係比賽完就收檔。」
+**L4-10. 比賽完之後仲會唔會繼續？ / Will this continue after the competition?** 💰
+> **【中】** 「會。下一步好具體：① 同學校合作跑大樣本前後測；② 加多 sensor（眼動／心率變異）做交叉驗證；③ 完整 EEG 閉環做旗艦體驗。平台本身已經上線可以用，唔係比賽完就收檔。」
+> **【EN】** "Yes. Our next steps are concrete: a larger pre/post study with schools, sensor fusion with eye-tracking and HRV, and the full EEG closed loop as the flagship experience. The platform is already live and usable — it doesn't stop when the competition does."
 
 ---
 
 **🔎 三個我哋自己知、但唔好主動講嘅位**（畀人問到就照上面答，唔問就唔提）
 1. 相機模式量嘅唔係腦活動（L4-3/4）。
 2. 海報嗰張證據圖係示意圖（L4-1）——**除非 pilot 已跑完，就主動亮真數據**。
-3. 三種輸入源嘅專注數值**唔可以直接互相比較**（門檻同分佈唔同）——所以實驗一定要**全程用同一種輸入源**。有人問就照講，呢個係嚴謹嘅表現。
+3. 三種輸入源嘅專注數值**唔可以直接互相比較**（門檻同分佈唔同）——所以實驗全程用同一種輸入源。有人問就照講，係嚴謹嘅表現。
 
 ### 🆘 尷尬情況應對
 
@@ -673,13 +701,113 @@ Windows laptop 做現場 demo 機：本地 Python EEG bridge + 本地站 `http:/
 <a name="part-9"></a>
 ## Part 9 — 競爭力分析（創科比賽 / STEAM 展覽・發明品類別）
 
-### 🎯 官方評分準則 40-30-30（delegation PDF・答辯／海報要對準呢三格拎分）
-| 準則 | 佔比 | 官方要求 | 本項目對準邊度 |
-|---|---|---|---|
-| **創意 Creativity** | **40%** | 講清楚**新機制**同**同現有方案嘅精準分別** | 「一個閉環（Detect→See→Cue→Measure）而唔是三件散功能」＋「分心就飄走嘅船」＝可見即時回饋，唔同番茄鐘／叫人專心（S3→S4／Pros #2） |
-| **市場 Marketability** | **30%** | 講清楚**邊個需要／點解需要／點樣落地** | 有 webcam 就用到、零硬件門檻＝學校／補習／家長（S9／Pros #3）；跨場數據撐訂閱＋報表 |
-| **實用 Usability** | **30%**（內含 **presentation 10 分**） | **穩定、可重複**嘅示範＋精簡解說＋直接答問 | 零現場操作＝穩定可重複（預錄影片＋Results 截圖）；≤3 分鐘英文＋core version＋Q&A 直答（Part 6／7） |
-> **拎分口訣**：**創意**講「點解同人唔同」、**市場**講「邊個肯俾錢」、**實用**講「一定 demo 到＋答得快」。presentation 佔實用 10 分——所以計時、英文流暢、分工清係硬指標，唔係加分位。
+### 9.1 官方評分準則 40-30-30 — 逐格拆解（**呢節係拎分地圖**）
+
+> 官方 delegation PDF 定咗三格：**創意 40%／市場 30%／實用 30%（presentation 佔實用入面 10 分）**。
+> 下面每格有四樣嘢：**官方要求解讀 → 評判實際會睇／會問 → 我哋嘅得分彈藥（可以照講）→ 我哋嘅失分風險**。
+> 每格尾有一句 **💬 Money line**（中英），係嗰格最抵讚嘅一句，答問時搵位講出嚟。
+
+---
+
+#### 🎨 創意 Creativity — 40%（最大一格）
+
+**官方要求**：*Explain the novel mechanism and the precise difference from existing solutions.*
+→ 重點唔係「你個 idea 幾新奇」，而係 **①個新機制係點運作 ②同已經有嘅嘢精準分別喺邊**。淨係講「我哋好創新」係攞唔到分嘅。
+
+**評判實際會睇／會問**
+- 你解唔解釋到個機制本身（唔止結果）？
+- 市面已經有 neurofeedback 產品、有專注 App——你哋究竟新喺邊？
+- 呢個係「拼湊現有技術」定「有自己嘅設計判斷」？
+
+**我哋嘅得分彈藥**
+| # | 講咩 | 點解拎到分 |
+|---|---|---|
+| 1 | **一個閉環，唔係三件功能**：Detect → See → Cue → Measure 首尾相連，每一步自動觸發下一步 | 講到「機制」而唔止「功能清單」 |
+| 2 | **專注＝舵**：唔係加分減分，係**你分心，船就真係揸唔到**——狀態直接變成物理後果 | 呢個係設計上嘅原創隱喻，唔識字都睇得明 |
+| 3 | **三層可互換輸入**（EEG／webcam／模擬）餵同一個閉環，換訊號源唔使改系統 | 架構層面嘅創新，唔係表面功夫 |
+| 4 | **精準差異**：市面 neurofeedback 產品要買頭帶（US$200+）；專注 App（Forest 類）只計時間唔量狀態。**我哋將入場券降到一個 webcam，同時做到即時介入** | 直接回應「同現有方案嘅精準分別」 |
+| 5 | **設計取捨講得出**：閱讀階段特登收起隻船、eSense 0 當「算唔到」唔當零分、實驗鎖死固定卷唔用 AI | 顯示有真判斷，唔係堆功能 |
+
+**失分風險**
+- ❌ 講成「我哋做咗個 EEG 遊戲」——聽落似 side project。
+- ❌ 用「AI」「大數據」呢類空詞當創新點。
+- ⚠️ 評判可能知市面已有同類產品 → **一定要用第 4 點主動劃清界線**，唔好等佢問。
+
+> 💬 **Money line**
+> **【中】** 我哋唔係做多一個提醒 App——我哋將「專注」變成一個**即時、可見、有後果**嘅閉環：你一分心，隻船即刻揸唔到，系統即刻介入，完場即刻量到。
+> **【EN】** We didn't build another reminder app — we turned attention into a **closed loop that is immediate, visible and consequential**: the moment you drift the boat stops steering, the system intervenes, and the session measures it.
+
+---
+
+#### 💰 市場 Marketability — 30%
+
+**官方要求**：*Identify who needs it, why they need it, and how it could realistically be implemented.*
+→ 三條問題要答齊：**邊個要／點解要／點樣真係落到地**。第三條最多隊伍答唔到。
+
+**評判實際會睇／會問**
+- 目標用戶講唔講得具體（唔係「所有人」）？
+- 有冇成本／價錢概念？
+- 落地障礙諗過未（學校點部署？家長點睇？）？
+
+**我哋嘅得分彈藥**
+| # | 講咩 | 點解拎到分 |
+|---|---|---|
+| 1 | **用戶好具體**：中學生為主；付錢嘅係**學校（site licence）同家長（訂閱）** | 分清「用家」同「買家」＝有商業思維 |
+| 2 | **痛點有數據**：47 秒、23 分鐘、香港青少年每日 6–7 小時螢幕時間 | 唔使解釋評判都明個需求真 |
+| 3 | **零硬件門檻＝可以真落地**：有 webcam 就用到，學校今日部署得到；EEG 係升級選項唔係前提 | 直接答「how could it realistically be implemented」 |
+| 4 | **有回訪鈎**：跨場次趨勢＋畀老師／家長嘅報表 → 撐得起訂閱制 | 唔係一次性玩具 |
+| 5 | **教育場景已經落到地**：學習模式＋固定測驗卷＋對照實驗框架，唔係概念圖 | 已經有可運作嘅教育工具 |
+
+**失分風險**
+- ❌ 答「所有需要專注嘅人」——等於冇答。
+- ❌ 完全冇價錢概念（**present 同海報都冇講過價**，被問到要即刻答得出 → 見 **L4-8**）。
+- ⚠️ 內地評判可能問「喺內地點部署」→ 答：換國內 CDN／自 host，架構本身唔綁定任何一家雲。
+
+> 💬 **Money line**
+> **【中】** 因為只需要一個 webcam，任何一間學校今日就部署得到——我哋唔係喺賣硬件，係喺賣一個學生離開課室之後仍然帶得走嘅技能。
+> **【EN】** Because a webcam is all it takes, any school could deploy this today — we're not selling hardware, we're selling a skill the student keeps after they leave the classroom.
+
+---
+
+#### 🛠️ 實用 Usability — 30%（**內含 presentation 10 分**）
+
+**官方要求**：*Deliver a stable, reproducible demonstration with concise explanation and direct answers.*
+→ 呢格考嘅**唔係產品有幾多功能，係你哋現場表現**：示範穩唔穩、講得簡潔唔簡潔、答問直唔直接。**係三格入面最容易靠準備拎分嗰格。**
+
+**評判實際會睇／會問**
+- Demo 有冇死機／有冇等好耐？
+- 三分鐘講唔講得完？超時會扣印象分。
+- 問一條問題，係咪一句答到？定係遊花園？
+
+**我哋嘅得分彈藥**
+| # | 講咩／做咩 | 點解拎到分 |
+|---|---|---|
+| 1 | **零現場操作答辯**：PPT＋預錄影片，台上冇嘢會死機 | 直接對應「stable, reproducible」 |
+| 2 | **三層 fallback**：EEG 死 → 相機；相機死 → 模擬；網絡死 → 本機版本（實測封鎖晒外網仍然行到） | 講得出＝工程成熟度 |
+| 3 | **攤位真機可即場試** | 「reproducible」嘅最強證明 |
+| 4 | **計時練過**：≤3:00 完整版 ＋ 90–120 秒 core version（評判可能只停 2 分鐘） | presentation 嗰 10 分 |
+| 5 | **答問直接**：先一句答案，再例子，最後先技術（見 Part 7 黃金句式） | 「direct answers」係明文要求 |
+| 6 | **產品本身嘅穩定設計**：訊號唔夠會暫停計時唔會污糟數據、開場等到訊號 OK 先自動開波 | 顯示我哋為咗「可重複」落過功夫 |
+
+**失分風險**
+- ❌ **超時**——官方硬限 3 分鐘，超咗即刻蝕。
+- ❌ 攤位機出事又冇即刻切 fallback（鐵律：搞硬件唔可以超過 1–2 分鐘）。
+- ❌ 答問答到遊花園、四個人搶答。
+- ⚠️ 學習模式完整流程要 2–3 分鐘，**現場示範畀評判睇要用最短路徑**（讀第一頁＋示範分心介入就夠，唔好由頭行到尾）。
+
+> 💬 **Money line**
+> **【中】** 台上你見到嘅每一樣嘢，攤位都可以即場再做一次——而且冇網、冇頭帶、冇雲端都照做得到。
+> **【EN】** Everything you saw on stage can be reproduced at our booth right now — and it still runs with no internet, no headset and no cloud.
+
+---
+
+#### 📋 上台前自檢（照呢三格 tick 一次）
+
+| 格 | 我哋準備好未？ |
+|---|---|
+| 🎨 創意 40% | [ ] 四個人都講得出「一個閉環」＋「同現有方案嘅精準分別」（第 4 點） |
+| 💰 市場 30% | [ ] 有人答得出價錢模式（L4-8）＋「邊個買單」 |
+| 🛠️ 實用 30% | [ ] 計時 ≤3:00 行過 ×2；core version 練過；影片離線播到；攤位 fallback 順序人人識 |
 
 ### 優勢（Pros，demo + 答辯主打・2026-07-17 重新分析）
 1. **題目貼身，老師認證**：老師 07-17 明言「**題目非常貼近當代年輕人的需要，非常值得發展下去**」——問題定義清楚，社會需求唔使解釋評判都明。
