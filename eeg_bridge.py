@@ -115,6 +115,7 @@ class EEGBridge:
                 except Exception:
                     continue
 
+
                 action = message.get("action")
                 if action == "start_eeg":
                     self.permission_blocked = False
@@ -128,28 +129,45 @@ class EEGBridge:
                     self.reset_state()
                     self.close_serial()
                     self.enqueue_status("EEG idle. Waiting for user to choose EEG Equipment.", force=True)
+        except Exception as exc:
+            # A browser that refreshes or navigates away closes the socket
+            # mid-read; that is routine here, not a crash worth a traceback.
+            self.log(f"Client disconnected: {exc.__class__.__name__}")
         finally:
             self.clients.discard(websocket)
             if not self.clients:
                 self.capture_enabled = False
                 self.reset_state()
                 self.close_serial()
+                self.log("No clients connected - EEG idle, bridge still running.")
 
     async def queue_sender(self):
         while self.running:
-            payload = await self.queue.get()
-            if not self.clients:
-                continue
+            try:
+                payload = await self.queue.get()
+                if not self.clients:
+                    continue
 
-            data = json.dumps(payload)
-            dead = []
-            for ws in self.clients:
-                try:
-                    await ws.send(data)
-                except Exception:
-                    dead.append(ws)
-            for ws in dead:
-                self.clients.discard(ws)
+                data = json.dumps(payload)
+                dead = []
+                # Iterate a SNAPSHOT: `await ws.send(...)` yields control, and a
+                # browser leaving at that moment runs ws_handler's finally, which
+                # discards from this very set -> "RuntimeError: Set changed size
+                # during iteration". That killed this task, so the bridge stayed
+                # up but never sent another sample: after one session it looked
+                # like the bridge had quit instead of going back to standby.
+                for ws in list(self.clients):
+                    try:
+                        await ws.send(data)
+                    except Exception:
+                        dead.append(ws)
+                for ws in dead:
+                    self.clients.discard(ws)
+            except asyncio.CancelledError:
+                raise
+            except Exception as exc:
+                # One bad frame must never take the sender down with it.
+                self.log(f"Send loop recovered from: {exc!r}")
 
     def enqueue(self, payload):
         if self.loop and self.running:
