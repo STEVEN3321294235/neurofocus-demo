@@ -1,7 +1,7 @@
-import { t } from '../../app/i18n.js?v=2026-07-25-4';
+import { t } from '../../app/i18n.js?v=2026-07-25-5';
 import { getState, setState } from '../../app/state.js';
-import { activateEEGMode, activateSimulationMode, disposeMode, isEegStation, syncRuntimeState } from '../../services/eegBridgeService.js?v=2026-07-25-4';
-import { attachCameraPreview, detachCameraPreview, requestCameraPreview, stopCameraPreview } from '../../services/focusInputService.js?v=2026-07-25-4';
+import { activateEEGMode, activateSimulationMode, disposeMode, isEegStation, syncRuntimeState } from '../../services/eegBridgeService.js?v=2026-07-25-5';
+import { attachCameraPreview, detachCameraPreview, requestCameraPreview, stopCameraPreview } from '../../services/focusInputService.js?v=2026-07-25-5';
 import { resetAllData, deleteAccountData } from '../../services/storageService.js';
 
 // Study Mode is live (D3 complete, 2026-07-16). The card is fully enterable;

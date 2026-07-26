@@ -1,8 +1,8 @@
 import { getState, setState } from '../../app/state.js';
 import { setLang as persistLang, setTheme as persistTheme } from '../../services/storageService.js';
-import { applyStoredTheme } from '../../components/controlBar.js?v=2026-07-25-4';
-import { importGameRuntime } from '../../services/runtimeLoader.js?v=2026-07-25-4';
-import { stopCameraPreview } from '../../services/focusInputService.js?v=2026-07-25-4';
+import { applyStoredTheme } from '../../components/controlBar.js?v=2026-07-25-5';
+import { importGameRuntime } from '../../services/runtimeLoader.js?v=2026-07-25-5';
+import { stopCameraPreview } from '../../services/focusInputService.js?v=2026-07-25-5';
 
 
 function renderThemeToggle(theme) {

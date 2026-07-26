@@ -9,7 +9,7 @@ import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { SMAAPass } from 'three/addons/postprocessing/SMAAPass.js';
 import { setState, getState } from '../../app/state.js';
-import { getCameraFocusScore, getCameraTrackingStatus, stopCameraPreview } from '../../services/focusInputService.js?v=2026-07-25-4';
+import { getCameraFocusScore, getCameraTrackingStatus, stopCameraPreview } from '../../services/focusInputService.js?v=2026-07-25-5';
 import { appendSessionSummary, getSessionHistory, getLocalVoyageLog, appendVoyageLog, getCumulativeCloudDistance, appendStudyHistory, getStudyHistory } from '../../services/storageService.js';
 import { initVoyage, resetVoyage, updateVoyage, getVoyageStats, getBuoysInWindow, routeXAt, routeYawAt, CHECKPOINT_SPACING, setVoyageVisible } from './voyage.js';
 import { getStudyMaterial, STUDY_PAGE_LIMIT_MS, STUDY_PAGE_MIN_MS } from './studyMaterials.js';
@@ -73,6 +73,12 @@ function renderEegDualAxis() {
     const relaxBar = document.getElementById('eeg-meditation-bar');
     if (focusBar) focusBar.style.width = `${Math.max(0, Math.min(100, latestEEG.attention))}%`;
     if (relaxBar) relaxBar.style.width = `${Math.max(0, Math.min(100, latestEEG.meditation))}%`;
+    // eSense 0 means "not calculable" rather than a real zero, so show a dash.
+    const fmt = (v) => (v > 0 ? String(Math.round(v)) : '--');
+    const focusVal = document.getElementById('eeg-attention-value');
+    const relaxVal = document.getElementById('eeg-meditation-value');
+    if (focusVal) focusVal.textContent = fmt(latestEEG.attention);
+    if (relaxVal) relaxVal.textContent = fmt(latestEEG.meditation);
 }
 
 function renderSignalChip() {
@@ -3222,6 +3228,47 @@ window.startGameWithDifficulty = function(level) {
     });
 }
 
+// Real EEG only: wait until a usable reading is flowing before the countdown.
+// Resolves immediately for simulation/camera, and gives up after a while so a
+// stubborn headset can never trap the operator on a black screen — the session
+// then starts anyway and simply pauses until contact returns.
+const EEG_READY_WAIT_MS = 30000;
+function waitForUsableEEG(timeoutMs = EEG_READY_WAIT_MS) {
+    if (selectedInputMode !== 'eeg') return Promise.resolve(true);
+
+    const usable = () => Date.now() - lastValidEEGDataTime < 2000;
+    if (usable()) return Promise.resolve(true);
+
+    const overlayText = document.getElementById('countdown-text');
+    const startedAt = Date.now();
+    return new Promise((resolve) => {
+        const tick = setInterval(() => {
+            if (usable()) {
+                clearInterval(tick);
+                resolve(true);
+                return;
+            }
+            if (overlayText) {
+                const sig = Math.round(latestEEG.signal || 0);
+                overlayText.classList.add('countdown-waiting');
+                overlayText.textContent = latestEEG.attention > 0 || sig >= EEG_MIN_USABLE_SIGNAL
+                    ? langText(`等待穩定訊號…（${sig}%）`, `Waiting for a steady signal… (${sig}%)`)
+                    : langText('請戴好頭帶：額頭貼實、耳夾夾住耳垂', 'Fit the headset: sensor on the forehead, clip on the earlobe');
+            }
+            if (Date.now() - startedAt >= timeoutMs) {
+                clearInterval(tick);
+                resolve(false);
+            }
+        }, 400);
+    }).then((ok) => {
+        if (overlayText) {
+            overlayText.classList.remove('countdown-waiting');
+            overlayText.textContent = '';
+        }
+        return ok;
+    });
+}
+
 function startCountdown(onComplete) {
     const overlay = document.getElementById('game-countdown');
     const text = document.getElementById('countdown-text');
@@ -3610,7 +3657,7 @@ function initGameSession() {
 
         // 6. Give GPU one more frame to settle before removing the loader
         requestAnimationFrame(() => {
-            requestAnimationFrame(() => {
+            requestAnimationFrame(async () => {
                 hideTransitionLoader();
                 // Boot has succeeded: disarm the startup watchdog NOW. Leaving
                 // it to the countdown-completion callback (~4s later) creates a
@@ -3621,6 +3668,13 @@ function initGameSession() {
                     startupTimeoutId = null;
                 }
                 setGamePresentationState('countdown');
+
+                // Real EEG: hold the countdown until the headset is actually
+                // producing a usable reading, then start on its own. Starting
+                // regardless meant the session opened with the clock already
+                // paused and the boat still, which reads as "this mode is
+                // broken" rather than "fix your sensor".
+                await waitForUsableEEG();
 
                 startCountdown(() => {
                     if (sessionId !== activeGameSessionId) return;
@@ -7100,11 +7154,9 @@ function animate() {
                             }
                         }
 
-                        updateDebugOverlay({
-                            signal_quality: signal,
-                            attention: attention,
-                            meditation: meditation
-                        });
+                        // The raw channels now live in the HUD's dual-axis rows
+                        // (labelled, with live numbers) and the signal chip, so
+                        // the old green corner overlay is gone.
                     } else if (msg.type === "status") {
                         console.log("[Bridge Status]", msg.message);
                         const statusText = String(msg.message || "");
@@ -7214,14 +7266,16 @@ function animate() {
         });
     }
 
-    function disconnectBridge() {
+    function disconnectBridge(userInitiated = true) {
         if (bridgeReconnectTimeoutId) {
             clearTimeout(bridgeReconnectTimeoutId);
             bridgeReconnectTimeoutId = null;
         }
-        // Explicitly unplugging the headset also retires this machine as the
-        // EEG station, so the confirmation dialog comes back next time.
-        clearEegStation();
+        // Only an explicit "disconnect" retires this machine as the EEG
+        // station. Merely walking back to Home must not, or the next visitor
+        // gets the headset dialog again on a booth laptop that is still wired
+        // up and streaming.
+        if (userInitiated) clearEegStation();
         suppressBridgeAutoReconnect = true;
         bridgeReconnectAttempts = 0;
         if (bridgeSocket) {
@@ -7263,8 +7317,13 @@ function animate() {
     function leaveEEGMode(resetSimulation = true) {
         eegModeActive = false;
         removeDebugOverlay();
-        if (isConnected || bridgeConnected) {
-            disconnectBLE();
+        // On the booth's EEG station, leaving a session (Results -> Home) keeps
+        // the bridge socket open in standby: the headset stays paired and
+        // streaming, incoming frames are simply ignored while eegModeActive is
+        // false, and the next visitor resumes instantly instead of anyone
+        // having to restart eeg_bridge.py.
+        if ((isConnected || bridgeConnected) && !isEegStation()) {
+            disconnectBridge(false);
         }
         if (resetSimulation) {
             isSimulationMode = false;
@@ -7286,32 +7345,6 @@ function animate() {
         }
         updateSimulationHint();
         updateModeStatusUI();
-    }
-
-    function updateDebugOverlay(data) {
-        if (!eegModeActive) return;
-        let overlay = document.getElementById('eeg-debug-overlay');
-        if (!overlay) {
-            overlay = document.createElement('div');
-            overlay.id = 'eeg-debug-overlay';
-            overlay.style.position = 'fixed';
-            overlay.style.bottom = '10px';
-            overlay.style.right = '10px';
-            overlay.style.backgroundColor = 'rgba(0, 0, 0, 0.7)';
-            overlay.style.color = '#0f0';
-            overlay.style.padding = '10px';
-            overlay.style.fontFamily = 'monospace';
-            overlay.style.fontSize = '12px';
-            overlay.style.zIndex = '9999';
-            overlay.style.borderRadius = '5px';
-            overlay.style.pointerEvents = 'none';
-            document.body.appendChild(overlay);
-        }
-        
-        let html = `<div>Signal: ${data.signal_quality}%</div>`;
-        html += `<div>Attention: ${data.attention}</div>`;
-        html += `<div>Meditation: ${data.meditation}</div>`;
-        overlay.innerHTML = html;
     }
 
     function startConnectionWatchdog() {

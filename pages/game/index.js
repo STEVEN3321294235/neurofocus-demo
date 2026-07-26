@@ -1,8 +1,8 @@
 import { getState, resetFlowState, setState } from '../../app/state.js';
-import { t } from '../../app/i18n.js?v=2026-07-25-4';
+import { t } from '../../app/i18n.js?v=2026-07-25-5';
 import { logout } from '../../services/authService.js';
-import { disposeMode, syncRuntimeState } from '../../services/eegBridgeService.js?v=2026-07-25-4';
-import { importGameRuntime } from '../../services/runtimeLoader.js?v=2026-07-25-4';
+import { disposeMode, syncRuntimeState } from '../../services/eegBridgeService.js?v=2026-07-25-5';
+import { importGameRuntime } from '../../services/runtimeLoader.js?v=2026-07-25-5';
 
 async function getRuntime() {
     return importGameRuntime('/pages/game/runtime.js');
@@ -123,10 +123,12 @@ export default {
                             <div class="eeg-axis-row">
                                 <span class="eeg-axis-label">${t('eeg_focus_axis')}</span>
                                 <div class="eeg-axis-track"><div id="eeg-attention-bar" class="eeg-axis-fill focus"></div></div>
+                                <span class="eeg-axis-value" id="eeg-attention-value">--</span>
                             </div>
                             <div class="eeg-axis-row">
                                 <span class="eeg-axis-label">${t('eeg_relax_axis')}</span>
                                 <div class="eeg-axis-track"><div id="eeg-meditation-bar" class="eeg-axis-fill relax"></div></div>
+                                <span class="eeg-axis-value" id="eeg-meditation-value">--</span>
                             </div>
                         </div>
 
