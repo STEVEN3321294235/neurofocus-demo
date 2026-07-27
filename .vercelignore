@@ -13,3 +13,5 @@ debug-*.md
 eeg_bridge.py
 run_eeg_game.sh
 docs/
+pilot_simulated/
+scripts/

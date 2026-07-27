@@ -1,0 +1,9 @@
+data_source,participant_id,session_order,condition,subject,depth,reading_total_s,quiz_total_s,quiz_score,quiz_total,reading_focus_pct,reading_distractions,reading_interventions,reading_avg_recovery_ms,quiz_focus_pct
+SIMULATED,S01,1,paper,biology,foundation,357,257,6,10,NA,NA,NA,NA,NA
+SIMULATED,S01,2,platform,biology,advanced,456,269,7,10,68,3,1,11160,61
+SIMULATED,S02,1,platform,biology,foundation,396,165,8,10,72,3,2,10628,79
+SIMULATED,S02,2,paper,biology,advanced,468,168,6,10,NA,NA,NA,NA,NA
+SIMULATED,S03,1,paper,biology,advanced,410,230,5,10,NA,NA,NA,NA,NA
+SIMULATED,S03,2,platform,biology,foundation,319,218,7,10,72,1,1,10061,72
+SIMULATED,S04,1,platform,biology,advanced,365,341,6,10,57,4,2,13854,56
+SIMULATED,S04,2,paper,biology,foundation,271,293,6,10,NA,NA,NA,NA,NA

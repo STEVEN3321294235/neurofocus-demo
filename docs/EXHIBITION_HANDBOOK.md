@@ -11,6 +11,7 @@
 > | 攤位招呼觀眾 | **Part 5.6** 導覽流程 |
 > | 開機／EEG 出問題 | **Part 8**（含「配對到冇數據」「玩完一場 bridge 死咗」修復記錄） |
 > | 酒店跑 pilot 實驗 | **Part 12** ← 逐步指引＋分配表＋紀錄表 |
+> | 想事先練分析／睇圖點出 | **Part 12.10** ← `pilot_simulated/` 假數據集（⚠️ 唔可以當成果） |
 > | 攤位規格／賽程／要帶咩 | **Part 11** |
 > | 想拎盡分 | **Part 9.1** — 40-30-30 逐格拆解＋每格 money line |
 > | 出發前 checklist | **Part 10** |
@@ -251,12 +252,20 @@ graph TD
 
 **鐵律**：觀眾面前**唔好花多過 1–2 分鐘**搞硬件；唔穩即刻切 Simulation。
 
-### 5.4 四人分工（對正官方三角色・4 人分擔）
-> 官方 delegation PDF 定咗答辯三角色：**主講（Lead Presenter）／示範＋技術（Demonstrator + Technical Responder）／攤位長＋後備主講（Booth Captain + Backup）**。本隊 4 人，將攤位嘅多一位歸入「人流／後備」。
+### 5.4 三人分工（＝官方三角色，一人一個）
+> ⚠️ **IEYI 每隊只准 3 人上場**，所以現場係三個人，一人食一個官方角色，冇後備人手。
+> 官方 delegation PDF 嘅三角色：**主講（Lead Presenter）／示範＋技術（Demonstrator + Technical Responder）／攤位長＋後備主講（Booth Captain + Backup）**。
+
 1. **主講（Lead Presenter）**：講完整版／core version、控制時間；答產品定位、「點解 EEG/camera/simulation」（彈藥 Part 7）。
-2. **示範＋技術（Demonstrator + Technical Responder）**：EEG 頭帶連接、bridge 啟動、佩戴示範；答技術追問。
-3. **攤位長＋後備主講（Booth Captain + Backup）**：管攤位、iPad 引導參觀者行 5.6 導覽、主講唔到就頂上。
-4. **人流＋手機入口**：QR 掃碼、解釋手機版、處理網絡／排隊／故障。
+2. **示範＋技術（Demonstrator + Technical Responder）**：EEG 頭帶連接、bridge 啟動、佩戴示範；答技術追問。**兼**手機入口／QR。
+3. **攤位長＋後備主講（Booth Captain + Backup）**：管攤位、iPad 引導參觀者行 5.6 導覽、處理人流同排隊；主講唔到就頂上。
+
+**三人版要特別留意**
+- 攤位**唔可以三個人同時黐住一個訪客**——一個講解、一個顧硬件、一個睇住有冇新訪客埋嚟。
+- 有人要走開（去洗手間／攞嘢），**剩返嘅人默認切 Simulation**，唔好一個人同時搞頭帶又講解。
+- 講稿 6.4 A–E 五段分落三個人（例如 主講 A＋B＋E、示範 C、攤位長 D），排練時要夾定邊個接邊句。
+
+> **海報／PPT 上如果有第四個名**：作品的確係四個人做，但只有三個人**上場**。有人問就照直講：「作品由四位隊員完成，比賽規定每隊三人出席，所以今日到場係我哋三個。」出發前同老師確認清楚**官方報名名單**上邊三位，唔好臨場答錯。
 
 ### 5.5 帶咩物品
 - **核心**：Windows Laptop ×1、EEG ×2 套、iPad ×1（連充電線／頭）、Laptop 充電器、EEG 電池配件、延長線、拖板。
@@ -387,6 +396,41 @@ PPT S6 同海報都寫住 *"Real recording, not a simulation. All data comes fro
 - 拍之前開一次 `localhost` 版本確認相機正常，唔好靠會場 Wi-Fi。
 - 拍 2–3 個 take 就夠，剪片留返上機／酒店做。
 
+### 6.5b 剪好之後：確認影片同 S6 講稿夾得上（15 分鐘做得完）
+
+> **要解決嘅問題**：影片已經剪好，但唔知條片嘅節奏同 S6 口白啱唔啱。夾唔上嘅兩種死法——**口白講完片仲未播完**（成場靜晒望住個 mon）或者**片播完口白未講完**（對住黑畫面繼續講）。
+
+**第一步：度返兩個數（各 2 分鐘）**
+1. **片長**：睇播放器嘅總時間，寫低（例：0:47）。
+2. **口白長度**：將 6.4 段 C 入面 `[VIDEO]` 嗰段英文**大聲讀 3 次計時**，取**最長**嗰次。
+   - 冇時間計時就估：英文答辯語速約 **2.5–2.8 字／秒**，`字數 ÷ 2.6 ≈ 秒數`。
+
+**第二步：對號入座**
+| 情況 | 點做 |
+|---|---|
+| 片長 ≈ 口白（差 ≤3 秒） | ✅ 得，跳去第三步 |
+| **片長 > 口白** | 剪短片：先斬開場標題卡、再斬「專心」嗰半（專心嗰段觀眾一眼睇明，分心＋呼吸介入先係重點） |
+| **片長 < 口白** | 唔好加長片——**斬口白**。技術細節全部推去 Q&A，只留「而家分心 → 指標跌 → 呼吸提示 → 拉返」 |
+
+**第三步：標拍子（最重要）**
+喺講稿條片嗰段，逐句寫低**邊句對住邊個畫面**，例如：
+```
+0:00 標題卡      →「Same notes, two states.」
+0:08 專心閱讀    →「Focused: the indicator holds steady.」
+0:18 分心        →「Now he looks away — watch the indicator fall.」
+0:26 呼吸提示彈出 →「The system cues a breathing exercise.」
+0:34 測驗／船失速 →「In the quiz, the boat stalls the moment attention drops.」
+0:44 收尾卡      → 唔講嘢，畀畫面收
+```
+排練時**開住條片同時讀**，睇下有冇甩拍。片入面每個轉場都應該有**字幕卡**，主講靠字幕就知講到邊。
+
+**🛟 最穩陣嘅做法（強烈建議・尤其係 3:00 硬限）**
+> **畀條片自己講。** 片入面加齊字幕（「Focused／Distracted／Breathing cue／Quiz」），主講只講**入片一句＋出片一句**：
+> - 入片：*"Same notes, two states — watch the focus indicator."*
+> - 出片：*"That drop, that cue, that recovery — all measured."*
+>
+> 咁樣**節奏永遠夾得上**（因為根本唔使夾），會場嘈都唔怕聽唔到，而且慳返嘅秒數可以補去 S7 Results。壞處係少咗一段講嘢——但 3 分鐘硬限之下，呢個係換得過嘅。
+
 ### 6.6 A0 海報（✅ 已於 07-20 交校方統一打印）
 
 > **製作階段已完結**，落版稿唔再喺呢度維護。呢節只留**海報上有咩**，等答辯／Q&A 口徑對得返。
@@ -394,7 +438,7 @@ PPT S6 同海報都寫住 *"Real recording, not a simulation. All data comes fro
 **版面（六格＋頁首＋References）**
 | 格 | 標題 | 內容重點 |
 |---|---|---|
-| 頁首 | NeuroFocus | 一句定位（turns focus into a skill you can see, train and measure）＋四位作者＋學校＋網站 QR |
+| 頁首 | NeuroFocus | 一句定位（turns focus into a skill you can see, train and measure）＋四位作者＋學校＋網站 QR（海報已印，四個名；上場得三人，口徑見 5.4） |
 | ① | **The Problems** | 47 秒／23 分 15 秒兩個大數字＋2004→2024 落跌線；金句：叫人「專心啲」唔會話你幾時走神 |
 | ② | **Our Solution** | 圓環圖 Detect → See → Cue → Measure；訊號可以係 EEG／webcam／模擬，閉環不變 |
 | ③ | **Three Session Goals** | 訓練／挑戰／學習三張卡；學習模式行晒成個閉環，所以係主示範 |
@@ -481,8 +525,8 @@ AUDIO: Universfield (Pixabay) · Study material prepared by our team
 > **【EN】** Of course — please do. *(Open Simulation/camera mode at the booth: a one-minute try. Offer the EEG headset if it's behaving that day.)*
 
 **Q7. 你哋自己做咗幾多？ / How much of this did you build yourselves?** 🎨
-> **【中】** 全部。五個星期由零開始：3D 遊戲引擎、EEG 硬件橋接、相機視覺、雲端後端、雙語介面、教材同測驗卷，全部係我哋四個人做。
-> **【EN】** All of it. Five weeks from nothing: the 3D engine, the EEG hardware bridge, the camera vision pipeline, the cloud backend, the bilingual interface, and the study material and quiz — the four of us.
+> **【中】** 全部。五個星期由零開始：3D 遊戲引擎、EEG 硬件橋接、相機視覺、雲端後端、雙語介面、教材同測驗卷，全部係我哋隊四個人做，今日上場三個。
+> **【EN】** All of it. Five weeks from nothing: the 3D engine, the EEG hardware bridge, the camera vision pipeline, the cloud backend, the bilingual interface, and the study material and quiz — built by the four of us; three of us are here today, as the rules allow three per team.
 
 ---
 
@@ -792,7 +836,7 @@ Windows laptop 做現場 demo 機：本地 Python EEG bridge + 本地站 `http:/
 **失分風險**
 - ❌ **超時**——官方硬限 3 分鐘，超咗即刻蝕。
 - ❌ 攤位機出事又冇即刻切 fallback（鐵律：搞硬件唔可以超過 1–2 分鐘）。
-- ❌ 答問答到遊花園、四個人搶答。
+- ❌ 答問答到遊花園、三個人搶答。
 - ⚠️ 學習模式完整流程要 2–3 分鐘，**現場示範畀評判睇要用最短路徑**（讀第一頁＋示範分心介入就夠，唔好由頭行到尾）。
 
 > 💬 **Money line**
@@ -805,7 +849,7 @@ Windows laptop 做現場 demo 機：本地 Python EEG bridge + 本地站 `http:/
 
 | 格 | 我哋準備好未？ |
 |---|---|
-| 🎨 創意 40% | [ ] 四個人都講得出「一個閉環」＋「同現有方案嘅精準分別」（第 4 點） |
+| 🎨 創意 40% | [ ] 三個人都講得出「一個閉環」＋「同現有方案嘅精準分別」（第 4 點） |
 | 💰 市場 30% | [ ] 有人答得出價錢模式（L4-8）＋「邊個買單」 |
 | 🛠️ 實用 30% | [ ] 計時 ≤3:00 行過 ×2；core version 練過；影片離線播到；攤位 fallback 順序人人識 |
 
@@ -914,7 +958,7 @@ Windows laptop 做現場 demo 機：本地 Python EEG bridge + 本地站 `http:/
 
 ### 最後檢查（強烈建議）
 - [ ] 今晚完整演練一次：參觀者流程 / 評判流程 / EEG 失敗備案
-- [ ] 四人確認各自角色
+- [ ] 三人確認各自角色（Part 5.4，一人一個官方角色）
 - [ ] 準備三種長度講稿：**90–120 秒 core version**（官方要求，評判只停 2 分鐘用）、**≤3:00 完整版**（官方硬限）、30 秒攤位 hook（Part 5.6）
 
 ---
@@ -1090,7 +1134,10 @@ Windows laptop 做現場 demo 機：本地 Python EEG bridge + 本地站 `http:/
 
 > 平台節嘅專注數據（閱讀專注穩定度、分心次數、介入次數、平均恢復時間、每題用時）**CSV 自動有**，唔使人手抄。
 
-### 12.7 時間表（4 人・兩部機並行）
+### 12.7 時間表（4 位參加者・兩部機並行）
+
+> **主持嘅係隊員（3 人），參加者係另外搵嘅同學。** 三位隊員分工：一個報時＋讀開場白，一個顧兩部機（開站、開帳戶、重設數據、匯出 CSV），一個改卷＋填紀錄表。
+
 
 | 時間 | 做乜 |
 |---|---|
@@ -1127,3 +1174,24 @@ Windows laptop 做現場 demo 機：本地 Python EEG bridge + 本地站 `http:/
 | 有人中途唔想做 | 立即停，該份數據作廢，唔好勉強 |
 | 時間唔夠 | **砍人數唔好砍設計**：寧願得 2 個人做齊兩節，都唔好 4 個人各做一節 |
 | 完全跑唔切 | 攤位照用「示意圖 + 誠實框」，Q&A 答 **L4-1** |
+
+### 12.10 練習用嘅模擬數據集（`pilot_simulated/`・⚠️ 全部係假數）
+
+> **用途**：喺北京做真實驗**之前**，用一份假數據行一次完整分析流程——睇下 CSV 有咩欄、圖表出嚟係點、口徑點講。
+> **⚠️ 絕對唔可以攞去見評判或者交老師當成果。** 每個檔案名、每個 CSV 都有 `data_source = SIMULATED` 欄、每張圖標題都有「SIMULATED」字樣，就係防止有人攞錯。
+
+| 檔案 | 內容 |
+|---|---|
+| `SIMULATED_pilot_master_n4.csv` | 8 行＝4 位參加者 × 2 節；紙本節嘅專注欄全部係 `NA`（紙本冇 sensor） |
+| `SIMULATED_platform_S0x_*.csv` | 4 個平台節，欄位同 app 匯出嘅 `buildStudyCsv` 一模一樣（每節、每題都有） |
+| `SIMULATED_pilot_perquestion.csv` | 40 行長格式（每題一行），畫圖用 |
+| `SIMULATED_pilot_charts.html` | 四張圖＋完整表格，離線用瀏覽器直接開 |
+
+**重生成**：`node scripts/gen_simulated_pilot.mjs`（種子固定，每次出一模一樣嘅數）。
+
+**用佢嚟練咩**
+1. 真數據收返嚟之後，**用同一套欄位同同一批圖**去做分析——唔使臨場諗。
+2. 圖入面 **S04 平台節冇進步**，就係要逼隊員練熟「結果唔靚點答」（見 12.8 最後一段）。
+3. 對照睇實：紙本節格仔係空嘅——呢個就係「唔可以拿紙本組同平台組比專注數據」嘅視覺證明。
+
+**真數據返到之後點做**：改 `SESSIONS` 入面嘅實際分數、將真 CSV 放入同一個資料夾、圖表照樣出。**記住連檔名同 `data_source` 一齊改返做真數據標記**，唔好留低 `SIMULATED` 字樣搞到自己都分唔清。

@@ -35,7 +35,7 @@
 |---|---|---|
 | **出發日・機場** | 📹 **拍 S6 對比影片**（Simulation／**相機模式**，見手冊 6.5）→ 落機前／酒店剪好 | 全隊 |
 | **抵京當晚（07-27）** | 🧪 **跑 pilot 實驗**（手冊 **Part 12**，2–4 位同學，≤90 分鐘）→ 出 CSV | Steven 主持 |
-| **同晚** | 🎤 **夾 present**（英文 ≤3:00 計時 ×2、90–120 秒 core version ×1、分工確認） | 四人 |
+| **同晚** | 🎤 **夾 present**（英文 ≤3:00 計時 ×2、90–120 秒 core version ×1、分工確認） | 上場三人 |
 | **同晚** | 裝置叉滿、AAA 換新、offline backup 播一次確認 | 全隊 |
 | **07-28** | 12:00 前攤位就緒 → **評審 14:00–17:00** | 輪更留守 |
 | **07-29** | **評審 09:00–12:00** → 交流 14:00–16:00 → **撤展 16:00–17:00** | 全隊 |
@@ -97,6 +97,7 @@ git push origin main         # 唔可以 force push
 | `serve_local.py` | 本機靜態站（免 Node，MIME 已釘死） |
 | `vendor/**` | 自存第三方資源（three／MediaPipe／字型／Tailwind），出處見 `vendor/README.md` |
 | `docs/STUDY_MATERIALS_PRINT.md` | 紙本教材（程式生成，同平台版逐字一致） |
+| `scripts/gen_simulated_pilot.mjs` → `pilot_simulated/` | **練習用假數據**：n=4 pilot 模擬 CSV ＋ 對比圖表。⚠️ 全部標晒 `SIMULATED`，唔可以當成果交出去；用法見手冊 **12.10** |
 
 ---
 
