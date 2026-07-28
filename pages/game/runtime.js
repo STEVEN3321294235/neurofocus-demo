@@ -9,7 +9,7 @@ import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { SMAAPass } from 'three/addons/postprocessing/SMAAPass.js';
 import { setState, getState } from '../../app/state.js';
-import { getCameraFocusScore, getCameraTrackingStatus, stopCameraPreview } from '../../services/focusInputService.js?v=2026-07-25-5';
+import { getCameraFocusScore, getCameraTrackingStatus, stopCameraPreview } from '../../services/focusInputService.js?v=2026-07-28-1';
 import { appendSessionSummary, getSessionHistory, getLocalVoyageLog, appendVoyageLog, getCumulativeCloudDistance, appendStudyHistory, getStudyHistory } from '../../services/storageService.js';
 import { initVoyage, resetVoyage, updateVoyage, getVoyageStats, getBuoysInWindow, routeXAt, routeYawAt, CHECKPOINT_SPACING, setVoyageVisible } from './voyage.js';
 import { getStudyMaterial, STUDY_PAGE_LIMIT_MS, STUDY_PAGE_MIN_MS } from './studyMaterials.js';
@@ -1424,7 +1424,7 @@ const I18N = {
         login_link: "登入",
         logout: "登出",
         focus_level: "專注度",
-        simulate_eeg: "模擬腦電波輸入",
+        simulate_eeg: "相機專注輸入",
         next_question: "下一題",
         stability: "穩定度",
         loading_ai: "正在生成 AI 題目...",
@@ -1464,11 +1464,11 @@ const I18N = {
         mode_idle: "待命",
         device_waiting: "等待中",
         choose_mode: "選擇模式",
-        mode_real_or_sim: "選擇真實 EEG 或模擬模式",
-        mode_simulation: "模擬 EEG",
+        mode_real_or_sim: "選擇真實 EEG 或相機模式",
+        mode_simulation: "相機模式",
         device_virtual: "虛擬訊號",
-        mode_simulation_title: "模擬驅動中",
-        mode_simulation_detail: "本地測試訊號",
+        mode_simulation_title: "相機驅動中",
+        mode_simulation_detail: "本機鏡頭訊號",
         mode_real: "真實 EEG",
         state_ready: "已就緒",
         state_searching: "搜尋中",
@@ -1476,7 +1476,7 @@ const I18N = {
         state_streaming: "即時數據",
         state_warning: "未有訊號",
         state_blocked: "已阻擋",
-        state_virtual: "模擬中",
+        state_virtual: "相機",
         mode_real_standby: "真實 EEG 待命",
         mode_searching_device: "搜尋裝置中",
         mode_bridge_connected: "Bridge 已連接",
@@ -1512,7 +1512,7 @@ const I18N = {
         login_link: "Login",
         logout: "Logout",
         focus_level: "Focus Level",
-        simulate_eeg: "Simulate EEG Input",
+        simulate_eeg: "Camera Focus Input",
         next_question: "Next Question",
         stability: "Stability",
         loading_ai: "Generating AI Puzzle...",
@@ -1552,11 +1552,11 @@ const I18N = {
         mode_idle: "Idle",
         device_waiting: "Waiting",
         choose_mode: "Choose mode",
-        mode_real_or_sim: "Select real EEG or simulation",
-        mode_simulation: "Simulation EEG",
+        mode_real_or_sim: "Select real EEG or camera",
+        mode_simulation: "Camera Mode",
         device_virtual: "Virtual Stream",
-        mode_simulation_title: "Simulation driving",
-        mode_simulation_detail: "Local test signal",
+        mode_simulation_title: "Camera driving",
+        mode_simulation_detail: "On-device camera signal",
         mode_real: "Real EEG",
         state_ready: "Ready",
         state_searching: "Searching",
@@ -2915,7 +2915,7 @@ function initApp() {
     updateModeStatusUI();
     updateModeSelectionHelper(
         'Choose Input',
-        'Real EEG searches only after confirmation. Simulation uses local test data.'
+        'Real EEG searches only after confirmation. Camera Mode reads focus from your webcam, on-device.'
     );
 
     // Remove Initial Loader (but keep it if we are going straight to game and it needs assets? No, just remove it here, and if game needs more, game will show its own)
@@ -3145,7 +3145,7 @@ function setupAuthListeners() {
             leaveEEGMode();
             selectedInputMode = 'simulation';
             updateModeSelectionHelper(
-                'Simulation Ready',
+                'Camera Ready',
                 'Using local focus values.'
             );
             enterSimulationMode();
@@ -3946,7 +3946,7 @@ function startFocusSimulation() {
             baseline: 60,
             amplitude: 6,
             jitter: 3,
-            detail: langText('模擬校準中，訊號逐步穩定。', 'Simulation calibrating. Signal is stabilizing.')
+            detail: langText('正在校準，訊號逐步穩定。', 'Calibrating. Signal is stabilizing.')
         };
 
         const createFallbackProfile = () => {
@@ -3957,7 +3957,7 @@ function startFocusSimulation() {
                     amplitude: THREE.MathUtils.randFloat(4.2, 7.2),
                     jitter: THREE.MathUtils.randFloat(1.4, 3.0),
                     duration: Math.round(THREE.MathUtils.randFloat(5, 11)),
-                    detail: langText('未授權相機，正用內置專注曲線模擬穩定專注片段。', 'Camera not allowed. Built-in focus profile: steady segment.')
+                    detail: langText('未授權相機，正用內置專注曲線（穩定片段）。', 'Camera not allowed. Built-in focus profile: steady segment.')
                 };
             }
 
@@ -3966,7 +3966,7 @@ function startFocusSimulation() {
                 amplitude: THREE.MathUtils.randFloat(4.5, 8.0),
                 jitter: THREE.MathUtils.randFloat(2.4, 4.2),
                 duration: Math.round(THREE.MathUtils.randFloat(2, 4)),
-                detail: langText('未授權相機，正用內置專注曲線模擬短暫分心片段。', 'Camera not allowed. Built-in focus profile: brief distraction segment.')
+                detail: langText('未授權相機，正用內置專注曲線（短暫分心片段）。', 'Camera not allowed. Built-in focus profile: brief distraction segment.')
             };
         };
 
@@ -4326,7 +4326,7 @@ function focusSourceLabel() {
     const src = String(CONFIG.focusSource || '');
     if (src.includes('eeg')) return langText('真 EEG', 'Real EEG');
     if (src.includes('camera')) return langText('相機', 'Camera');
-    return langText('模擬', 'Simulation');
+    return langText('相機', 'Camera');
 }
 
 // Bilingual difficulty label (challenge hero chip).
@@ -6994,8 +6994,8 @@ function animate() {
 
 
 
-    I18N.hk.eeg_simulation_hint = "目前為模擬腦電波，並非真實數據";
-    I18N.en.eeg_simulation_hint = "Simulation Mode: Not Real EEG Data";
+    I18N.hk.eeg_simulation_hint = "目前由相機偵測專注度，並非 EEG 數據";
+    I18N.en.eeg_simulation_hint = "Camera Mode: focus from webcam, not EEG";
     I18N.hk.disconnect_eeg = "中斷連接";
     I18N.en.disconnect_eeg = "Disconnect";
     
@@ -7340,7 +7340,7 @@ function animate() {
         if (resetSimulation) {
             updateModeSelectionHelper(
                 'Choose Your Input Mode',
-                'Real EEG will search your paired MindWave only after you confirm. Simulation generates local focus values for testing.'
+                'Real EEG will search your paired MindWave only after you confirm. Camera Mode reads focus from your webcam, on-device.'
             );
         }
         updateSimulationHint();
@@ -7466,9 +7466,9 @@ function animate() {
             'simulation',
             CONFIG.focusSource === 'camera-ready'
                 ? langText('相機鏡頭已準備。遊戲正透過相機觀察你的專注度。', 'Camera is ready. The game is monitoring your focus via camera.')
-                : langText('未授權相機，模擬模式正使用內置專注曲線。', 'Camera not allowed. Simulation is using the built-in focus profile.')
+                : langText('未授權相機，正使用內置專注曲線。', 'Camera not allowed. Using the built-in focus profile.')
         );
-        updateConnectBtn("Simulation Mode", false, true);
+        updateConnectBtn("Camera Mode", false, true);
         startFocusSimulation();
         updateSimulationHint();
     }
@@ -7480,7 +7480,7 @@ function animate() {
             if (selectedInputMode === 'simulation') {
                 hintEl.textContent = CONFIG.focusSource === 'camera-ready'
                     ? langText('Camera active · tracking focus', 'Camera active · tracking focus')
-                    : langText('內置專注曲線模擬', 'Built-in focus profile');
+                    : langText('內置專注曲線', 'Built-in focus profile');
                 hintEl.style.display = 'block';
                 hintEl.style.color = '#fde047';
                 hintEl.classList.add('simulation');

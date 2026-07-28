@@ -1,8 +1,8 @@
 import { getState, setState } from '../../app/state.js';
 import { setLang as persistLang, setTheme as persistTheme } from '../../services/storageService.js';
-import { applyStoredTheme } from '../../components/controlBar.js?v=2026-07-25-5';
-import { importGameRuntime } from '../../services/runtimeLoader.js?v=2026-07-25-5';
-import { stopCameraPreview } from '../../services/focusInputService.js?v=2026-07-25-5';
+import { applyStoredTheme } from '../../components/controlBar.js?v=2026-07-28-1';
+import { importGameRuntime } from '../../services/runtimeLoader.js?v=2026-07-28-1';
+import { stopCameraPreview } from '../../services/focusInputService.js?v=2026-07-28-1';
 
 
 function renderThemeToggle(theme) {
@@ -121,7 +121,7 @@ export default {
                                 </div>
                                 <div class="hero-visual-note absolute z-20 text-right">
                                     <span class="hero-note-pill transition-colors duration-500">
-                                        ${dualText('*Data simulated for demonstration purposes', '*數據僅供演示用途')}
+                                        ${dualText('*Illustrative demo data', '*示意數據，僅供演示')}
                                     </span>
                                 </div>
                             </div>
@@ -174,7 +174,7 @@ export default {
                                     ${dualText('Device Connectivity', '裝置連接')}
                                 </h3>
                                 <p class="text-slate-600 dark:text-slate-400 text-base leading-relaxed text-justify-inter font-normal transition-colors duration-500">
-                                    ${dualText('Built around the NeuroSky MindWave EEG headset over Bluetooth. No headset with you? Camera and simulation modes run the full training loop on any device — and the input layer is designed to welcome more sensors later.', '以 NeuroSky MindWave 腦電頭帶為核心（藍牙連接）。冇頭帶在手？相機同模擬模式一樣行到成套訓練流程，任何裝置都試到；輸入層仲預留咗將來接駁更多感測器嘅空間。')}
+                                    ${dualText('Built around the NeuroSky MindWave EEG headset over Bluetooth. No headset with you? Camera Mode runs the full training loop on any device — and the input layer is designed to welcome more sensors later.', '以 NeuroSky MindWave 腦電頭帶為核心（藍牙連接）。冇頭帶在手？相機模式一樣行到成套訓練流程，任何裝置都試到；輸入層仲預留咗將來接駁更多感測器嘅空間。')}
                                 </p>
                             </div>
                         </div>
@@ -267,7 +267,7 @@ export default {
                                             <span class="material-symbols-outlined text-sm transition-transform group-hover:translate-x-1">arrow_forward</span>
                                         </button>
                                         <p class="mt-4 text-[10px] text-slate-500 font-normal tracking-wide transition-colors duration-500">
-                                            ${dualText('*Data simulated for demonstration purposes', '*數據僅供演示用途')}
+                                            ${dualText('*Illustrative demo data', '*示意數據，僅供演示')}
                                         </p>
                                     </div>
                                 </div>

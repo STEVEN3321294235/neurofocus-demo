@@ -6,7 +6,7 @@
     <title>NeuroFocus</title>
     <!-- Fonts are self-hosted from /vendor/fonts so the site renders identically
          with no internet (booth) and in regions where Google Fonts is blocked. -->
-    <link href="/vendor/fonts/fonts.css?v=2026-07-25-5" rel="stylesheet">
+    <link href="/vendor/fonts/fonts.css?v=2026-07-28-1" rel="stylesheet">
     <!-- Tailwind is only used by the homepage layout; the game, setup and
          results pages ship their own CSS. It stays on the CDN for its JIT
          behaviour, with a pre-compiled copy loaded FIRST as a floor: when the
@@ -18,7 +18,7 @@
          The config below must never assume the CDN script loaded either: on a
          dead network the bare `tailwind.config = …` threw a ReferenceError that
          killed every page, so the global is defended here. -->
-    <link href="/vendor/tailwind/tailwind.fallback.css?v=2026-07-25-5" rel="stylesheet">
+    <link href="/vendor/tailwind/tailwind.fallback.css?v=2026-07-28-1" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com?plugins=forms,typography"></script>
     <script>
         window.tailwind = window.tailwind || {};
@@ -109,6 +109,6 @@
             }
         }
     </script>
-    <script type="module" src="app/main.js?v=2026-07-25-5"></script>
+    <script type="module" src="app/main.js?v=2026-07-28-1"></script>
 </body>
 </html>
