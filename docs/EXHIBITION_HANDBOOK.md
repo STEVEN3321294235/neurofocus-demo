@@ -131,6 +131,21 @@
 - [ ] 三個人講得出 0.4 第一句同 0.5 收尾句**逐隻字**
 - [ ] Results 頁已經有一節真數據喺度（隨時撳到俾人睇）
 
+### 0.10 睇住對方反應落藥（印象分係喺呢度賺）
+
+> Q&A 答案（Part 7）係「講咩」；呢個表係「幾時講、幾時唔講」。**印象分唔係嚟自你講得幾完整，係嚟自對方覺得你有冇留意緊佢。**
+
+| 你見到咩 | 佢心入面係 | 你即刻做 |
+|---|---|---|
+| 皺眉、望住個 mon 唔出聲 | **跟唔上**（confuse） | **停止解釋，唔好再加資訊。** 返去隻船：「唔理技術住——睇住隻船，你一分心佢就慢。」由零重新入 |
+| 「哦，即係計時器／專注 app 啰」 | 覺得**只係 idea**，冇見過分別 | 唔好口頭反駁。行 **0.7 三步**：俾佢自己試 → 開 Results → 講 pilot。分別要俾佢**見**，唔係俾佢聽 |
+| 眼望第二度、身體側向出面、應「嗯嗯」 | **冇興趣**，想走 | **提早收尾。** 即刻跳去 0.5 收尾句＋QR，笑住放人。追住講會嬲你，放得爽會記得你 |
+| 開口問「咁個訊號準唔準」「點解用船」 | **上咗釣**，肯畀時間 | 升級去 5.6 評判版（3 分鐘），呢類人先值得長版 |
+| 細路仔扯住想㩒 | 家長先係決策人 | 俾細路即刻玩（相機模式），**你同家長講**：「佢玩緊嗰陣，部機一路量緊佢專注幾穩定」 |
+| 企遠遠望，唔埋嚟 | 有興趣但怕蝕底 | 唔好埋身。大聲旁述一句畫面：「佢而家分緊心，所以隻船慢咗」——旁述俾佢聽，佢自己會行埋嚟 |
+
+**一條鐵律**：任何時候發現自己**連續講咗 30 秒對方冇出過聲**——停，問一句 *"Want to try it yourself?"* 攤位係俾人玩嘅，唔係俾你講嘅。
+
 ---
 <a name="part-1"></a>
 ## Part 1 — 產品是什麼
@@ -588,6 +603,41 @@ AUDIO: Universfield (Pixabay) · Study material prepared by our team
 
 ---
 
+### ⭐ L0 — Day 1 評判真係問咗嘅題（Day 2 一定再嚟，背到逐隻字）
+
+**L0-1. 你哋有咩 evidence 證明佢有用？ / What evidence do you have that this works?** 🛠️
+
+> **【EN】** Three layers. First, the mechanisms are from published literature — real-time feedback builds self-awareness, paced breathing lowers excess arousal. Second, the platform itself measures everything: every session produces objective logs — focus stability, recovery time after each distraction — you can export them right now. Third, we ran a small controlled pilot: four students, same notes, same fixed quiz, paper versus platform, order counterbalanced. n = 4 is small, so we treat it as preliminary, not proof — the next step is a school-scale study. We keep a clear line between what's done and what's still to be proven.
+>
+> **【中】** 三層。第一，機制有文獻根據——即時回饋建立自我覺察、節奏呼吸降低過度喚醒。第二，平台本身就係量度工具——每一節都出客觀數據：專注穩定度、每次分心後嘅恢復時間，而家即刻可以匯出俾你睇。第三，我哋做咗一個細規模對照 pilot：四位同學、同一份筆記、同一份卷、紙本對平台、次序對調平衡。n=4 好細，所以我哋只當佢係初步數據，唔係證明——下一步係同學校做大樣本研究。「做咗」同「仲要證實」我哋分得好清楚。
+>
+> **要訣**：三層次序唔好亂——文獻 → 自家量度 → pilot。最尾嗰句誠實線**一定要講**，Day 1 個評判就係想睇你會唔會吹。
+
+**L0-2. 學生會唔會反而沉迷呢個網站？ / Won't students just get addicted to this instead?** 🎨🛠️
+
+> **【EN】** We designed against that from day one — three decisions. First, a session is finite: it has a defined end and closes with a report — there is no infinite scroll, no feed. Second, the game's only reward is focus stability itself — the boat slows when you drift; it pays out for the opposite of what addictive apps pay out for. And third, our success metric is off-platform: does your focus improve in your normal study? The product succeeds when you need it less. We'd also add session caps and rest reminders before any school deployment.
+>
+> **【中】** 呢樣嘢我哋一開始就設計防範——三個決定。第一，每節訓練係有限嘅：有明確終點，完場出報告——冇無限碌、冇 feed。第二，個遊戲唯一嘅獎勵係專注穩定本身——你一分心隻船就慢，佢獎勵嘅嘢同致癮 app 啱啱相反。第三，我哋嘅成功指標喺平台**之外**：你平時溫書嘅專注有冇改善？**產品成功嘅標誌，係你越嚟越唔需要佢。** 落學校之前仲會加 session 上限同休息提示。
+>
+> **要訣**：*"The product succeeds when you need it less"* 係成套 Q&A 最靚嘅一句，講嘅時候放慢、望住評判。
+
+**L0-3. 遇到明顯唔 buy 嘅評判點算？（Day 1 出現過）**
+
+唔好嘗試「說服」佢——你贏唔到口水戰，但你贏到風度分：
+1. **縮細 claim，唔好撐大**：佢質疑就即刻讓——「You're right that n=4 proves nothing statistically — that's why we call it a pilot.」讓步本身就係答案。
+2. **用 artifact 代替口水**：唔同佢拗，直接開 Results 頁／CSV：「Rather than argue, here's the raw data.」
+3. **佢繼續冷淡就收**：禮貌收尾（「Thank you — that's exactly the kind of scrutiny we need before a bigger study.」），留返時間服務下一個評判。**一個唔 buy 嘅評判最多攞走佢嗰票；你喺佢身上嬲咗或者慌咗，會攞走晒其他人嘅票。**
+4. 記住 Day 1 嘅事實：**第二輪主理評判好睇好你哋**——分數唔係一個人俾嘅。
+
+**L0-4. 播片嗰陣緊張到拖慢晒（Day 1 第一輪發生咗）**
+
+- **片播緊嗰陣，預設係唔講嘢。** 你唔使填滿每一秒——畫面郁緊，靜默係專業，唔係冷場。
+- 得兩句要講：入片一句 *"Same notes, two states — watch the focus meter."*，出片一句 *"That drop, that cue, that recovery — all measured."* 其他時間收口。
+- **指定隊友控制播放**（唔係主講自己撳），主講企側邊面向評判，唔好背向佢哋望 mon。
+- 萬一片 lag／播唔郁：唔好等，一句頂上——*"While it loads: the meter drops the moment he checks his phone, and the breathing cue pulls him back."* 然後跳去下一段。
+
+---
+
 ### 🟢 L1 — 人人都會問（非技術評判・必背）
 
 **Q1. 你哋個作品係咩嚟？ / What is your project?** 🎨
@@ -786,7 +836,7 @@ Windows laptop 做現場 demo 機：本地 Python EEG bridge + 本地站 `http:/
 > **Mac 定位（2026-07-11 修訂）：做網站/備援機得，做 EEG 主機唔得。** Code 層面 bridge 支援 macOS 序列埠（/dev/cu.* 掃描＋權限提示），但 **MindWave Mobile 2（藍牙 Classic SPP 老協議）喺近年 macOS 上實測經常配對到但攞唔到數據**——Steven 過往經驗一致，NeuroSky 對 macOS 嘅支援亦早已停更。結論：**真 EEG demo 一律用 Windows 機**；MacBook 用 `start_demo_mac.command` 做本地網站/備援/hotfix 機。
 
 ### 開場步驟
-1. 插電　2. Windows 電源模式設 `Best performance`　3. 開瀏覽器硬件加速　4. 關 Teams / OneDrive 同步 / Discord / 多餘分頁　5. 開頭帶　6. 雙擊 `start_2a_demo_windows.bat`　7. 等兩個視窗（EEG Bridge + Local Site）　8. **Chrome** 開 `http://localhost:8000/#home?demo=1`（`?demo=1` 開返攤位用嘅 FPS meter＋debug 掣）　9. Setup 測 `EEG Device`，唔得就即切 `Simulation`。
+1. 插電　2. Windows 電源模式設 `Best performance`　3. 開瀏覽器硬件加速　4. 關 Teams / OneDrive 同步 / Discord / 多餘分頁　5. 開頭帶　6. 雙擊 `start_2a_demo_windows.bat`　7. 等兩個視窗（EEG Bridge + Local Site）　8. **Chrome** 開 `http://localhost:8000/#home?demo=1`（`?demo=1` 開返攤位用嘅 FPS meter＋debug 掣）　9. Setup 測 `EEG Device`，唔得就即切 `Camera Mode`（相機模式）。
 
 > **`?demo=1` 係咩（2026-07-25 起）**：DEMO_MODE 預設**閂咗**（公開網址唔想俾人喺 console 撳出星星）。攤位機喺網址加一次 `?demo=1` 就會開返 FPS/畫質等級 meter 同 `EEG_APP.debug.*`，**選擇會記住**（要閂返用 `?demo=0`）。
 
