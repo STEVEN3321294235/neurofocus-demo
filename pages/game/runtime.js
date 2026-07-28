@@ -9,7 +9,7 @@ import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { SMAAPass } from 'three/addons/postprocessing/SMAAPass.js';
 import { setState, getState } from '../../app/state.js';
-import { getCameraFocusScore, getCameraTrackingStatus, stopCameraPreview } from '../../services/focusInputService.js?v=2026-07-28-1';
+import { getCameraFocusScore, getCameraTrackingStatus, stopCameraPreview } from '../../services/focusInputService.js?v=2026-07-28-2';
 import { appendSessionSummary, getSessionHistory, getLocalVoyageLog, appendVoyageLog, getCumulativeCloudDistance, appendStudyHistory, getStudyHistory } from '../../services/storageService.js';
 import { initVoyage, resetVoyage, updateVoyage, getVoyageStats, getBuoysInWindow, routeXAt, routeYawAt, CHECKPOINT_SPACING, setVoyageVisible } from './voyage.js';
 import { getStudyMaterial, STUDY_PAGE_LIMIT_MS, STUDY_PAGE_MIN_MS } from './studyMaterials.js';
@@ -1466,7 +1466,7 @@ const I18N = {
         choose_mode: "選擇模式",
         mode_real_or_sim: "選擇真實 EEG 或相機模式",
         mode_simulation: "相機模式",
-        device_virtual: "虛擬訊號",
+        device_virtual: "相機鏡頭",
         mode_simulation_title: "相機驅動中",
         mode_simulation_detail: "本機鏡頭訊號",
         mode_real: "真實 EEG",
@@ -1554,7 +1554,7 @@ const I18N = {
         choose_mode: "Choose mode",
         mode_real_or_sim: "Select real EEG or camera",
         mode_simulation: "Camera Mode",
-        device_virtual: "Virtual Stream",
+        device_virtual: "Webcam",
         mode_simulation_title: "Camera driving",
         mode_simulation_detail: "On-device camera signal",
         mode_real: "Real EEG",
@@ -1564,7 +1564,7 @@ const I18N = {
         state_streaming: "Live Data",
         state_warning: "No Signal",
         state_blocked: "Blocked",
-        state_virtual: "Virtual",
+        state_virtual: "Camera",
         mode_real_standby: "Real EEG standby",
         mode_searching_device: "Searching device",
         mode_bridge_connected: "Bridge connected",
@@ -7822,7 +7822,7 @@ window.showData = function(type) {
             <h2 style="color: #8b5cf6; margin-bottom: 20px;">${lang === 'hk' ? '考試焦慮改善' : 'Exam Anxiety Reduction'}</h2>
             <p style="margin-bottom: 20px; color: var(--text-color);">
                 ${lang === 'hk' 
-                    ? '透過 Alpha 波訓練，學生在模擬考試中的生理壓力指標顯著下降。' 
+                    ? '透過 Alpha 波訓練，學生在測驗中的生理壓力指標顯著下降。' 
                     : 'Through Alpha wave training, students showed significantly lower physiological stress markers in mock exams.'}
             </p>
             
