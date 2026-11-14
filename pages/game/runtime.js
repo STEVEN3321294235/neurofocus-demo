@@ -58,6 +58,11 @@ let smoothedAttention = null;
 // Latest live EEG channels (Real EEG mode only). meditation/signal stay null
 // in Simulation/camera modes so nothing is ever faked.
 let latestEEG = { attention: 0, meditation: null, signal: null };
+// Experiment mode (TALE 2026): the eight raw band powers the bridge now sends
+// with each reading, plus a counter so a reader can tell a fresh packet from a
+// repeated one. Nothing in training / challenge / study reads these.
+let latestBands = null;
+let eegPacketSeq = 0;
 
 function renderEegDualAxis() {
     const host = document.getElementById('eeg-dual-axis');
@@ -316,6 +321,8 @@ const CONFIG = {
 const DEFAULT_TRAINING_DURATION_SEC = 180;
 
 let runtimeResultsHandler = null;
+// Experiment mode: called once the entry countdown ends and the scene is live.
+let runtimeActiveHandler = null;
 
 // Snapshot of the just-finished session, set by renderResults() and read by
 // the results-dashboard renderers.
@@ -350,6 +357,13 @@ function isTrainingMode() {
 
 function isChallengeMode() {
     return CONFIG.testMode === 'challenge';
+}
+
+// Experiment mode (TALE 2026): 'lab' = full two-condition test, 'quick' = the
+// one-minute try-out. The scene and focus pipeline run as usual; the test
+// itself (questions, timing, results) is driven by pages/lab/labController.js.
+function isLabMode() {
+    return CONFIG.testMode === 'lab' || CONFIG.testMode === 'quick';
 }
 
 // Study Mode (D3): read material on an open sea (no boat), then quiz. The
@@ -1961,6 +1975,7 @@ function showVoyageContinuationCue() {
 // Lighthouse checkpoint: soft harbour-bell + teal banner. Works in both
 // modes (the route belongs to the world, stars belong to training).
 function onCheckpointReached(event) {
+    if (isLabMode()) return; // no bell or banner over the experiment
     trainingAnalytics.checkpointCount = event.passed;
     playCheckpointBell();
     const banner = document.getElementById('checkpoint-banner');
@@ -2561,7 +2576,9 @@ function updateGameLogic(delta) {
     updateWeatherTarget(effectiveFocusLevel);
     updateGoldenMoment(delta * 1000);
 
-    if (isGameActive && !externalPause && !trainingAnalytics.interventionActive) {
+    // Experiment mode never shows the breathing prompt or the guided-breathing
+    // pause: either would stop the test and lift the focus reading.
+    if (isGameActive && !externalPause && !trainingAnalytics.interventionActive && !isLabMode()) {
         updateTrainingAnalytics(delta * 1000, effectiveFocusLevel);
 
         if (
@@ -3397,16 +3414,20 @@ function initGameSession() {
     CONFIG.isPaused = false;
     // A real session is now live in memory; its results have not been committed
     // to history / voyage yet. These flags drive the refresh-safe results path.
-    liveSessionInMemory = true;
+    // Experiment sessions keep their own records (pages/lab) and must never be
+    // committed into the training / challenge history.
+    liveSessionInMemory = !isLabMode();
     sessionResultsCommitted = false;
     settingsPauseActive = false;
     lastNewRecords = { isNewDist: false, isNewAcc: false, isNewTime: false };
     // Remember which mode is being played so the results page can pick the right
     // layout even after a refresh clears in-memory app state.
-    try {
-        localStorage.setItem('last_session_mode', CONFIG.testMode);
-        localStorage.setItem('last_session_difficulty', CONFIG.difficulty || '');
-    } catch (e) { /* best-effort */ }
+    if (!isLabMode()) {
+        try {
+            localStorage.setItem('last_session_mode', CONFIG.testMode);
+            localStorage.setItem('last_session_difficulty', CONFIG.difficulty || '');
+        } catch (e) { /* best-effort */ }
+    }
     currentQuestionIndex = 0;
     questionBank = [];
     isWaitingForQuestions = false;
@@ -3417,6 +3438,8 @@ function initGameSession() {
     resetStudySession();
     if (isStudyMode()) {
         initStudySession();
+    } else if (isLabMode()) {
+        // Experiment: no voyage totals, no coaching cues over the test.
     } else {
         // Cumulative voyage totals (cloud when signed in, local otherwise).
         loadVoyageTotals().catch(() => {});
@@ -3679,9 +3702,14 @@ function initGameSession() {
                 startCountdown(() => {
                     if (sessionId !== activeGameSessionId) return;
                     setGamePresentationState('active');
-                    startBGM();
+                    // Experiment: no background music, so both test conditions
+                    // are heard the same way.
+                    if (!isLabMode()) startBGM();
                     CONFIG.gameStartTime = performance.now();
                     isGameActive = true; 
+                    if (isLabMode() && typeof runtimeActiveHandler === 'function') {
+                        runtimeActiveHandler();
+                    }
                     if (shouldUseQuestionFlow()) {
                         loadQuestionFromBank();
                     }
@@ -5133,6 +5161,7 @@ function applySessionModeUI() {
     // Lets CSS reposition shared HUD pieces (voyage card) per mode.
     document.body.classList.toggle('challenge-session', isChallengeMode());
     document.body.classList.toggle('study-session', isStudyMode());
+    document.body.classList.toggle('lab-session', isLabMode());
     const questionPanel = document.getElementById('question-panel');
     const scoreDisplay = document.getElementById('score-display');
     const streakDisplay = document.getElementById('streak-display');
@@ -5149,7 +5178,7 @@ function applySessionModeUI() {
     if (distanceDisplay) distanceDisplay.style.display = isStudyMode() ? 'none' : '';
     if (studyReader && !isStudyMode()) studyReader.style.display = 'none';
 
-    if (isStudyMode()) {
+    if (isStudyMode() || isLabMode()) {
         if (questionPanel) questionPanel.style.display = 'none';
         if (scoreDisplay) scoreDisplay.style.display = 'none';
         if (streakDisplay) streakDisplay.style.display = 'none';
@@ -7116,6 +7145,10 @@ function animate() {
                         const hasUsableSignal = linkAlive && signal >= EEG_MIN_USABLE_SIGNAL && hasAttentionReading;
 
                         latestEEG = { attention, meditation, signal };
+                        // Experiment mode only: remember the raw bands that came
+                        // with this reading (null from an older bridge).
+                        latestBands = msg.bands && typeof msg.bands === 'object' ? msg.bands : null;
+                        eegPacketSeq += 1;
                         renderSignalChip();
                         renderEegDualAxis();
 
@@ -7594,13 +7627,14 @@ function configureRuntime(options = {}) {
         inputMode = selectedInputMode,
         focusSource = CONFIG.focusSource,
         cameraConsent = CONFIG.cameraConsent,
-        onResults = runtimeResultsHandler
+        onResults = runtimeResultsHandler,
+        onActive = null
     } = options;
 
     CONFIG.currentUser = user || null;
     CONFIG.currentLang = lang || CONFIG.currentLang;
     CONFIG.difficulty = difficulty || CONFIG.difficulty;
-    CONFIG.testMode = ['training', 'challenge', 'study'].includes(testMode) ? testMode : CONFIG.testMode;
+    CONFIG.testMode = ['training', 'challenge', 'study', 'lab', 'quick'].includes(testMode) ? testMode : CONFIG.testMode;
     CONFIG.trainingDurationSec = Math.max(30, Math.min(1800, Number(trainingDurationSec || CONFIG.trainingDurationSec || DEFAULT_TRAINING_DURATION_SEC)));
     CONFIG.studySubject = studySubject || CONFIG.studySubject;
     CONFIG.studyDepth = studyDepth || CONFIG.studyDepth;
@@ -7610,6 +7644,7 @@ function configureRuntime(options = {}) {
         selectedInputMode = inputMode;
     }
     runtimeResultsHandler = onResults || null;
+    runtimeActiveHandler = typeof onActive === 'function' ? onActive : null;
 
     const displayUsernameEl = document.getElementById('display-username');
     if (displayUsernameEl && CONFIG.currentUser) {
@@ -7626,11 +7661,55 @@ function startGameSession() {
     initGameSession();
 }
 
+// Experiment mode: one read-only snapshot of the live signal. The lab
+// controller polls this once a second; it changes nothing in the runtime.
+//   source  'eeg' | 'camera' | 'demo'
+//   focus   the 0-100 value that is driving the boat right now
+//   score   what the experiment logs as the focus score: the headset's own
+//           raw reading in EEG mode, the same value as `focus` otherwise
+//   signal  0-100 contact quality (EEG only, null otherwise)
+//   bands   the eight raw band powers that came with the last reading
+//   seq     counts headset readings, so a repeated value can be told apart
+function getLabSample() {
+    const source = selectedInputMode === 'eeg'
+        ? 'eeg'
+        : (CONFIG.focusSource === 'camera-ready' ? 'camera' : 'demo');
+    const sample = {
+        source,
+        focus: Math.max(0, Math.min(100, Number(focusLevel) || 0)),
+        score: null,
+        signal: null,
+        bands: null,
+        seq: eegPacketSeq,
+        fresh: true,
+        hasFace: null,
+        active: isGameActive,
+        paused: Boolean(CONFIG.isPaused)
+    };
+    if (source === 'eeg') {
+        sample.score = Number(latestEEG.attention) || 0;
+        sample.signal = latestEEG.signal === null ? null : Number(latestEEG.signal);
+        sample.bands = latestBands;
+        sample.fresh = Date.now() - lastEEGDataTime < 2500;
+    } else {
+        sample.score = sample.focus;
+        if (source === 'camera') {
+            const tracking = getCameraTrackingStatus();
+            sample.hasFace = Boolean(
+                tracking.streamActive && tracking.modelReady && tracking.isPredicting
+                && (tracking.hasFace || tracking.faceRecentlySeen)
+            );
+        }
+    }
+    return sample;
+}
+
 function disposeGameSession() {
     activeGameSessionId += 1;
     isGameActive = false;
     document.body.classList.remove('challenge-session');
     document.body.classList.remove('study-session');
+    document.body.classList.remove('lab-session');
     resetStudySession();
     stopBGM();
     clearStroopTimer();
@@ -7931,6 +8010,7 @@ export {
     setSfxVolume,
     setSettingsPause,
     getQualitySettings,
+    getLabSample,
     switchLanguage,
     switchEnvironment,
     updateFocusFromEEG,

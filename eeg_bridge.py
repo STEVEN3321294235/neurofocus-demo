@@ -41,6 +41,20 @@ FORCED_PORT = (
 # so the port that produced them is remembered and retried first.
 BT_NOT_ANSWERING = re.compile(r"None,\s*(121|233)\)")
 
+# ThinkGear code 0x83 (ASIC_EEG_POWER): eight band powers, 3 bytes each,
+# big-endian, always in this order.
+EEG_BAND_NAMES = (
+    "delta",
+    "theta",
+    "lowAlpha",
+    "highAlpha",
+    "lowBeta",
+    "highBeta",
+    "lowGamma",
+    "midGamma",
+)
+EEG_POWER_LENGTH = 24
+
 
 class EEGBridge:
     def __init__(self):
@@ -54,6 +68,9 @@ class EEGBridge:
         self.attention = 0
         self.meditation = 0
         self.signal_quality = 0
+        # Latest ASIC_EEG_POWER (0x83) reading: the eight raw band powers the
+        # headset computes once a second. None until a packet carries them.
+        self.bands = None
         self.last_data_time = 0
         self.last_status_message = None
         self.last_no_data_warning_at = 0
@@ -187,6 +204,9 @@ class EEGBridge:
                 "attention": int(self.attention or 0),
                 "meditation": int(self.meditation or 0),
                 "signal_quality": float(self.signal_quality or 0),
+                # Extra field for the experiment mode. Older front ends only
+                # read the three fields above and ignore this one.
+                "bands": self.bands,
             }
         )
 
@@ -194,6 +214,7 @@ class EEGBridge:
         self.attention = 0
         self.meditation = 0
         self.signal_quality = 0
+        self.bands = None
         self.last_data_time = 0
 
     def get_candidate_ports(self):
@@ -416,6 +437,7 @@ class EEGBridge:
     def parse_payload(self, payload):
         idx = 0
         updated = False
+        packet_bands = None
 
         while idx < len(payload):
             code = payload[idx]
@@ -434,6 +456,21 @@ class EEGBridge:
                 self.meditation = payload[idx]
                 idx += 1
                 updated = True
+            elif (
+                code == 0x83
+                and idx < len(payload)
+                and payload[idx] == EEG_POWER_LENGTH
+                and idx + 1 + EEG_POWER_LENGTH <= len(payload)
+            ):
+                # ASIC_EEG_POWER: eight 3-byte big-endian unsigned values.
+                # Read them, then step over the row exactly as the generic
+                # branch below would, so every other code parses as before.
+                start = idx + 1
+                packet_bands = {
+                    name: int.from_bytes(payload[start + i * 3 : start + i * 3 + 3], "big")
+                    for i, name in enumerate(EEG_BAND_NAMES)
+                }
+                idx += 1 + EEG_POWER_LENGTH
             elif code >= 0x80 and idx < len(payload):
                 value_len = payload[idx]
                 idx += 1 + value_len
@@ -441,6 +478,9 @@ class EEGBridge:
                 idx += 1
 
         if updated:
+            # Bands only ever travel with the reading they arrived with: a
+            # packet without 0x83 sends bands = None rather than a stale set.
+            self.bands = packet_bands
             self.last_data_time = time.time()
             self.emit_sense()
 
