@@ -96,6 +96,15 @@ export default {
                                 ${dualText('See How It Works', '睇下點樣運作')}
                             </a>
                         </div>
+                        <!-- Experiment mode entry (TALE 2026). The page is restyled in the appearance pass. -->
+                        <div class="mt-6 flex flex-col sm:flex-row justify-center gap-5">
+                            <button type="button" class="glass-btn inline-flex items-center justify-center px-8 py-4 text-lg font-semibold dark:text-slate-200 text-slate-700 rounded-full" data-lab-start>
+                                ${dualText('Start a test', '開始實驗')}
+                            </button>
+                            <button type="button" class="glass-btn inline-flex items-center justify-center px-8 py-4 text-lg font-semibold dark:text-slate-200 text-slate-700 rounded-full" data-lab-quick>
+                                ${dualText('Try it in 1 minute', '先試 1 分鐘')}
+                            </button>
+                        </div>
                         <div class="mt-24 relative max-w-5xl mx-auto fade-up-element" style="transition-delay: 200ms;">
                             <div class="hero-visual-frame relative overflow-hidden shadow-[0_20px_50px_-12px_rgba(0,0,0,0.1)] dark:shadow-[0_20px_50px_-12px_rgba(0,0,0,0.5)] border border-slate-200 dark:border-white/10 bg-slate-100 dark:bg-slate-900 aspect-[16/9] group transition-colors duration-500">
                                 <div class="hero-image-shell">
@@ -382,7 +391,32 @@ export default {
         }
 
         root.querySelectorAll('[data-enter-app]').forEach((button) => {
-            button.addEventListener('click', () => router.navigate('auth'));
+            button.addEventListener('click', () => {
+                // Clear any half-started experiment so this entry always opens
+                // the training / challenge / study chooser.
+                setState({ testMode: 'training', setupStep: 'test', difficulty: null });
+                router.navigate('auth');
+            });
+        });
+
+        // Experiment mode. The full test needs an account (the Setup page sends
+        // a signed-out visitor to log in first); the one-minute try-out does not.
+        const enterLab = (testMode) => {
+            setState({
+                testMode,
+                setupStep: 'mode',
+                difficulty: 'lab',
+                inputMode: 'idle',
+                cameraConsent: 'unknown',
+                focusSource: 'simulation-fallback'
+            });
+            router.navigate('setup');
+        };
+        root.querySelectorAll('[data-lab-start]').forEach((button) => {
+            button.addEventListener('click', () => enterLab('lab'));
+        });
+        root.querySelectorAll('[data-lab-quick]').forEach((button) => {
+            button.addEventListener('click', () => enterLab('quick'));
         });
     }
 };

@@ -42,7 +42,7 @@ export const SUMMARY_HEADER = [
     'user', 'test_id', 'started_at', 'input_source', 'order', 'question_seed', 'time_limit_ms',
     ...conditionColumns('phone_on_desk'),
     ...conditionColumns('phone_away'),
-    'accuracy_gap_pp', 'correct_gap', 'rt_gap_ms', 'rt_gap_pct', 'focus_gap', 'index_gap', 'rating_gap',
+    'accuracy_gap_pp', 'correct_gap', 'right_gap_same_base', 'same_base_questions', 'rt_gap_ms', 'rt_gap_pct', 'focus_gap', 'index_gap', 'rating_gap',
     'task_direction', 'signal_direction', 'rating_direction', 'results_compared', 'results_agree', 'verdict'
 ];
 
@@ -53,7 +53,7 @@ export function summaryCsv(sessions = []) {
             s.user, s.id, s.startedAt, s.source, s.order, s.seed, s.limitMs,
             ...conditionValues(s.conditions?.on),
             ...conditionValues(s.conditions?.off),
-            cmp.task.accGapPP, cmp.task.correctGap, cmp.task.rtGapMs, cmp.task.rtGapPct,
+            cmp.task.accGapPP, cmp.task.correctGap, cmp.task.rightGap, cmp.task.sameBase, cmp.task.rtGapMs, cmp.task.rtGapPct,
             cmp.signal.focusGap, cmp.signal.indexGap, cmp.rating.gap,
             cmp.task.dir, cmp.signal.dir, cmp.rating.dir, cmp.compared,
             cmp.agree ? 1 : 0, cmp.verdict

@@ -8,6 +8,10 @@ async function getRuntime() {
     return importGameRuntime('/pages/game/runtime.js');
 }
 
+// Experiment mode (lab / quick): the controller that runs the test screens.
+// Null in training, challenge and study.
+let labController = null;
+
 
 export default {
     render() {
@@ -18,6 +22,9 @@ export default {
                      setGamePresentationState('hidden') applies, so the very
                      first paint never flashes a raw scene/HUD frame. -->
                 <div id="canvas-container" style="opacity: 0.14; filter: blur(8px) saturate(0.7); transform: scale(1.012);"></div>
+                <!-- Experiment mode only: the test screens sit above the HUD.
+                     Filled by pages/lab/labController.js; empty otherwise. -->
+                <div id="lab-layer"></div>
                 <div id="ui-container" style="opacity: 0; transform: translateY(10px); filter: blur(6px);">
                     <div id="portrait-warning">
                         <div class="warning-icon" aria-hidden="true">
@@ -34,12 +41,12 @@ export default {
 
                     <div id="manual-debug-panel" style="display: none;"></div>
                     <div id="fps-meter" style="display: none;">-- FPS</div>
-                    <div id="user-info">${t('game_player')}：<span id="display-username">${state.currentUser || '-'}</span></div>
+                    <div id="user-info" ${state.currentUser ? '' : 'hidden'}>${t('game_player')}：<span id="display-username">${state.currentUser || '-'}</span></div>
 
                     <div id="top-bar">
                         <div class="top-buttons">
                             <button id="btn-back-home-game" data-i18n="back_home">${t('back_home')}</button>
-                            <button id="btn-logout" data-i18n="logout">${t('auth_logout')}</button>
+                            <button id="btn-logout" data-i18n="logout" ${state.currentUser ? '' : 'hidden'}>${t('auth_logout')}</button>
                             <button id="game-settings-btn" type="button" aria-label="${t('settings_quality')}">⚙</button>
                         </div>
                     </div>
@@ -250,8 +257,10 @@ export default {
 
     async mount({ root, router }) {
         const state = getState();
-        if (!state.currentUser || !state.difficulty) {
-            router.navigate('setup');
+        const isLab = state.testMode === 'lab' || state.testMode === 'quick';
+        // The one-minute try-out needs no account; everything else does.
+        if ((!state.currentUser && state.testMode !== 'quick') || !state.difficulty) {
+            router.navigate(state.testMode === 'quick' ? 'home' : 'setup');
             return;
         }
 
@@ -270,6 +279,40 @@ export default {
         }
 
         const runtime = await getRuntime();
+
+        // Experiment mode: build the test controller first so the runtime can
+        // hand over to it the moment the entry countdown ends.
+        if (isLab) {
+            const { createLabController } = await import('../lab/labController.js?v=2026-07-28-2');
+            const leave = async (next) => {
+                labController?.destroy();
+                labController = null;
+                await runtime.disposeGameSession();
+                await disposeMode();
+                next();
+            };
+            labController = createLabController({
+                root: root.querySelector('#lab-layer'),
+                runtime,
+                mode: state.testMode,
+                user: state.currentUser,
+                lang: state.lang,
+                onFinish: () => router.navigate('lab-results'),
+                onQuickAgain: () => leave(() => {
+                    setState({ testMode: 'quick', setupStep: 'mode', difficulty: 'lab', inputMode: 'idle', cameraConsent: 'unknown', focusSource: 'simulation-fallback' });
+                    router.navigate('setup');
+                }),
+                onQuickFull: () => leave(() => {
+                    setState({ testMode: 'lab', setupStep: 'mode', difficulty: 'lab', inputMode: 'idle', cameraConsent: 'unknown', focusSource: 'simulation-fallback' });
+                    router.navigate('setup');
+                }),
+                onHome: () => leave(() => {
+                    resetFlowState();
+                    router.navigate('home');
+                })
+            });
+        }
+
         await syncRuntimeState({
             user: state.currentUser,
             lang: state.lang,
@@ -281,7 +324,8 @@ export default {
             trainingDurationSec: state.trainingDurationSec,
             studySubject: state.studySubject,
             studyDepth: state.studyDepth,
-            onResults: () => router.navigate('results')
+            onResults: () => router.navigate('results'),
+            onActive: isLab ? () => labController?.start() : null
         });
         runtime.switchLanguage(state.lang);
         runtime.startGameSession();
@@ -360,8 +404,10 @@ export default {
         const homeButton = root.querySelector('#btn-back-home-game');
         if (homeButton) {
             homeButton.addEventListener('click', async () => {
-                const confirmed = window.confirm(t('game_home_confirm'));
+                const confirmed = window.confirm(isLab ? t('lab_exit_confirm') : t('game_home_confirm'));
                 if (!confirmed) return;
+                labController?.destroy();
+                labController = null;
                 await runtime.disposeGameSession();
                 await disposeMode();
                 resetFlowState();
@@ -374,6 +420,8 @@ export default {
             logoutButton.addEventListener('click', async () => {
                 const confirmed = window.confirm(t('game_logout_confirm'));
                 if (!confirmed) return;
+                labController?.destroy();
+                labController = null;
                 await runtime.disposeGameSession();
                 await disposeMode();
                 logout();
@@ -385,6 +433,8 @@ export default {
     },
 
     async unmount() {
+        labController?.destroy();
+        labController = null;
         try {
             const runtime = await getRuntime();
             runtime.disposeGameSession();

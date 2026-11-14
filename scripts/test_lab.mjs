@@ -119,9 +119,9 @@ test('answers: interference = mismatch speed minus match speed', () => {
 });
 
 // ---------- comparison ----------
-function cond({ acc = 90, correct = 54, rt = 800, focus = 55, valid = true, index = 0.5, rating = 6 } = {}) {
+function cond({ acc = 90, correct = 54, answered = 60, rt = 800, focus = 55, valid = true, index = 0.5, rating = 6 } = {}) {
     return {
-        task: { accuracyPct: acc, correct, meanRtMs: rt },
+        task: { accuracyPct: acc, correct, answered, meanRtMs: rt },
         signal: { valid, focusMean: focus, indexMean: index },
         rating
     };
@@ -183,6 +183,19 @@ test('compare: weak signal -> brainwaves not counted, other two still compared',
     assert.equal(c.signal.dir, null);
     assert.equal(c.compared, 2);
     assert.equal(c.agree, true);
+});
+
+test('compare: "more right" is counted over the same number of questions', () => {
+    // Away: slower, so fewer answers and fewer correct in total (58 < 60),
+    // but clearly more accurate (93.5% vs 85.7%). The sentence must say MORE.
+    const c = compareConditions(
+        cond({ acc: 85.7, correct: 60, answered: 70, rt: 800 }),
+        cond({ acc: 93.5, correct: 58, answered: 62, rt: 900 })
+    );
+    assert.equal(c.task.correctGap, -2);
+    assert.equal(c.task.sameBase, 62);
+    assert.equal(c.task.rightGap, 5);          // 7.8 points of 62 questions
+    assert.equal(Math.sign(c.task.rightGap), Math.sign(c.task.accGapPP));
 });
 
 // ---------- quick try-out ----------

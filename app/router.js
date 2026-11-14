@@ -6,7 +6,8 @@ const pageModulePaths = {
     auth: '/pages/auth/index.js',
     setup: '/pages/setup/index.js',
     game: '/pages/game/index.js',
-    results: '/pages/results/index.js'
+    results: '/pages/results/index.js',
+    'lab-results': '/pages/lab/results.js'
 };
 
 const pageCache = new Map();

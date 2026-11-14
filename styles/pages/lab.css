@@ -1,0 +1,728 @@
+/* Experiment mode on the game page (TALE 2026).
+   Everything here is scoped to #lab-layer or body.lab-session, so training,
+   challenge and study look exactly as before.
+
+   Panels sit over a live 3D scene, so they use a solid, slightly see-through
+   paper colour and NO blur: backdrop blur drops the frame rate on Windows
+   laptops with integrated graphics. */
+
+#lab-layer {
+    position: fixed;
+    inset: 0;
+    z-index: 30;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 0.875rem 1rem 1.25rem;
+    pointer-events: none;
+    color: var(--nb-ink);
+    font-family: var(--nb-sans);
+    line-height: 1.55;
+}
+
+#lab-layer:empty {
+    display: none;
+}
+
+#lab-layer *,
+#lab-layer *::before,
+#lab-layer *::after {
+    box-sizing: border-box;
+}
+
+#lab-layer [hidden] {
+    display: none !important;
+}
+
+.lab-mono,
+.lab-mono-numbers {
+    font-family: var(--nb-mono);
+    font-variant-numeric: tabular-nums;
+}
+
+/* ---- corner tag: "Demo mode: not saved as test data" ---- */
+.lab-tag {
+    position: absolute;
+    left: 1rem;
+    bottom: 1rem;
+    max-width: min(22rem, calc(100vw - 2rem));
+    padding: 0.35rem 0.7rem;
+    border: 1px solid var(--nb-ink);
+    background: var(--nb-accent);
+    color: var(--nb-ink);
+    font-size: 0.8125rem;
+    font-weight: 600;
+    line-height: 1.35;
+}
+
+/* ---- top strip: which stage, time left ---- */
+.lab-strip {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    max-width: min(34rem, calc(100vw - 2rem));
+    padding: 0.5rem 0.9rem 0.6rem;
+    border: 1px solid var(--nb-ink);
+    background: rgba(245, 242, 234, 0.95);
+    font-size: 0.9375rem;
+    font-weight: 500;
+    overflow: hidden;
+}
+
+.lab-strip-dot {
+    flex: none;
+    width: 0.7rem;
+    height: 0.7rem;
+    background: var(--nb-ink);
+}
+
+.lab-strip[data-cond="on"] .lab-strip-dot { background: var(--nb-on); }
+.lab-strip[data-cond="off"] .lab-strip-dot { background: var(--nb-off); }
+
+.lab-strip-label {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.lab-strip-time {
+    flex: none;
+    font-size: 1rem;
+    font-weight: 500;
+}
+
+.lab-strip-bar {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 3px;
+    background: var(--nb-rule);
+}
+
+.lab-strip-bar i {
+    display: block;
+    height: 100%;
+    background: var(--nb-accent);
+    transform-origin: left center;
+    transition: transform 0.2s linear;
+}
+
+/* ---- the stage: cards in the middle, questions at the bottom ---- */
+.lab-stage {
+    flex: 1 1 auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    min-height: 0;
+    padding-top: 0.75rem;
+}
+
+#lab-layer[data-line="on"] .lab-stage {
+    flex: 0 0 auto;
+    padding-top: 0.6rem;
+}
+
+.lab-card,
+.lab-stroop,
+.lab-phone,
+.lab-line {
+    pointer-events: auto;
+    border: 1px solid var(--nb-ink);
+    border-radius: 3px;
+    background: rgba(245, 242, 234, 0.96);
+}
+
+.lab-card {
+    width: min(34rem, 100%);
+    max-height: 100%;
+    padding: 1.6rem 1.75rem 1.5rem;
+    overflow-y: auto;
+}
+
+.lab-card[data-cond="on"] { border-top: 5px solid var(--nb-on); }
+.lab-card[data-cond="off"] { border-top: 5px solid var(--nb-off); }
+
+.lab-card h2,
+.lab-phone h2 {
+    margin: 0;
+    font-size: clamp(1.4rem, 1.1rem + 1.1vw, 1.875rem);
+    font-weight: 600;
+    line-height: 1.25;
+    text-wrap: balance;
+}
+
+.lab-eyebrow {
+    margin: 0 0 0.4rem;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    color: var(--nb-accent);
+}
+
+.lab-lead {
+    margin: 0.75rem 0 0;
+    font-size: 1rem;
+    color: var(--nb-muted);
+}
+
+.lab-fine {
+    margin: 0.6rem 0 0;
+    font-size: 0.875rem;
+    color: var(--nb-muted);
+}
+
+.lab-rule {
+    margin: 1rem 0 0;
+    font-size: 1.125rem;
+    font-weight: 600;
+}
+
+.lab-place {
+    margin: 0.9rem 0 0;
+    font-size: 1.125rem;
+    font-weight: 500;
+}
+
+.lab-cond-name {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin: 0.9rem 0 0;
+    font-size: 1.0625rem;
+    font-weight: 600;
+}
+
+.lab-cond-dot {
+    width: 0.8rem;
+    height: 0.8rem;
+    background: var(--nb-on);
+}
+
+.lab-card[data-cond="off"] .lab-cond-dot { background: var(--nb-off); }
+
+.lab-status {
+    min-height: 1.5rem;
+    margin: 0.9rem 0 0;
+    font-size: 1rem;
+    font-weight: 500;
+}
+
+.lab-status[data-tone="bad"],
+.lab-status[data-tone="weak"] {
+    padding-left: 0.6rem;
+    border-left: 3px solid var(--nb-accent);
+}
+
+.lab-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+    margin-top: 1.25rem;
+}
+
+.lab-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 2.875rem;
+    padding: 0.55rem 1.3rem;
+    border: 1px solid var(--nb-ink);
+    border-radius: 3px;
+    background: transparent;
+    color: var(--nb-ink);
+    font: inherit;
+    font-weight: 500;
+    cursor: pointer;
+}
+
+.lab-btn:hover { background: var(--nb-wash); }
+
+.lab-btn-primary {
+    background: var(--nb-accent);
+    font-weight: 600;
+}
+
+.lab-btn-primary:hover {
+    background: var(--nb-accent);
+    opacity: 0.88;
+}
+
+.lab-btn[disabled] {
+    opacity: 0.38;
+    cursor: not-allowed;
+}
+
+.lab-btn:focus-visible,
+.lab-key:focus-visible,
+.lab-rate-btn:focus-visible {
+    outline: 2px solid var(--nb-on);
+    outline-offset: 2px;
+}
+
+/* ---- signal check ---- */
+.lab-meter,
+.lab-pips {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-top: 1rem;
+    font-size: 0.9375rem;
+}
+
+.lab-meter-name,
+.lab-pips-name {
+    flex: none;
+    width: 8.5rem;
+    color: var(--nb-muted);
+}
+
+.lab-meter-track {
+    flex: 1 1 auto;
+    height: 0.75rem;
+    border: 1px solid var(--nb-ink);
+    overflow: hidden;
+}
+
+.lab-meter-track i {
+    display: block;
+    height: 100%;
+    background: var(--nb-accent);
+    transform: scaleX(0);
+    transform-origin: left center;
+    transition: transform 0.3s ease;
+}
+
+.lab-meter-value {
+    flex: none;
+    width: 3rem;
+    text-align: right;
+}
+
+.lab-pips-row {
+    display: flex;
+    gap: 0.4rem;
+}
+
+.lab-pips-row i {
+    width: 1.5rem;
+    height: 0.75rem;
+    border: 1px solid var(--nb-ink);
+}
+
+.lab-pips-row i.is-on {
+    background: var(--nb-ink);
+}
+
+/* ---- rule explainer ---- */
+.lab-example {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-top: 0.75rem;
+}
+
+.lab-example-word {
+    flex: none;
+    min-width: 4.5rem;
+    padding: 0.35rem 0.9rem;
+    background: var(--nb-ink);
+    font-size: 1.75rem;
+    font-weight: 700;
+    line-height: 1.2;
+    text-align: center;
+}
+
+.lab-example-text {
+    font-size: 0.9375rem;
+}
+
+.lab-keycaps {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem 1rem;
+    margin-top: 0.6rem;
+}
+
+.lab-keycap {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-weight: 500;
+}
+
+.lab-keycap kbd,
+.lab-key kbd {
+    display: inline-grid;
+    place-items: center;
+    min-width: 1.6rem;
+    height: 1.6rem;
+    padding: 0 0.3rem;
+    border: 1px solid var(--nb-ink);
+    border-radius: 3px;
+    background: transparent;
+    color: inherit;
+    font-family: var(--nb-mono);
+    font-size: 0.8125rem;
+    font-weight: 500;
+}
+
+/* ---- "Get ready" beat ---- */
+.lab-ready {
+    padding: 0.6rem 1.4rem;
+    border: 1px solid var(--nb-ink);
+    background: rgba(245, 242, 234, 0.96);
+    font-size: 1.5rem;
+    font-weight: 600;
+}
+
+/* ---- self-rating ---- */
+.lab-rate-row {
+    display: grid;
+    grid-template-columns: repeat(10, minmax(0, 1fr));
+    gap: 0.3rem;
+    margin-top: 1.1rem;
+}
+
+.lab-rate-btn {
+    min-height: 2.875rem;
+    padding: 0;
+    border: 1px solid var(--nb-ink);
+    border-radius: 3px;
+    background: transparent;
+    color: var(--nb-ink);
+    font-size: 1.0625rem;
+    cursor: pointer;
+}
+
+.lab-rate-btn:hover { background: var(--nb-wash); }
+
+.lab-rate-btn.is-picked {
+    background: var(--nb-ink);
+    color: var(--nb-paper);
+}
+
+.lab-rate-ends {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 0.4rem;
+    font-size: 0.8125rem;
+    color: var(--nb-muted);
+}
+
+/* ---- the colour-word questions ---- */
+.lab-stroop {
+    align-self: flex-end;
+    width: min(36rem, 100%);
+    padding: 0.9rem 1rem 1rem;
+}
+
+.lab-stroop-rule {
+    margin: 0 0 0.6rem;
+    font-size: 0.9375rem;
+    font-weight: 500;
+    text-align: center;
+}
+
+.lab-stroop-screen {
+    position: relative;
+    display: grid;
+    place-items: center;
+    height: clamp(6.5rem, 20vh, 10rem);
+    background: var(--nb-ink);
+    overflow: hidden;
+}
+
+.lab-stroop-word {
+    font-size: clamp(3rem, 2rem + 5vw, 5rem);
+    font-weight: 700;
+    line-height: 1;
+    letter-spacing: 0.02em;
+    opacity: 0;
+}
+
+.lab-stroop-word.is-shown {
+    opacity: 1;
+}
+
+.lab-stroop-mark {
+    position: absolute;
+    top: 0.5rem;
+    right: 0.75rem;
+    color: var(--nb-paper);
+    font-size: 1.125rem;
+    font-weight: 600;
+    opacity: 0;
+}
+
+.lab-stroop-mark.is-shown { opacity: 1; }
+.lab-stroop-mark.is-wrong { color: var(--nb-accent); }
+
+/* Time left for this word: a line that shrinks. Transform only. */
+.lab-stroop-limit {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 4px;
+    background: var(--nb-paper);
+    opacity: 0;
+    transform-origin: left center;
+}
+
+.lab-stroop-limit.is-running {
+    opacity: 0.75;
+    animation: lab-limit-shrink linear forwards;
+}
+
+@keyframes lab-limit-shrink {
+    from { transform: scaleX(1); }
+    to { transform: scaleX(0); }
+}
+
+.lab-stroop-keys {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0.5rem;
+    margin-top: 0.6rem;
+}
+
+.lab-key {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.3rem;
+    min-height: 4.5rem;
+    padding: 0.5rem 0.25rem;
+    border: 1px solid var(--nb-ink);
+    border-radius: 3px;
+    background: var(--nb-paper);
+    color: var(--nb-ink);
+    font: inherit;
+    cursor: pointer;
+    touch-action: manipulation;
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+/* The buttons carry the colour NAME in plain ink on purpose: matching a
+   colour to a word (not to a coloured button) is what makes the test hard. */
+.lab-key-label {
+    font-size: clamp(1.15rem, 0.9rem + 1vw, 1.5rem);
+    font-weight: 700;
+    line-height: 1.1;
+}
+
+.lab-key.is-pressed {
+    background: var(--nb-ink);
+    color: var(--nb-paper);
+}
+
+.lab-key.is-pressed kbd {
+    border-color: var(--nb-paper);
+}
+
+/* ---- quick try-out ---- */
+.lab-phone {
+    align-self: flex-end;
+    width: min(36rem, 100%);
+    padding: 1.5rem 1.5rem 1.6rem;
+    border-top: 5px solid var(--nb-on);
+    text-align: center;
+}
+
+.lab-phone p {
+    margin: 0.6rem 0 0;
+    color: var(--nb-muted);
+}
+
+.lab-line {
+    width: min(36rem, 100%);
+    margin-top: auto;
+    padding: 0.6rem 0.9rem 0.7rem;
+}
+
+.lab-line-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.3rem 1rem;
+    margin-bottom: 0.4rem;
+    font-size: 0.8125rem;
+}
+
+.lab-line-title {
+    margin-right: auto;
+    font-weight: 600;
+}
+
+.lab-line-legend {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+}
+
+.lab-line-legend i {
+    width: 1.1rem;
+    height: 3px;
+    background: var(--nb-off);
+}
+
+.lab-line-legend i[data-seg="2"] {
+    background: var(--nb-on);
+}
+
+.lab-line svg {
+    display: block;
+    width: 100%;
+    height: clamp(4.5rem, 13vh, 6.5rem);
+    overflow: visible;
+}
+
+.lab-line-grid {
+    stroke: var(--nb-rule);
+    stroke-width: 1;
+    vector-effect: non-scaling-stroke;
+}
+
+.lab-line-split {
+    stroke: var(--nb-ink);
+    stroke-width: 1;
+    stroke-dasharray: 3 3;
+    vector-effect: non-scaling-stroke;
+}
+
+.lab-line polyline {
+    fill: none;
+    stroke: var(--nb-off);
+    stroke-width: 2.5;
+    stroke-linejoin: round;
+    stroke-linecap: round;
+    vector-effect: non-scaling-stroke;
+}
+
+.lab-line polyline[data-seg="2"] {
+    stroke: var(--nb-on);
+}
+
+.lab-line-pen {
+    fill: var(--nb-off);
+    transition: transform 0.25s linear;
+}
+
+.lab-line-pen[data-seg="2"] {
+    fill: var(--nb-on);
+}
+
+.lab-card-result[data-verdict="dropped"] {
+    border-top: 5px solid var(--nb-accent);
+}
+
+/* ---- HUD pieces that do not belong to a test ---- */
+body.lab-session #score-display,
+body.lab-session #streak-display,
+body.lab-session #play-time-display,
+body.lab-session #training-countdown-display,
+body.lab-session #flow-ring,
+body.lab-session #voyage-card,
+body.lab-session #onboarding-cue,
+body.lab-session #boost-flash,
+body.lab-session #star-banner,
+body.lab-session #checkpoint-banner,
+body.lab-session #distance-display,
+body.lab-session #question-panel,
+body.lab-session #study-reader,
+body.lab-session #game-settings-btn,
+body.lab-session #game-settings-panel {
+    display: none !important;
+}
+
+/* The rotate-your-device notice of the game page wins over the test layer. */
+@media (orientation: portrait), (max-aspect-ratio: 11/10) and (max-width: 900px) {
+    #lab-layer {
+        display: none;
+    }
+}
+
+@media (max-width: 720px), (max-height: 560px) {
+    .lab-card {
+        padding: 1.1rem 1.1rem 1rem;
+    }
+
+    .lab-key {
+        min-height: 3.5rem;
+    }
+
+    .lab-meter-name,
+    .lab-pips-name {
+        width: 6.5rem;
+    }
+
+    .lab-tag {
+        font-size: 0.75rem;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .lab-strip-bar i,
+    .lab-meter-track i,
+    .lab-line-pen {
+        transition: none;
+    }
+
+    /* No shrinking line: the two-second limit still applies. */
+    .lab-stroop-limit.is-running {
+        animation: none;
+        opacity: 0;
+    }
+}
+
+/* ---- Setup: the experiment brief above the signal-source choice ---- */
+.lab-brief {
+    display: grid;
+    gap: 0.25rem;
+    margin-bottom: 1.5rem;
+    padding: 1rem 1.15rem;
+    border: 1px solid currentColor;
+    border-left-width: 4px;
+}
+
+.lab-brief-kind {
+    font-size: 0.8125rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+}
+
+.lab-brief-label {
+    font-size: 0.8125rem;
+    opacity: 0.75;
+}
+
+.lab-brief-question {
+    font-size: 1.25rem;
+    line-height: 1.35;
+}
+
+.lab-brief-desc {
+    font-size: 0.9375rem;
+    opacity: 0.85;
+}
+
+.lab-brief-tag {
+    justify-self: start;
+    margin-top: 0.35rem;
+    padding: 0.2rem 0.55rem;
+    border: 1px solid currentColor;
+    font-size: 0.8125rem;
+    font-weight: 600;
+}
+
+.auth-hint {
+    margin: -0.25rem 0 0;
+    font-size: 0.8125rem;
+    opacity: 0.8;
+}

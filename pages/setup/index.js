@@ -3,6 +3,14 @@ import { getState, setState } from '../../app/state.js';
 import { activateEEGMode, activateSimulationMode, disposeMode, isEegStation, syncRuntimeState } from '../../services/eegBridgeService.js?v=2026-07-28-2';
 import { attachCameraPreview, detachCameraPreview, requestCameraPreview, stopCameraPreview } from '../../services/focusInputService.js?v=2026-07-28-2';
 import { resetAllData, deleteAccountData } from '../../services/storageService.js';
+import { clearLabData } from '../lab/labStore.js?v=2026-07-28-2';
+
+// Experiment mode (TALE 2026): 'lab' = full test, 'quick' = one-minute try-out.
+// Both skip the goal / difficulty / duration steps: once the signal source is
+// settled they go straight into the test.
+function isLabFlow(state = getState()) {
+    return state.testMode === 'lab' || state.testMode === 'quick';
+}
 
 // Study Mode is live (D3 complete, 2026-07-16). The card is fully enterable;
 // only the extra subjects (Chemistry/Physics/History) stay locked until their
@@ -100,11 +108,26 @@ function renderDepthStep() {
     `;
 }
 
-function renderModeStep() {
+function renderLabIntro(state) {
+    const quick = state.testMode === 'quick';
+    return `
+        <div class="lab-brief" data-lab-brief="${quick ? 'quick' : 'full'}">
+            <span class="lab-brief-kind">${t(quick ? 'setup_quick_title' : 'setup_lab_title')}</span>
+            <span class="lab-brief-label">${t('setup_lab_question_label')}</span>
+            <strong class="lab-brief-question">${t('lab_question')}</strong>
+            <span class="lab-brief-desc">${t(quick ? 'setup_quick_desc' : 'setup_lab_desc')}</span>
+            ${quick ? `<span class="lab-brief-tag">${t('lab_demo_tag')}</span>` : ''}
+        </div>
+    `;
+}
+
+function renderModeStep(state = getState()) {
+    const lab = isLabFlow(state);
     return `
         <div class="setup-card">
-            <h2>${t('setup_mode_title')}</h2>
-            <p>${t('setup_mode_desc')}</p>
+            ${lab ? renderLabIntro(state) : ''}
+            <h2>${lab ? t('setup_lab_source_title') : t('setup_mode_title')}</h2>
+            <p>${lab ? t('setup_lab_source_desc') : t('setup_mode_desc')}</p>
             <div class="setup-option-grid">
                 <button type="button" class="option-card option-danger" data-mode="eeg">
                     <strong>${t('setup_mode_eeg')}</strong>
@@ -114,6 +137,11 @@ function renderModeStep() {
                     <strong>${t('setup_mode_sim')}</strong>
                     <span>${t('setup_mode_sim_desc')}</span>
                 </button>
+                ${lab ? `
+                <button type="button" class="option-card option-study" data-lab-demo>
+                    <strong>${t('setup_mode_demo')}</strong>
+                    <span>${t('setup_mode_demo_desc')}</span>
+                </button>` : ''}
             </div>
             <div class="mode-helper-card">
                 <div id="mode-selection-helper-title" class="mode-helper-title">${t('setup_helper_title')}</div>
@@ -284,9 +312,9 @@ export default {
                             <div>
                                 <span class="eyebrow">Setup</span>
                                 <h1>${t('setup_title')}</h1>
-                                <p class="page-support">${t('game_player')}：${state.currentUser || '-'}</p>
+                                ${state.currentUser ? `<p class="page-support">${t('game_player')}：${state.currentUser}</p>` : ''}
                             </div>
-                            <div class="setup-settings">
+                            <div class="setup-settings" ${state.currentUser ? '' : 'hidden'}>
                                 <button type="button" class="setup-settings-btn" id="setup-settings-btn" aria-label="${t('setup_settings')}" aria-haspopup="true" aria-expanded="false">⚙</button>
                                 <div class="setup-settings-menu" id="setup-settings-menu" style="display: none;">
                                     <div class="setup-settings-menu-title">${t('setup_data_menu_title')}</div>
@@ -313,7 +341,7 @@ export default {
                             ? renderDifficultyStep(state)
                             : state.setupStep === 'camera'
                                 ? renderCameraStep(state)
-                                : renderModeStep()}
+                                : renderModeStep(state)}
                     </div>
                 </section>
             </main>
@@ -322,7 +350,8 @@ export default {
 
     async mount({ root, router }) {
         const state = getState();
-        if (!state.currentUser) {
+        // The one-minute try-out is the only flow that needs no account.
+        if (!state.currentUser && state.testMode !== 'quick') {
             router.navigate('auth');
             return;
         }
@@ -364,6 +393,7 @@ export default {
                 const orig = label ? label.textContent : '';
                 if (label) label.textContent = t('setup_working');
                 try { await resetAllData(); } catch (e) { /* best-effort */ }
+                clearLabData(getState().currentUser);
                 if (label) label.textContent = orig;
                 resetBtn.disabled = false;
                 closeMenu();
@@ -374,6 +404,7 @@ export default {
             deleteBtn?.addEventListener('click', async () => {
                 if (!window.confirm(t('setup_delete_account_confirm'))) return;
                 deleteBtn.disabled = true;
+                clearLabData(getState().currentUser);
                 try { await deleteAccountData(); } catch (e) { /* best-effort */ }
                 setState({ currentUser: null });
                 window.alert(t('setup_delete_done'));
@@ -402,6 +433,20 @@ export default {
         if (backTest) {
             backTest.addEventListener('click', async () => {
                 stopCameraPreview();
+                if (isLabFlow()) {
+                    // The experiment is entered from Home, so "back" returns there.
+                    await disposeMode();
+                    setState({
+                        setupStep: 'test',
+                        testMode: 'training',
+                        difficulty: null,
+                        inputMode: 'idle',
+                        cameraConsent: 'unknown',
+                        focusSource: 'simulation-fallback'
+                    });
+                    router.navigate('home');
+                    return;
+                }
                 const isStudy = getState().testMode === 'study';
                 await syncRuntimeState({
                     user: getState().currentUser,
@@ -548,6 +593,39 @@ export default {
             router.navigate('game');
         };
 
+        // Experiment mode has no goal / difficulty / duration step either.
+        const launchLabGame = async () => {
+            await syncRuntimeState({
+                user: getState().currentUser,
+                lang: getState().lang,
+                difficulty: 'lab',
+                inputMode: getState().inputMode,
+                focusSource: getState().focusSource,
+                cameraConsent: getState().cameraConsent,
+                testMode: getState().testMode
+            });
+            if (getState().inputMode === 'simulation') {
+                await activateSimulationMode();
+            }
+            setState({ difficulty: 'lab' });
+            router.navigate('game');
+        };
+
+        // Demo mode: the built-in curve, with no headband and no camera.
+        const labDemoBtn = root.querySelector('[data-lab-demo]');
+        if (labDemoBtn) {
+            labDemoBtn.addEventListener('click', async () => {
+                labDemoBtn.disabled = true;
+                stopCameraPreview();
+                setState({
+                    inputMode: 'simulation',
+                    focusSource: 'simulation-fallback',
+                    cameraConsent: 'denied'
+                });
+                await launchLabGame();
+            });
+        }
+
         root.querySelectorAll('[data-mode]').forEach((button) => {
             button.addEventListener('click', async () => {
                 const mode = button.dataset.mode;
@@ -580,7 +658,9 @@ export default {
                                         focusSource: 'eeg',
                                         cameraConsent: 'unknown'
                                     });
-                                    if (getState().testMode === 'study') {
+                                    if (isLabFlow()) {
+                                        await launchLabGame();
+                                    } else if (getState().testMode === 'study') {
                                         await launchStudyGame();
                                     } else if (getState().testMode === 'challenge') {
                                         router.refresh();
@@ -616,6 +696,10 @@ export default {
                             focusSource: 'eeg',
                             cameraConsent: 'unknown'
                         });
+                        if (isLabFlow()) {
+                            await launchLabGame();
+                            return;
+                        }
                         if (getState().testMode === 'study') {
                             await launchStudyGame();
                             return;
@@ -736,7 +820,9 @@ export default {
                     focusSource: 'simulation-fallback',
                     setupStep: getState().testMode === 'challenge' ? 'difficulty' : 'training'
                 });
-                if (getState().testMode === 'study') {
+                if (isLabFlow()) {
+                    await launchLabGame();
+                } else if (getState().testMode === 'study') {
                     await launchStudyGame();
                 } else if (getState().testMode === 'challenge') {
                     router.refresh();
@@ -760,6 +846,10 @@ export default {
         if (cameraContinueBtn) {
             cameraContinueBtn.addEventListener('click', async () => {
                 setState({ setupStep: getState().testMode === 'challenge' ? 'difficulty' : 'training' });
+                if (isLabFlow()) {
+                    await launchLabGame();
+                    return;
+                }
                 if (getState().testMode === 'study') {
                     await launchStudyGame();
                     return;

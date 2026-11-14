@@ -139,6 +139,15 @@ export function compareConditions(on, off) {
     const rtGapPct = (rtGapMs !== null && on.task.meanRtMs > 0)
         ? round((rtGapMs / on.task.meanRtMs) * 100, 1)
         : null;
+    // "How many more did you get right?" The two tests rarely have the same
+    // number of answers (a faster run simply reaches more questions), so a raw
+    // difference in correct answers can point the opposite way to the accuracy
+    // bars. Count it over the same number of questions instead: the number
+    // both tests reached. Its sign always matches the accuracy gap.
+    const sameBase = Math.min(on.task.answered || 0, off.task.answered || 0);
+    const rightGap = accGap === null
+        ? 0
+        : Math.sign(accGap) * Math.round((Math.abs(accGap) / 100) * sameBase);
     const accDir = sign(accGap, LAB_RULES.accuracyGapPP);
     const rtDir = sign(rtGapPct, LAB_RULES.speedGapPct);
     const clearGap = accDir !== 0 || rtDir !== 0;
@@ -168,7 +177,9 @@ export function compareConditions(on, off) {
     return {
         task: {
             accGapPP: accGap,
-            correctGap: off.task.correct - on.task.correct,
+            correctGap: off.task.correct - on.task.correct,   // raw difference
+            rightGap,                                           // over sameBase questions
+            sameBase,
             rtGapMs,
             rtGapPct,
             accDir,

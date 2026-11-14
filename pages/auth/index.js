@@ -11,7 +11,8 @@ function renderAuthForm(state) {
             <h2>${isLogin ? t('auth_login_title') : t('auth_register_title')}</h2>
             <p>${isLogin ? t('auth_login_desc') : t('auth_register_desc')}</p>
             <div class="auth-form">
-                ${isLogin ? '' : `<input id="auth-username" type="text" placeholder="${t('auth_username_placeholder')}" value="${state.currentUser || ''}">`}
+                ${isLogin ? '' : `<input id="auth-username" type="text" placeholder="${t('auth_username_placeholder')}" value="${state.currentUser || ''}">
+                <p class="auth-hint">${t('auth_username_hint')}</p>`}
                 <input id="auth-email" type="email" placeholder="${t('auth_email_placeholder')}">
                 <input id="auth-password" type="password" placeholder="${t('auth_password_placeholder')}">
                 <button type="button" class="primary-btn" data-submit-auth>${isLogin ? t('auth_submit_login') : t('auth_submit_register')}</button>
@@ -71,7 +72,9 @@ export default {
         if (continueButton) {
             continueButton.addEventListener('click', () => {
                 // Setup must start at step 01 (session goal), not input mode.
-                setState({ setupStep: 'test' });
+                // Coming from "Start a test" on Home, go straight to the
+                // experiment's signal-source step instead.
+                setState({ setupStep: getState().testMode === 'lab' ? 'mode' : 'test' });
                 router.navigate('setup');
             });
         }
@@ -119,7 +122,7 @@ export default {
 
                     setState({
                         currentUser: session.username,
-                        setupStep: 'test',
+                        setupStep: state.testMode === 'lab' ? 'mode' : 'test',
                         inputMode: 'idle',
                         cameraConsent: 'unknown',
                         focusSource: 'simulation-fallback'
