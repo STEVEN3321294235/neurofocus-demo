@@ -244,21 +244,9 @@ main.page:not(.page-game) {
     to { opacity: 1; transform: translateY(0); }
 }
 
-/* ---- Home hero: staggered entrance ---- */
-.page-home .home-title-stitch { animation: hero-rise 0.8s var(--ease-spring) 0.05s both; }
-.page-home #science, .page-home section { }
-.page-home h1 + * { animation: hero-rise 0.8s var(--ease-spring) 0.18s both; }
-.page-home [data-enter-app] { animation: hero-rise 0.8s var(--ease-spring) 0.3s both; }
-@keyframes hero-rise {
-    from { opacity: 0; transform: translateY(22px); }
-    to { opacity: 1; transform: translateY(0); }
-}
 
 @media (prefers-reduced-motion: reduce) {
     #focus-indicator::after { animation: none; }
-    .page-home .home-title-stitch,
-    .page-home h1 + *,
-    .page-home [data-enter-app] { animation: none; }
     .fade-up-element { transition: opacity 0.3s ease; transform: none; }
     .fade-up-element.is-visible { transform: none; }
     main.page { animation: none; }

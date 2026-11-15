@@ -8,7 +8,12 @@
        phone on the desk = blue, phone out of the room = gold
    - no gradients, glow, glass, blur or shadows: 1px lines separate things
    - numbers are set in a monospace face
-   - motion only ever changes transform and opacity */
+   - only four things ever move, and they change transform / opacity only:
+       1. the demo brainwave line on Home (stops when it is off screen)
+       2. the result bars growing from zero
+       3. the result numbers counting up from zero
+       4. the live focus line in the one-minute try-out
+     With "reduce motion" switched on, all four finish at once. */
 
 :root {
     --nb-paper: #F5F2EA;
@@ -47,6 +52,21 @@ body.nb-body {
 .nb-page *::before,
 .nb-page *::after {
     box-sizing: border-box;
+}
+
+/* Notebook pages do not use the shared page-enter slide: the only motion on
+   them is the four animations listed in docs/TALE_CHANGES.md. */
+main.page.nb-page {
+    animation: none;
+}
+
+.nb-page h1,
+.nb-page h2,
+.nb-page h3,
+.nb-page button,
+.nb-page input {
+    font-family: inherit;
+    letter-spacing: normal;
 }
 
 .nb-mono,
@@ -166,7 +186,7 @@ body.nb-body {
     font-weight: 500;
     line-height: 1.2;
     cursor: pointer;
-    transition: transform 0.12s ease, opacity 0.12s ease;
+    transition: none;
 }
 
 .nb-btn:hover {

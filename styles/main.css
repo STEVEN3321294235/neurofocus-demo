@@ -7,5 +7,6 @@
 @import url('./pages/game.css');
 @import url('./pages/results.css');
 @import url('./shared/clay-liquid.css');
+@import url('/vendor/fonts/ibm-plex/ibm-plex.css');
 @import url('./shared/notebook.css');
 @import url('./pages/lab.css');

@@ -13,6 +13,7 @@ shared data card).
 | `mediapipe/vision_bundle.mjs`, `mediapipe/wasm/**` | MediaPipe Tasks Vision runtime (camera focus detection) | npm `@mediapipe/tasks-vision` | 0.10.3 |
 | `mediapipe/face_landmarker.task` | Face landmark model | storage.googleapis.com/mediapipe-models | float16/1 |
 | `fonts/**` | EB Garamond, Inter, Orbitron, Material Symbols (woff2 + rewritten CSS) | Google Fonts | — |
+| `fonts/ibm-plex/**` | IBM Plex Sans (400/500/600/700) and IBM Plex Mono (400/500), Latin subset, plus the OFL licence. Used by the lab-notebook pages; Chinese uses the system font | npm `@fontsource/ibm-plex-sans`, `@fontsource/ibm-plex-mono` | 5.2.8 / 5.2.7 |
 | `tailwind/tailwind.fallback.css` | Pre-compiled Tailwind used as a floor when the CDN is unreachable | Tailwind CLI 3.4.17 | — |
 
 Supabase is deliberately NOT vendored: `services/supabaseClient.js` already falls

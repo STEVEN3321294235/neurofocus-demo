@@ -210,3 +210,12 @@ ul {
 @media (prefers-reduced-motion: reduce) {
     .page:not(.page-game) { animation: none; }
 }
+
+/* Static text that cannot go through the dictionary (index.html) is written
+   as a pair: <span class="lang-en">…</span><span class="lang-hk">…</span>.
+   Only the span for the current language is shown. */
+body[data-lang='hk'] .lang-en,
+body[data-lang='en'] .lang-hk {
+    display: none;
+}
+
