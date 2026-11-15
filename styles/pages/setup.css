@@ -1,7 +1,8 @@
-/* Setup page: lab-notebook look (TALE 2026).
+/* Setup page: glass look (TALE 2026 redesign).
    Every rule is scoped to .page-setup.nb-page so the log-in page, which
    shares .primary-btn / .setup-card style names, keeps its own look.
-   No gradients, glass, blur or shadows: 1px lines only. */
+   Tokens come from styles/shared/glass.css. No backdrop blur here: Setup
+   sits on a plain background, so see-through panels need no blur. */
 
 .page-setup.nb-page .page-shell {
     width: min(48rem, 100%);
@@ -27,8 +28,8 @@
     justify-content: space-between;
     gap: 1rem;
     margin-bottom: 2.25rem;
-    padding-bottom: 0.9rem;
-    border-bottom: 1px solid var(--nb-ink);
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--nb-rule);
 }
 
 .page-setup.nb-page .eyebrow {
@@ -105,13 +106,13 @@
     gap: 0.4rem;
     min-height: 7.5rem;
     padding: 1.1rem 1.15rem 1.2rem;
-    border: 1px solid var(--nb-ink);
-    border-radius: 3px;
-    background: var(--nb-paper);
-    box-shadow: none;
+    border: 1px solid var(--nb-border);
+    border-radius: var(--nb-radius);
+    background: var(--nb-surface);
+    box-shadow: var(--nb-highlight);
     color: var(--nb-ink);
     text-align: left;
-    transition: none;
+    transition: border-color 0.35s ease, transform 0.7s var(--nb-ease), background-color 0.35s ease;
 }
 
 .page-setup.nb-page .option-card::before,
@@ -120,9 +121,10 @@
 }
 
 .page-setup.nb-page .option-card:hover {
-    background: var(--nb-wash);
-    transform: none;
-    box-shadow: none;
+    border-color: var(--nb-border-strong);
+    background: var(--nb-surface-2);
+    transform: translateY(-3px);
+    box-shadow: var(--nb-highlight);
 }
 
 .page-setup.nb-page .option-card:active {
@@ -154,7 +156,10 @@
 /* The first choice of each step carries the orange edge: it is the one the
    page was built around (training, or the brainwave headband). */
 .page-setup.nb-page .option-card:first-child {
-    border-top: 4px solid var(--nb-accent);
+    border-color: color-mix(in srgb, var(--nb-accent) 45%, transparent);
+    background:
+        radial-gradient(120% 120% at 0% 0%, var(--nb-accent-soft), transparent 60%),
+        var(--nb-surface);
 }
 
 .page-setup.nb-page .option-card.is-locked,
@@ -167,9 +172,9 @@
 
 .page-setup.nb-page .option-card-badge {
     position: static;
-    padding: 0.1rem 0.5rem;
-    border: 1px solid var(--nb-ink);
-    border-radius: 0;
+    padding: 0.1rem 0.55rem;
+    border: 1px solid var(--nb-border-strong);
+    border-radius: 999px;
     background: transparent;
     color: var(--nb-ink);
     font-size: 0.75rem;
@@ -180,7 +185,7 @@
     margin-top: 1.25rem;
     padding: 0.9rem 1.1rem;
     border: 0;
-    border-left: 3px solid var(--nb-rule);
+    border-left: 2px solid var(--nb-accent);
     border-radius: 0;
     background: none;
     box-shadow: none;
@@ -220,20 +225,20 @@
 .page-setup.nb-page .difficulty-btn {
     min-height: 2.875rem;
     padding: 0.6rem 1.3rem;
-    border: 1px solid var(--nb-ink);
-    border-radius: 3px;
-    background: transparent;
+    border: 1px solid var(--nb-border-strong);
+    border-radius: 999px;
+    background: var(--nb-surface);
     box-shadow: none;
     color: var(--nb-ink);
-    font-weight: 500;
+    font-weight: 550;
     text-shadow: none;
     filter: none;
-    transition: none !important;
+    transition: transform 0.5s var(--nb-ease), border-color 0.3s ease !important;
 }
 
 .page-setup.nb-page .primary-btn,
 .page-setup.nb-page .secondary-btn {
-    border-radius: 3px !important;
+    border-radius: 999px !important;
 }
 
 .page-setup.nb-page .primary-btn:active,
@@ -243,8 +248,10 @@
 }
 
 .page-setup.nb-page .primary-btn {
+    border-color: transparent;
     background: var(--nb-accent);
-    font-weight: 600;
+    color: var(--nb-accent-ink);
+    font-weight: 650;
 }
 
 .page-setup.nb-page .primary-btn:hover {
@@ -254,7 +261,8 @@
 
 .page-setup.nb-page .secondary-btn:hover,
 .page-setup.nb-page .difficulty-btn:hover {
-    background: var(--nb-wash);
+    border-color: var(--nb-ink);
+    background: var(--nb-surface-2);
     transform: none;
     box-shadow: none;
 }
@@ -267,6 +275,7 @@
 }
 
 .page-setup.nb-page .difficulty-btn {
+    border-radius: var(--nb-radius) !important;
     min-height: 4rem;
     font-size: 1.125rem;
     font-weight: 600;
@@ -312,7 +321,7 @@
     height: 2px;
     border: 0;
     border-radius: 0;
-    background: var(--nb-ink) !important;
+    background: var(--nb-border-strong) !important;
     box-shadow: none;
 }
 
@@ -327,15 +336,15 @@
 .page-setup.nb-page .training-duration-slider::-moz-range-progress {
     height: 2px;
     border-radius: 0;
-    background: var(--nb-ink);
+    background: var(--nb-accent);
 }
 
 .page-setup.nb-page .training-duration-slider::-webkit-slider-thumb {
     width: 28px;
     height: 28px;
     margin-top: -13px;
-    border: 1px solid var(--nb-ink) !important;
-    border-radius: 3px;
+    border: 2px solid var(--nb-bg) !important;
+    border-radius: 50%;
     background: var(--nb-accent) !important;
     box-shadow: none !important;
     appearance: none;
@@ -347,8 +356,8 @@
 .page-setup.nb-page .training-duration-slider::-moz-range-thumb {
     width: 28px;
     height: 28px;
-    border: 1px solid var(--nb-ink);
-    border-radius: 3px;
+    border: 2px solid var(--nb-bg);
+    border-radius: 50%;
     background: var(--nb-accent);
     box-shadow: none;
 }
@@ -382,10 +391,10 @@
 
 .page-setup.nb-page .camera-consent-panel {
     padding: 0.9rem;
-    border: 1px solid var(--nb-ink);
-    border-radius: 3px;
-    background: var(--nb-paper);
-    box-shadow: none;
+    border: 1px solid var(--nb-border);
+    border-radius: var(--nb-radius);
+    background: var(--nb-surface);
+    box-shadow: var(--nb-highlight);
 }
 
 .page-setup.nb-page .camera-consent-header {
@@ -397,8 +406,8 @@
 
 .page-setup.nb-page .camera-pill {
     padding: 0.1rem 0.55rem;
-    border: 1px solid var(--nb-ink);
-    border-radius: 0;
+    border: 1px solid var(--nb-border-strong);
+    border-radius: 999px;
     background: transparent;
     color: var(--nb-ink);
     font-size: 0.75rem;
@@ -415,9 +424,9 @@
 .page-setup.nb-page .camera-preview-frame {
     position: relative;
     min-height: clamp(13rem, 36vw, 18rem);
-    border: 1px solid var(--nb-ink);
-    border-radius: 0;
-    background: var(--nb-ink);
+    border: 1px solid var(--nb-border);
+    border-radius: var(--nb-radius-sm);
+    background: #05080f;
     box-shadow: none;
     overflow: hidden;
 }
@@ -429,7 +438,7 @@
     width: 100%;
     height: 100%;
     object-fit: cover;
-    background: var(--nb-ink);
+    background: #05080f;
 }
 
 .page-setup.nb-page .camera-preview-overlay {
@@ -438,7 +447,7 @@
     display: grid;
     place-items: center;
     padding: 1.25rem;
-    background: var(--nb-ink);
+    background: #05080f;
     text-align: center;
 }
 
@@ -455,13 +464,13 @@
     display: grid;
     gap: 0.4rem;
     max-width: 24rem;
-    color: var(--nb-paper);
+    color: #eef3fb;
 }
 
 .page-setup.nb-page .camera-overlay-copy strong {
     font-size: 1.125rem;
     font-weight: 600;
-    color: var(--nb-paper);
+    color: #eef3fb;
 }
 
 .page-setup.nb-page .camera-overlay-copy span {
@@ -503,18 +512,18 @@
     place-items: center;
     width: 2.5rem;
     height: 2.5rem;
-    border: 1px solid var(--nb-ink);
-    border-radius: 3px;
+    border: 1px solid var(--nb-border);
+    border-radius: 50%;
     background: transparent;
     box-shadow: none;
     color: var(--nb-ink);
     font-size: 1.125rem;
-    transition: none;
+    transition: transform 0.6s var(--nb-ease), border-color 0.3s ease;
 }
 
 .page-setup.nb-page .setup-settings-btn:hover {
-    background: var(--nb-wash);
-    transform: none;
+    border-color: var(--nb-border-strong);
+    transform: rotate(45deg);
 }
 
 .page-setup.nb-page .setup-settings-menu {
@@ -524,10 +533,10 @@
     z-index: 5;
     width: min(20rem, calc(100vw - 2rem));
     padding: 0.6rem;
-    border: 1px solid var(--nb-ink);
-    border-radius: 3px;
-    background: var(--nb-paper);
-    box-shadow: none;
+    border: 1px solid var(--nb-border-strong);
+    border-radius: var(--nb-radius-sm);
+    background: var(--nb-surface-solid);
+    box-shadow: var(--nb-shadow);
     backdrop-filter: none;
     -webkit-backdrop-filter: none;
 }
@@ -577,7 +586,7 @@
 }
 
 .page-setup.nb-page .setup-settings-item.is-danger strong {
-    color: var(--nb-accent);
+    color: var(--nb-bad);
 }
 
 .page-setup.nb-page .setup-settings-item.is-danger:hover {
@@ -592,10 +601,13 @@
 /* ---- experiment brief (full test / quick try-out) ---- */
 .page-setup.nb-page .lab-brief {
     margin-bottom: 2rem;
-    padding: 1.1rem 1.25rem 1.2rem;
-    border: 1px solid var(--nb-ink);
-    border-left: 4px solid var(--nb-accent);
-    background: var(--nb-wash);
+    padding: 1.25rem 1.4rem 1.35rem;
+    border: 1px solid color-mix(in srgb, var(--nb-accent) 40%, transparent);
+    border-radius: var(--nb-radius);
+    background:
+        radial-gradient(120% 140% at 0% 0%, var(--nb-accent-soft), transparent 60%),
+        var(--nb-surface);
+    box-shadow: var(--nb-highlight);
 }
 
 .page-setup.nb-page .lab-brief-kind {
@@ -621,8 +633,9 @@
 }
 
 .page-setup.nb-page .lab-brief-tag {
-    border-color: var(--nb-ink);
-    background: var(--nb-accent);
+    border-color: color-mix(in srgb, var(--nb-warn) 55%, transparent);
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--nb-warn) 12%, transparent);
     color: var(--nb-ink);
 }
 
@@ -648,4 +661,20 @@
     .page-setup.nb-page .camera-preview-frame {
         min-height: 12rem;
     }
+}
+
+.page-setup.nb-page .setup-header-tools {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.page-setup.nb-page .option-card[data-reveal] {
+    transition: opacity 0.9s var(--nb-ease), transform 1.1s var(--nb-ease), border-color 0.35s ease, background-color 0.35s ease;
+}
+
+/* While the game engine loads, the choices wait (see setup/index.js). */
+.page-setup.nb-page .setup-card[aria-busy="true"] .option-card[disabled] {
+    opacity: 0.55;
+    cursor: progress;
 }

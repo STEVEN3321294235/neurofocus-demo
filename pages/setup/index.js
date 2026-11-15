@@ -4,6 +4,7 @@ import { activateEEGMode, activateSimulationMode, disposeMode, isEegStation, syn
 import { attachCameraPreview, detachCameraPreview, requestCameraPreview, stopCameraPreview } from '../../services/focusInputService.js?v=2026-07-28-2';
 import { resetAllData, deleteAccountData } from '../../services/storageService.js';
 import { clearLabData } from '../lab/labStore.js?v=2026-07-28-2';
+import { backdropHTML, bindThemeToggle, startReveals, themeToggleHTML } from '../../components/motion.js?v=2026-07-28-2';
 
 // Experiment mode (TALE 2026): 'lab' = full test, 'quick' = one-minute try-out.
 // Both skip the goal / difficulty / duration steps: once the signal source is
@@ -309,6 +310,7 @@ export default {
         const state = getState();
         return `
             <main class="page page-setup nb-page">
+                ${backdropHTML()}
                 <section class="page-shell setup-layout setup-layout-compact">
                     <div class="setup-panel setup-panel-compact">
                         <header class="page-header setup-header">
@@ -317,6 +319,8 @@ export default {
                                 <h1>${t('setup_title')}</h1>
                                 ${state.currentUser ? `<p class="page-support">${t('game_player')}${t('colon')}${state.currentUser}</p>` : ''}
                             </div>
+                            <div class="setup-header-tools">
+                            ${themeToggleHTML(t)}
                             <div class="setup-settings" ${state.currentUser ? '' : 'hidden'}>
                                 <button type="button" class="setup-settings-btn" id="setup-settings-btn" aria-label="${t('setup_settings')}" aria-haspopup="true" aria-expanded="false">⚙</button>
                                 <div class="setup-settings-menu" id="setup-settings-menu" style="display: none;">
@@ -330,6 +334,7 @@ export default {
                                         <span>${t('setup_delete_account_desc')}</span>
                                     </button>
                                 </div>
+                            </div>
                             </div>
                         </header>
                         ${state.setupStep === 'test'
@@ -354,11 +359,24 @@ export default {
     async mount({ root, router }) {
         const state = getState();
         document.body.classList.add('nb-body');
+        root.querySelectorAll('.setup-card > *').forEach((el, i) => {
+            el.setAttribute('data-reveal', '');
+            el.style.setProperty('--d', `${Math.min(i, 6) * 60}ms`);
+        });
+        startReveals(root);
+        bindThemeToggle(root, () => router.refresh());
         // The one-minute try-out is the only flow that needs no account.
         if (!state.currentUser && state.testMode !== 'quick') {
             router.navigate('auth');
             return;
         }
+
+        // The click handlers below are attached only after the game engine has
+        // loaded (the first visit can take a few seconds). Until then the
+        // choices are held disabled, so an early click is never lost.
+        const heldButtons = Array.from(root.querySelectorAll('.setup-card button:not([disabled])'));
+        heldButtons.forEach((button) => { button.disabled = true; });
+        root.querySelector('.setup-card')?.setAttribute('aria-busy', 'true');
 
         await syncRuntimeState({
             user: state.currentUser,
@@ -980,6 +998,9 @@ export default {
                 router.navigate('game');
             });
         });
+
+        heldButtons.forEach((button) => { button.disabled = false; });
+        root.querySelector('.setup-card')?.removeAttribute('aria-busy');
     },
 
     unmount() {

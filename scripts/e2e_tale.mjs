@@ -518,7 +518,23 @@ async function main() {
         // One rehearsal test first so the results page has something to show.
         const { browser, page, errors } = await launch({ scale: 2 });
         await open(page, { user: 'tester01' });
-        const shot = (name, opts = {}) => page.screenshot({ path: path.join(OUT, `shot-${name}.png`), ...opts });
+        // Sections reveal as they scroll into view, so walk down the page like
+        // a visitor before a full-page picture, then come back to the top.
+        const scrollThrough = async () => {
+            await page.evaluate(async () => {
+                const step = Math.max(200, Math.round(window.innerHeight * 0.6));
+                for (let y = 0; y <= document.documentElement.scrollHeight; y += step) {
+                    window.scrollTo(0, y);
+                    await new Promise((r) => setTimeout(r, 120));
+                }
+                window.scrollTo(0, 0);
+            });
+            await page.waitForTimeout(1400);
+        };
+        const shot = async (name, opts = {}) => {
+            if (opts.fullPage) await scrollThrough();
+            return page.screenshot({ path: path.join(OUT, `shot-${name}.png`), ...opts });
+        };
         const sizes = [['1440', { width: 1440, height: 900 }], ['390', { width: 390, height: 844 }]];
         await runFull(page, 'demo', { accuracy: [0.86, 0.95] });
         report.shots = [];
@@ -562,6 +578,19 @@ async function main() {
             report.overflow[`results-${label}`] = 0;
             report.shots.push(label);
         }
+        // Light theme, desktop.
+        await page.setViewportSize({ width: 1440, height: 900 });
+        await page.evaluate(() => localStorage.setItem('theme', 'light'));
+        await page.goto(`${BASE}/?labfast=1#home`);
+        await page.reload();
+        await page.waitForSelector('[data-lab-start]');
+        await shot('home-light-1440', { fullPage: true });
+        await page.goto(`${BASE}/?labfast=1#lab-results`);
+        await page.reload();
+        await page.waitForSelector('.page-lab-results .nb-verdict');
+        await shot('results-light-1440', { fullPage: true });
+        await page.evaluate(() => localStorage.setItem('theme', 'dark'));
+
         // The test screen itself, at desktop size.
         await page.setViewportSize({ width: 1440, height: 900 });
         await page.goto(`${BASE}/?labfast=0#home`);

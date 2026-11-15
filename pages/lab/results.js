@@ -12,6 +12,8 @@ import { getState, resetFlowState, setState } from '../../app/state.js';
 import { getLastSession, listSessions } from './labStore.js?v=2026-07-28-2';
 import { summaryCsv, secondsCsv, trialsCsv, fileName, downloadCsv } from './labCsv.js?v=2026-07-28-2';
 import { conditionsForOrder } from './labAnalysis.js?v=2026-07-28-2';
+import { figuresHTML, mountFigures } from './charts.js?v=2026-07-28-2';
+import { backdropHTML, bindThemeToggle, rollLabel, startReveals, themeToggleHTML } from '../../components/motion.js?v=2026-07-28-2';
 
 function esc(value) {
     return String(value ?? '').replace(/[&<>"']/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
@@ -83,7 +85,7 @@ function renderRows(session) {
 
     const rtMax = Math.max(on.task.meanRtMs || 0, off.task.meanRtMs || 0, 1) / 1000;
     const taskRow = `
-        <section class="nb-row" data-row="task">
+        <section class="nb-row" data-row="task" data-reveal>
             <header class="nb-row-head">
                 <h2><span class="nb-row-no nb-mono">1</span>${esc(t('labres_row_task'))}</h2>
                 <span class="nb-row-dir" data-dir="${cmp.task.dir}">${esc(dirText(cmp.task.dir, cmp.task.tradeOff))}</span>
@@ -113,7 +115,7 @@ function renderRows(session) {
             ${source === 'eeg' ? `<p class="nb-fine">${esc(hasBands ? t('labres_index_note') : t('labres_no_bands'))}</p>` : ''}`;
     }
     const signalRow = `
-        <section class="nb-row" data-row="signal" data-valid="${signalValid ? '1' : '0'}">
+        <section class="nb-row" data-row="signal" data-valid="${signalValid ? '1' : '0'}" data-reveal style="--d:80ms">
             <header class="nb-row-head">
                 <h2><span class="nb-row-no nb-mono">2</span>${esc(t(`labres_row_signal_${source}`))}</h2>
                 ${signalValid ? `<span class="nb-row-dir" data-dir="${cmp.signal.dir}">${esc(dirText(cmp.signal.dir))}</span>` : ''}
@@ -122,7 +124,7 @@ function renderRows(session) {
         </section>`;
 
     const selfRow = `
-        <section class="nb-row" data-row="self">
+        <section class="nb-row" data-row="self" data-reveal style="--d:160ms">
             <header class="nb-row-head">
                 <h2><span class="nb-row-no nb-mono">3</span>${esc(t('labres_row_self'))}</h2>
                 <span class="nb-row-dir" data-dir="${cmp.rating.dir}">${esc(dirText(cmp.rating.dir))}</span>
@@ -137,7 +139,7 @@ function renderAgreement(cmp) {
     const two = cmp.compared < 3;
     const key = `labres_${cmp.agree ? 'agree' : 'disagree'}_${two ? '2' : '3'}`;
     return `
-        <div class="nb-agree" data-agree="${cmp.agree ? '1' : '0'}">
+        <div class="nb-agree" data-agree="${cmp.agree ? '1' : '0'}" data-reveal>
             <strong>${esc(t(key))}</strong>
             ${two ? `<span>${esc(t('labres_two_only'))}</span>` : ''}
         </div>`;
@@ -185,33 +187,43 @@ const FORMATS = {
 // scaled, never resized). With "reduce motion" on, everything lands at once.
 function animateIn(root) {
     const reduce = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
-    const bars = Array.from(root.querySelectorAll('[data-grow]'));
-    const counts = Array.from(root.querySelectorAll('[data-count]'));
-    const setFinal = () => {
-        bars.forEach((el) => { el.style.transform = `scaleX(${el.dataset.grow})`; });
-        counts.forEach((el) => { el.textContent = FORMATS[el.dataset.format](Number(el.dataset.count)); });
+    const rows = Array.from(root.querySelectorAll('.nb-row'));
+    const finish = (scope) => {
+        scope.querySelectorAll('[data-grow]').forEach((el) => { el.style.transform = `scaleX(${el.dataset.grow})`; });
+        scope.querySelectorAll('[data-count]').forEach((el) => { el.textContent = FORMATS[el.dataset.format](Number(el.dataset.count)); });
     };
-    if (reduce) {
+    if (reduce || !('IntersectionObserver' in window)) {
         root.classList.add('nb-no-motion');
-        setFinal();
+        finish(root);
         return () => {};
     }
-    let frame = 0;
-    const startedAt = performance.now();
-    const DURATION = 900;
-    requestAnimationFrame(() => {
-        bars.forEach((el) => { el.style.transform = `scaleX(${el.dataset.grow})`; });
-    });
-    const step = (now) => {
-        const p = Math.min(1, (now - startedAt) / DURATION);
-        const eased = 1 - (1 - p) ** 3;
-        counts.forEach((el) => {
-            el.textContent = FORMATS[el.dataset.format](Number(el.dataset.count) * eased);
-        });
-        if (p < 1) frame = requestAnimationFrame(step);
+    const frames = new Set();
+    // Each row's bars grow and its numbers count up when the row scrolls in.
+    const play = (row) => {
+        row.querySelectorAll('[data-grow]').forEach((el) => { el.style.transform = `scaleX(${el.dataset.grow})`; });
+        const counts = Array.from(row.querySelectorAll('[data-count]'));
+        const startedAt = performance.now();
+        const DURATION = 1100;
+        const step = (now) => {
+            const p = Math.min(1, (now - startedAt) / DURATION);
+            const eased = 1 - (1 - p) ** 4;
+            counts.forEach((el) => { el.textContent = FORMATS[el.dataset.format](Number(el.dataset.count) * eased); });
+            if (p < 1) { const id = requestAnimationFrame(step); frames.add(id); }
+        };
+        frames.add(requestAnimationFrame(step));
     };
-    frame = requestAnimationFrame(step);
-    return () => cancelAnimationFrame(frame);
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach((entry) => {
+            if (!entry.isIntersecting) return;
+            observer.unobserve(entry.target);
+            setTimeout(() => play(entry.target), 250);
+        });
+    }, { threshold: 0.25 });
+    rows.forEach((row) => observer.observe(row));
+    return () => {
+        observer.disconnect();
+        frames.forEach((id) => cancelAnimationFrame(id));
+    };
 }
 
 let stopAnimation = () => {};
@@ -223,14 +235,16 @@ export default {
         if (!session) {
             return `
                 <main class="page page-lab-results nb-page">
+                    ${backdropHTML()}
                     <section class="nb-shell nb-shell-narrow">
                         <header class="nb-top">
                             <span class="nb-brand">NeuroFocus</span>
+                            ${themeToggleHTML(t)}
                         </header>
                         <h1 class="nb-title">${esc(t('labres_none_title'))}</h1>
                         <p class="nb-lead">${esc(t('labres_none'))}</p>
                         <div class="nb-actions">
-                            <button type="button" class="nb-btn nb-btn-primary" data-lab-again>${esc(t('home_start_test'))}</button>
+                            <button type="button" class="nb-btn nb-btn-primary" data-lab-again>${rollLabel(esc(t('home_start_test')))}</button>
                             <button type="button" class="nb-btn" data-lab-home>${esc(t('back_home'))}</button>
                         </div>
                     </section>
@@ -240,22 +254,26 @@ export default {
         const rehearsal = session.source !== 'eeg';
         return `
             <main class="page page-lab-results nb-page" data-session="${esc(session.id)}" data-source="${esc(session.source)}">
+                ${backdropHTML()}
                 <section class="nb-shell">
-                    <header class="nb-top">
+                    <header class="nb-top" data-reveal>
                         <span class="nb-brand">NeuroFocus</span>
-                        <span class="nb-top-meta nb-mono">${esc(session.user)} · ${esc(formatDate(session.startedAt))}</span>
+                        <span class="nb-top-actions">
+                            <span class="nb-top-meta nb-mono">${esc(session.user)} · ${esc(formatDate(session.startedAt))}</span>
+                            ${themeToggleHTML(t)}
+                        </span>
                     </header>
 
-                    <p class="nb-eyebrow">${esc(t('labres_title'))}</p>
-                    <h1 class="nb-question">${esc(t('lab_question'))}</h1>
-                    <p class="nb-verdict" data-verdict="${esc(session.comparison.verdict)}">${esc(buildVerdict(session.comparison))}</p>
-                    <p class="nb-fine nb-note">${esc(t('labres_note'))}</p>
+                    <p class="nb-eyebrow" data-reveal>${esc(t('labres_title'))}</p>
+                    <h1 class="nb-question" data-reveal style="--d:60ms">${esc(t('lab_question'))}</h1>
+                    <p class="nb-verdict" data-verdict="${esc(session.comparison.verdict)}" data-split="150">${esc(buildVerdict(session.comparison))}</p>
+                    <p class="nb-fine nb-note" data-reveal style="--d:500ms">${esc(t('labres_note'))}</p>
                     ${session.comparison.verdict === 'clear' && session.comparison.task.rightGap !== 0
                         ? `<p class="nb-fine">${esc(fill(t('labres_base_note'), { n: session.comparison.task.sameBase }))}</p>`
                         : ''}
                     ${rehearsal ? `<p class="nb-rehearsal" data-rehearsal>${esc(t('labres_rehearsal'))}</p>` : ''}
 
-                    <div class="nb-legend">
+                    <div class="nb-legend" data-reveal>
                         <span><i class="nb-swatch" data-cond="on"></i>${esc(condName('on'))}</span>
                         <span><i class="nb-swatch" data-cond="off"></i>${esc(condName('off'))}</span>
                     </div>
@@ -264,9 +282,15 @@ export default {
 
                     ${renderAgreement(session.comparison)}
 
+                    <section class="nb-section-head" data-reveal>
+                        <p class="nb-eyebrow">${esc(t('labres_figures_title'))}</p>
+                        <h2>${esc(t('labres_figures_lead'))}</h2>
+                    </section>
+                    ${figuresHTML(session, t)}
+
                     <p class="nb-fine" data-order="${esc(session.order)}">${esc(fill(t('labres_order'), { a: condName(first), b: condName(second) }))}</p>
 
-                    <section class="nb-block">
+                    <section class="nb-block" data-reveal>
                         <h2>${esc(t('labres_export_title'))}</h2>
                         <p class="nb-fine">${esc(t('labres_export_lead'))}</p>
                         <div class="nb-actions">
@@ -276,14 +300,14 @@ export default {
                         </div>
                     </section>
 
-                    <section class="nb-block">
+                    <section class="nb-block" data-reveal>
                         <h2>${esc(t('labres_history_title'))}</h2>
                         ${renderHistory(listSessions(state.currentUser), session.id)}
                     </section>
 
                     <div class="nb-actions nb-actions-end">
-                        <button type="button" class="nb-btn nb-btn-primary" data-lab-again>${esc(t('labres_again'))}</button>
-                        <button type="button" class="nb-btn" data-lab-home>${esc(t('back_home'))}</button>
+                        <button type="button" class="nb-btn nb-btn-primary" data-lab-again>${rollLabel(esc(t('labres_again')))}</button>
+                        <button type="button" class="nb-btn" data-lab-home>${rollLabel(esc(t('back_home')))}</button>
                     </div>
                 </section>
             </main>`;
@@ -294,9 +318,14 @@ export default {
         document.body.classList.add('nb-body');
         const session = getLastSession(state.currentUser);
 
-        stopAnimation = animateIn(root);
+        const stopBars = animateIn(root);
+        const stopReveals = startReveals(root);
+        const stopFigures = session ? mountFigures(root, session, t) : () => {};
+        stopAnimation = () => { stopBars(); stopReveals(); stopFigures(); };
+        bindThemeToggle(root, () => router.refresh());
 
         root.querySelectorAll('[data-export]').forEach((button) => {
+            button.innerHTML = rollLabel(button.textContent);
             button.addEventListener('click', () => {
                 if (!session) return;
                 const kind = button.dataset.export;

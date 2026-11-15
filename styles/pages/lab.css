@@ -1,10 +1,10 @@
-/* Experiment mode on the game page (TALE 2026).
+/* Experiment mode on the game page (TALE 2026, glass redesign).
    Everything here is scoped to #lab-layer or body.lab-session, so training,
    challenge and study look exactly as before.
 
-   Panels sit over a live 3D scene, so they use a solid, slightly see-through
-   paper colour and NO blur: backdrop blur drops the frame rate on Windows
-   laptops with integrated graphics. */
+   Panels sit over a live 3D scene, so they use a near-solid glass colour and
+   NO backdrop blur: blur drops the frame rate on Windows laptops with
+   integrated graphics. Tokens come from styles/shared/glass.css. */
 
 #lab-layer {
     position: fixed;
@@ -47,8 +47,9 @@
     bottom: 1rem;
     max-width: min(22rem, calc(100vw - 2rem));
     padding: 0.35rem 0.7rem;
-    border: 1px solid var(--nb-ink);
-    background: var(--nb-accent);
+    border: 1px solid color-mix(in srgb, var(--nb-warn) 60%, transparent);
+    border-radius: 999px;
+    background: var(--nb-surface-solid);
     color: var(--nb-ink);
     font-size: 0.8125rem;
     font-weight: 600;
@@ -62,9 +63,10 @@
     align-items: center;
     gap: 0.65rem;
     max-width: min(34rem, calc(100vw - 2rem));
-    padding: 0.5rem 0.9rem 0.6rem;
-    border: 1px solid var(--nb-ink);
-    background: rgba(245, 242, 234, 0.95);
+    padding: 0.5rem 1.1rem 0.6rem;
+    border: 1px solid var(--nb-border-strong);
+    border-radius: 999px;
+    background: var(--nb-surface-solid);
     font-size: 0.9375rem;
     font-weight: 500;
     overflow: hidden;
@@ -72,9 +74,10 @@
 
 .lab-strip-dot {
     flex: none;
-    width: 0.7rem;
-    height: 0.7rem;
-    background: var(--nb-ink);
+    width: 0.65rem;
+    height: 0.65rem;
+    border-radius: 50%;
+    background: var(--nb-accent);
 }
 
 .lab-strip[data-cond="on"] .lab-strip-dot { background: var(--nb-on); }
@@ -95,10 +98,10 @@
 
 .lab-strip-bar {
     position: absolute;
-    left: 0;
-    right: 0;
+    left: 1.1rem;
+    right: 1.1rem;
     bottom: 0;
-    height: 3px;
+    height: 2px;
     background: var(--nb-rule);
 }
 
@@ -130,9 +133,16 @@
 .lab-phone,
 .lab-line {
     pointer-events: auto;
-    border: 1px solid var(--nb-ink);
-    border-radius: 3px;
-    background: rgba(245, 242, 234, 0.96);
+    border: 1px solid var(--nb-border-strong);
+    border-radius: var(--nb-radius);
+    background: var(--nb-surface-solid);
+    box-shadow: var(--nb-highlight), var(--nb-shadow);
+    animation: lab-in 0.8s var(--nb-ease) both;
+}
+
+@keyframes lab-in {
+    from { opacity: 0; transform: translate3d(0, 18px, 0) scale(0.985); }
+    to { opacity: 1; transform: none; }
 }
 
 .lab-card {
@@ -142,8 +152,8 @@
     overflow-y: auto;
 }
 
-.lab-card[data-cond="on"] { border-top: 5px solid var(--nb-on); }
-.lab-card[data-cond="off"] { border-top: 5px solid var(--nb-off); }
+.lab-card[data-cond="on"] { border-color: color-mix(in srgb, var(--nb-on) 60%, transparent); box-shadow: inset 0 3px 0 var(--nb-on), var(--nb-shadow); }
+.lab-card[data-cond="off"] { border-color: color-mix(in srgb, var(--nb-off) 60%, transparent); box-shadow: inset 0 3px 0 var(--nb-off), var(--nb-shadow); }
 
 .lab-card h2,
 .lab-phone h2 {
@@ -213,7 +223,7 @@
 .lab-status[data-tone="bad"],
 .lab-status[data-tone="weak"] {
     padding-left: 0.6rem;
-    border-left: 3px solid var(--nb-accent);
+    border-left: 2px solid var(--nb-warn);
 }
 
 .lab-actions {
@@ -228,9 +238,9 @@
     align-items: center;
     justify-content: center;
     min-height: 2.875rem;
-    padding: 0.55rem 1.3rem;
-    border: 1px solid var(--nb-ink);
-    border-radius: 3px;
+    padding: 0.55rem 1.4rem;
+    border: 1px solid var(--nb-border-strong);
+    border-radius: 999px;
     background: transparent;
     color: var(--nb-ink);
     font: inherit;
@@ -238,11 +248,15 @@
     cursor: pointer;
 }
 
-.lab-btn:hover { background: var(--nb-wash); }
+.lab-btn { transition: transform 0.5s var(--nb-ease), border-color 0.3s ease; }
+.lab-btn:hover { border-color: var(--nb-ink); }
+.lab-btn:active { transform: scale(0.97); }
 
 .lab-btn-primary {
+    border-color: transparent;
     background: var(--nb-accent);
-    font-weight: 600;
+    color: var(--nb-accent-ink);
+    font-weight: 650;
 }
 
 .lab-btn-primary:hover {
@@ -281,15 +295,18 @@
 
 .lab-meter-track {
     flex: 1 1 auto;
-    height: 0.75rem;
-    border: 1px solid var(--nb-ink);
+    height: 0.6rem;
+    border-radius: 999px;
+    background: var(--nb-surface-2);
     overflow: hidden;
 }
 
 .lab-meter-track i {
     display: block;
     height: 100%;
+    border-radius: 999px;
     background: var(--nb-accent);
+    transition: transform 0.8s var(--nb-ease);
     transform: scaleX(0);
     transform-origin: left center;
 }
@@ -307,12 +324,15 @@
 
 .lab-pips-row i {
     width: 1.5rem;
-    height: 0.75rem;
-    border: 1px solid var(--nb-ink);
+    height: 0.6rem;
+    border-radius: 999px;
+    background: var(--nb-surface-2);
+    transition: background-color 0.3s ease, transform 0.6s var(--nb-ease);
 }
 
 .lab-pips-row i.is-on {
-    background: var(--nb-ink);
+    background: var(--nb-accent);
+    transform: scaleY(1.25);
 }
 
 /* ---- rule explainer ---- */
@@ -327,7 +347,8 @@
     flex: none;
     min-width: 4.5rem;
     padding: 0.35rem 0.9rem;
-    background: var(--nb-ink);
+    border-radius: var(--nb-radius-sm);
+    background: #05080f;
     font-size: 1.75rem;
     font-weight: 700;
     line-height: 1.2;
@@ -359,9 +380,9 @@
     min-width: 1.6rem;
     height: 1.6rem;
     padding: 0 0.3rem;
-    border: 1px solid var(--nb-ink);
-    border-radius: 3px;
-    background: transparent;
+    border: 1px solid var(--nb-border-strong);
+    border-radius: 6px;
+    background: var(--nb-surface-2);
     color: inherit;
     font-family: var(--nb-mono);
     font-size: 0.8125rem;
@@ -370,9 +391,11 @@
 
 /* ---- "Get ready" beat ---- */
 .lab-ready {
-    padding: 0.6rem 1.4rem;
-    border: 1px solid var(--nb-ink);
-    background: rgba(245, 242, 234, 0.96);
+    padding: 0.6rem 1.6rem;
+    border: 1px solid var(--nb-border-strong);
+    border-radius: 999px;
+    background: var(--nb-surface-solid);
+    animation: lab-in 0.6s var(--nb-ease) both;
     font-size: 1.5rem;
     font-weight: 600;
 }
@@ -388,19 +411,21 @@
 .lab-rate-btn {
     min-height: 2.875rem;
     padding: 0;
-    border: 1px solid var(--nb-ink);
-    border-radius: 3px;
+    border: 1px solid var(--nb-border-strong);
+    border-radius: var(--nb-radius-sm);
+    transition: transform 0.5s var(--nb-ease), background-color 0.25s ease;
     background: transparent;
     color: var(--nb-ink);
     font-size: 1.0625rem;
     cursor: pointer;
 }
 
-.lab-rate-btn:hover { background: var(--nb-wash); }
+.lab-rate-btn:hover { background: var(--nb-surface-2); transform: translateY(-2px); }
 
 .lab-rate-btn.is-picked {
-    background: var(--nb-ink);
-    color: var(--nb-paper);
+    border-color: transparent;
+    background: var(--nb-accent);
+    color: var(--nb-accent-ink);
 }
 
 .lab-rate-ends {
@@ -430,7 +455,8 @@
     display: grid;
     place-items: center;
     height: clamp(6.5rem, 20vh, 10rem);
-    background: var(--nb-ink);
+    border-radius: var(--nb-radius-sm);
+    background: #05080f;
     overflow: hidden;
 }
 
@@ -450,14 +476,15 @@
     position: absolute;
     top: 0.5rem;
     right: 0.75rem;
-    color: var(--nb-paper);
+    color: #eef3fb;
     font-size: 1.125rem;
     font-weight: 600;
     opacity: 0;
 }
 
 .lab-stroop-mark.is-shown { opacity: 1; }
-.lab-stroop-mark.is-wrong { color: var(--nb-accent); }
+.lab-stroop-mark.is-right { color: #34d399; }
+.lab-stroop-mark.is-wrong { color: #fb7185; }
 
 /* No countdown line for the two-second limit: the look allows only four
    animations (see notebook.css), and a ticking bar under every word would be
@@ -481,12 +508,13 @@
     gap: 0.3rem;
     min-height: 4.5rem;
     padding: 0.5rem 0.25rem;
-    border: 1px solid var(--nb-ink);
-    border-radius: 3px;
-    background: var(--nb-paper);
+    border: 1px solid var(--nb-border-strong);
+    border-radius: var(--nb-radius-sm);
+    background: var(--nb-surface-2);
     color: var(--nb-ink);
     font: inherit;
     cursor: pointer;
+    transition: transform 0.35s var(--nb-ease), background-color 0.15s ease;
     touch-action: manipulation;
     user-select: none;
     -webkit-user-select: none;
@@ -500,13 +528,17 @@
     line-height: 1.1;
 }
 
+.lab-key:hover { border-color: var(--nb-ink); }
+
 .lab-key.is-pressed {
-    background: var(--nb-ink);
-    color: var(--nb-paper);
+    background: var(--nb-accent);
+    color: var(--nb-accent-ink);
+    transform: scale(0.96);
 }
 
 .lab-key.is-pressed kbd {
-    border-color: var(--nb-paper);
+    border-color: currentColor;
+    background: transparent;
 }
 
 /* ---- quick try-out ---- */
@@ -514,7 +546,6 @@
     align-self: flex-end;
     width: min(36rem, 100%);
     padding: 1.5rem 1.5rem 1.6rem;
-    border-top: 5px solid var(--nb-on);
     text-align: center;
 }
 
@@ -594,6 +625,8 @@
 
 .lab-line-pen {
     fill: var(--nb-off);
+    stroke: var(--nb-surface-solid);
+    stroke-width: 2;
     transition: transform 0.25s linear;
 }
 
@@ -602,7 +635,7 @@
 }
 
 .lab-card-result[data-verdict="dropped"] {
-    border-top: 5px solid var(--nb-accent);
+    border-color: color-mix(in srgb, var(--nb-accent) 55%, transparent);
 }
 
 /* ---- HUD pieces that do not belong to a test ---- */
@@ -651,8 +684,21 @@ body.lab-session #game-settings-panel {
 }
 
 @media (prefers-reduced-motion: reduce) {
-    .lab-line-pen {
+    .lab-line-pen,
+    .lab-meter-track i,
+    .lab-pips-row i,
+    .lab-key,
+    .lab-btn,
+    .lab-rate-btn {
         transition: none;
+    }
+
+    .lab-card,
+    .lab-stroop,
+    .lab-phone,
+    .lab-line,
+    .lab-ready {
+        animation: none;
     }
 }
 
@@ -713,9 +759,9 @@ body.lab-session #ui-container {
 
 body.lab-session #focus-indicator {
     padding: 0.85rem 0.95rem 0.6rem;
-    border: 1px solid var(--nb-ink) !important;
-    border-radius: 3px !important;
-    background: rgba(245, 242, 234, 0.94) !important;
+    border: 1px solid var(--nb-border-strong) !important;
+    border-radius: var(--nb-radius) !important;
+    background: var(--nb-surface-solid) !important;
     box-shadow: none !important;
     backdrop-filter: none !important;
     -webkit-backdrop-filter: none !important;
@@ -745,7 +791,7 @@ body.lab-session #mode-status-card {
 body.lab-session .status-chip {
     min-height: 1.4rem;
     padding: 0 0.5rem;
-    border: 1px solid var(--nb-ink);
+    border: 1px solid var(--nb-border-strong);
     border-radius: 0;
     background: transparent !important;
     color: var(--nb-ink);
@@ -757,7 +803,7 @@ body.lab-session .status-chip {
 
 body.lab-session .eeg-signal-chip {
     padding: 0 0.5rem;
-    border: 1px solid var(--nb-ink) !important;
+    border: 1px solid var(--nb-border-strong) !important;
     border-radius: 0;
     background: transparent !important;
     color: var(--nb-ink) !important;
@@ -765,10 +811,9 @@ body.lab-session .eeg-signal-chip {
     font-size: 0.6875rem;
 }
 
-body.lab-session .eeg-signal-chip.sig-weak,
-body.lab-session .eeg-signal-chip.sig-bad {
-    background: var(--nb-accent) !important;
-}
+body.lab-session .eeg-signal-chip.sig-good { border-color: color-mix(in srgb, var(--nb-good) 60%, transparent) !important; }
+body.lab-session .eeg-signal-chip.sig-weak { border-color: var(--nb-warn) !important; }
+body.lab-session .eeg-signal-chip.sig-bad { border-color: var(--nb-bad) !important; }
 
 body.lab-session #mode-status-title {
     color: var(--nb-ink);
@@ -811,25 +856,25 @@ body.lab-session #focus-zone-chip {
 }
 
 body.lab-session .bar-container {
-    height: 0.75rem;
+    height: 0.6rem;
     margin-bottom: 0.7rem;
     padding: 0;
-    border: 1px solid var(--nb-ink);
-    border-radius: 0;
-    background: transparent !important;
+    border: 0;
+    border-radius: 999px;
+    background: var(--nb-surface-2) !important;
     box-shadow: none !important;
 }
 
 /* The focus line is orange, the boat speed plain ink. */
 body.lab-session #focus-bar {
-    border-radius: 0;
+    border-radius: 999px;
     background: var(--nb-accent) !important;
     box-shadow: none !important;
 }
 
 body.lab-session #speed-bar {
-    border-radius: 0;
-    background: var(--nb-ink) !important;
+    border-radius: 999px;
+    background: var(--nb-faint) !important;
     box-shadow: none !important;
 }
 
@@ -847,7 +892,7 @@ body.lab-session .eeg-axis-label {
 }
 
 body.lab-session .eeg-axis-track {
-    border: 1px solid var(--nb-ink);
+    border: 1px solid var(--nb-border-strong);
     border-radius: 0;
     background: transparent !important;
     box-shadow: none;
@@ -860,7 +905,7 @@ body.lab-session .eeg-axis-fill {
 }
 
 body.lab-session .eeg-axis-fill.relax {
-    background: var(--nb-ink) !important;
+    background: var(--nb-violet) !important;
 }
 
 body.lab-session #simulation-hint-eeg {
@@ -880,8 +925,8 @@ body.lab-session #simulation-hint-eeg::after {
 body.lab-session #user-info {
     width: auto;
     padding: 0.2rem 0.6rem;
-    border: 1px solid var(--nb-ink);
-    background: rgba(245, 242, 234, 0.94);
+    border: 1px solid var(--nb-border-strong);
+    background: var(--nb-surface-solid);
     color: var(--nb-ink);
     font-family: var(--nb-mono);
     font-size: 0.75rem;
@@ -891,9 +936,9 @@ body.lab-session #user-info {
 
 body.lab-session .top-buttons button {
     min-height: 2.5rem;
-    border: 1px solid var(--nb-ink);
-    border-radius: 3px;
-    background: rgba(245, 242, 234, 0.94);
+    border: 1px solid var(--nb-border-strong);
+    border-radius: 999px;
+    background: var(--nb-surface-solid);
     box-shadow: none;
     backdrop-filter: none;
     -webkit-backdrop-filter: none;
@@ -904,6 +949,6 @@ body.lab-session .top-buttons button {
 }
 
 body.lab-session .top-buttons button:hover {
-    background: var(--nb-paper);
+    border-color: var(--nb-ink);
     transform: none;
 }
