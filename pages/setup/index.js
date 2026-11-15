@@ -162,8 +162,8 @@ function renderDifficultyStep(state) {
     return `
         <div class="setup-card">
             <h2>${t('setup_diff_title')}</h2>
-            <p>${t('setup_current_mode')}：<strong>${state.inputMode === 'eeg' ? t('setup_mode_eeg') : t('setup_mode_sim')}</strong></p>
-            <p>${t('setup_source_label')}：<strong>${sourceLabel}</strong></p>
+            <p>${t('setup_current_mode')}${t('colon')}<strong>${state.inputMode === 'eeg' ? t('setup_mode_eeg') : t('setup_mode_sim')}</strong></p>
+            <p>${t('setup_source_label')}${t('colon')}<strong>${sourceLabel}</strong></p>
             <div class="difficulty-list">
                 <button type="button" class="difficulty-btn diff-easy" data-difficulty="easy">${t('setup_diff_easy')}</button>
                 <button type="button" class="difficulty-btn diff-medium" data-difficulty="medium">${t('setup_diff_medium')}</button>
@@ -176,11 +176,14 @@ function renderDifficultyStep(state) {
     `;
 }
 
+// "30 s" / "30 秒", "3 min" / "3 分鐘": the unit follows the page language.
 function formatTrainingDurationLabel(totalSeconds) {
-    if (totalSeconds < 60) return `${totalSeconds}s`;
+    if (totalSeconds < 60) return t('setup_unit_seconds').replace('{n}', totalSeconds);
     const minutes = Math.floor(totalSeconds / 60);
     const seconds = totalSeconds % 60;
-    return seconds === 0 ? `${minutes} min` : `${minutes}m ${seconds}s`;
+    return seconds === 0
+        ? t('setup_unit_minutes').replace('{n}', minutes)
+        : t('setup_unit_min_sec').replace('{m}', minutes).replace('{s}', seconds);
 }
 
 function getTrainingDurationPercent(totalSeconds) {
@@ -232,10 +235,10 @@ function renderTrainingStep(state) {
                     value="${totalSeconds}"
                 />
                 <div class="training-duration-scale">
-                    ${renderTrainingScaleMark('30s', 30)}
-                    ${renderTrainingScaleMark('5m', 300)}
-                    ${renderTrainingScaleMark('15m', 900)}
-                    ${renderTrainingScaleMark('30m', 1800)}
+                    ${renderTrainingScaleMark(formatTrainingDurationLabel(30), 30)}
+                    ${renderTrainingScaleMark(formatTrainingDurationLabel(300), 300)}
+                    ${renderTrainingScaleMark(formatTrainingDurationLabel(900), 900)}
+                    ${renderTrainingScaleMark(formatTrainingDurationLabel(1800), 1800)}
                 </div>
             </div>
             <div class="setup-footer-actions">
@@ -305,14 +308,14 @@ export default {
     render() {
         const state = getState();
         return `
-            <main class="page page-setup">
+            <main class="page page-setup nb-page">
                 <section class="page-shell setup-layout setup-layout-compact">
                     <div class="setup-panel setup-panel-compact">
                         <header class="page-header setup-header">
                             <div>
-                                <span class="eyebrow">Setup</span>
+                                <span class="eyebrow">${t('setup_eyebrow')}</span>
                                 <h1>${t('setup_title')}</h1>
-                                ${state.currentUser ? `<p class="page-support">${t('game_player')}：${state.currentUser}</p>` : ''}
+                                ${state.currentUser ? `<p class="page-support">${t('game_player')}${t('colon')}${state.currentUser}</p>` : ''}
                             </div>
                             <div class="setup-settings" ${state.currentUser ? '' : 'hidden'}>
                                 <button type="button" class="setup-settings-btn" id="setup-settings-btn" aria-label="${t('setup_settings')}" aria-haspopup="true" aria-expanded="false">⚙</button>
@@ -350,6 +353,7 @@ export default {
 
     async mount({ root, router }) {
         const state = getState();
+        document.body.classList.add('nb-body');
         // The one-minute try-out is the only flow that needs no account.
         if (!state.currentUser && state.testMode !== 'quick') {
             router.navigate('auth');
@@ -650,7 +654,7 @@ export default {
                         const eegResult = await activateEEGMode();
                         if (!eegResult?.ok) {
                             if (eegResult?.reason === 'no-live-data' || eegResult?.reason === 'bridge-unavailable') {
-                                const skipNow = window.confirm(`${t('setup_eeg_skip_desc')}\n\n${t('setup_eeg_skip')}？`);
+                                const skipNow = window.confirm(`${t('setup_eeg_skip_desc')}\n\n${t('setup_eeg_skip')}`);
                                 if (skipNow) {
                                     setState({
                                         inputMode: 'eeg',
@@ -979,6 +983,7 @@ export default {
     },
 
     unmount() {
+        document.body.classList.remove('nb-body');
         const previewVideo = document.getElementById('camera-preview-video');
         detachCameraPreview(previewVideo);
     }

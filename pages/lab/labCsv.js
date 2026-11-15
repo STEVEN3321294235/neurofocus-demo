@@ -40,6 +40,8 @@ function conditionValues(c) {
 
 export const SUMMARY_HEADER = [
     'user', 'test_id', 'started_at', 'input_source', 'order', 'question_seed', 'time_limit_ms',
+    // The 30 seconds of quiet sitting before the first test ("how are you today").
+    'rest_focus_mean', 'rest_index_mean', 'rest_good_seconds',
     ...conditionColumns('phone_on_desk'),
     ...conditionColumns('phone_away'),
     'accuracy_gap_pp', 'correct_gap', 'right_gap_same_base', 'same_base_questions', 'rt_gap_ms', 'rt_gap_pct', 'focus_gap', 'index_gap', 'rating_gap',
@@ -51,6 +53,7 @@ export function summaryCsv(sessions = []) {
         const cmp = s.comparison || { task: {}, signal: {}, rating: {} };
         return [
             s.user, s.id, s.startedAt, s.source, s.order, s.seed, s.limitMs,
+            s.rest?.focusMean, s.rest?.indexMean, s.rest?.goodSeconds,
             ...conditionValues(s.conditions?.on),
             ...conditionValues(s.conditions?.off),
             cmp.task.accGapPP, cmp.task.correctGap, cmp.task.rightGap, cmp.task.sameBase, cmp.task.rtGapMs, cmp.task.rtGapPct,

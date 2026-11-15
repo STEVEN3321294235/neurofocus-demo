@@ -50,7 +50,7 @@ export default {
                     <div class="auth-panel auth-panel-compact">
                         <header class="page-header">
                             <div>
-                                <span class="eyebrow">Auth</span>
+                                <span class="eyebrow">NeuroFocus</span>
                                 <h1>${t('auth_title')}</h1>
                                 <p class="page-support">${t('auth_intro_desc')}</p>
                             </div>
@@ -140,7 +140,9 @@ export default {
                     if (message) {
                         const key = error?.code ? `auth_error_${error.code}` : '';
                         const translated = key ? t(key) : '';
-                        message.textContent = translated && translated !== key ? translated : (error.message || 'Error');
+                        // Server errors arrive in English only, so anything without our
+                        // own wording gets one plain line in the page language.
+                        message.textContent = translated && translated !== key ? translated : t('auth_error_generic');
                     }
                 } finally {
                     submitButton.disabled = false;

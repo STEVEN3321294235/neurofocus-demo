@@ -1,339 +1,126 @@
+// Home page (TALE 2026 "lab notebook" version).
+//
+// Top to bottom: big question, two buttons, three steps, the honesty note and
+// three privacy points. No scores or signal numbers are shown here: the only
+// moving thing is a slow demo brainwave line, clearly labelled as a demo.
+
 import { getState, setState } from '../../app/state.js';
-import { setLang as persistLang, setTheme as persistTheme } from '../../services/storageService.js';
-import { applyStoredTheme } from '../../components/controlBar.js?v=2026-07-28-2';
-import { importGameRuntime } from '../../services/runtimeLoader.js?v=2026-07-28-2';
+import { LANGUAGE_NAMES, t } from '../../app/i18n.js?v=2026-07-28-2';
+import { setLang as persistLang } from '../../services/storageService.js';
+import { logout } from '../../services/authService.js';
 import { stopCameraPreview } from '../../services/focusInputService.js?v=2026-07-28-2';
 
+// One period of a made-up brainwave trace, as SVG path data. It is built from
+// a few sine waves whose lengths divide the period exactly, so two copies set
+// side by side join without a seam and can scroll forever.
+function demoWavePath(period = 720, height = 96) {
+    const mid = height / 2;
+    const parts = [];
+    for (let x = 0; x <= period * 2; x += 4) {
+        const p = (x % period) / period;
+        const y = mid
+            - Math.sin(p * Math.PI * 2 * 3) * 13
+            - Math.sin(p * Math.PI * 2 * 11 + 0.8) * 8
+            - Math.sin(p * Math.PI * 2 * 29 + 1.9) * 4.5
+            - Math.sin(p * Math.PI * 2 * 47 + 0.3) * 2.5;
+        parts.push(`${x === 0 ? 'M' : 'L'}${x} ${y.toFixed(1)}`);
+    }
+    return parts.join(' ');
+}
 
-function renderThemeToggle(theme) {
-    const isLight = theme === 'light';
+function renderLanguageSwitch(lang) {
     return `
-        <button aria-label="Toggle Theme" class="p-2 rounded-full hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors duration-300 text-slate-600 dark:text-slate-300" data-theme-toggle>
-            <span class="material-symbols-outlined ${isLight ? '' : 'hidden'}">dark_mode</span>
-            <span class="material-symbols-outlined ${isLight ? 'hidden' : ''}">light_mode</span>
-        </button>
+        <span class="nb-lang" role="group">
+            <button type="button" class="nb-lang-btn ${lang === 'hk' ? 'is-on' : ''}" data-lang="hk" aria-pressed="${lang === 'hk'}">${LANGUAGE_NAMES.hk}</button>
+            <button type="button" class="nb-lang-btn ${lang === 'en' ? 'is-on' : ''}" data-lang="en" aria-pressed="${lang === 'en'}">${LANGUAGE_NAMES.en}</button>
+        </span>
     `;
 }
 
-function dualText(en, hk, className = '') {
-    const normalizedClass = className ? ` class="${className}"` : '';
-    return `<span class="lang-en"${normalizedClass}>${en}</span><span class="lang-hk"${normalizedClass}>${hk}</span>`;
-}
-
-function renderLanguageToggle(lang) {
-    const enClass = lang === 'en'
-        ? 'font-bold text-slate-900 dark:text-white cursor-pointer'
-        : 'cursor-pointer hover:text-primary transition-colors duration-300';
-    const hkClass = lang === 'hk'
-        ? 'font-bold text-slate-900 dark:text-white cursor-pointer'
-        : 'cursor-pointer hover:text-primary transition-colors duration-300';
-
+function renderStep(number, titleKey, bodyKey) {
     return `
-        <div class="text-slate-600 dark:text-slate-300 text-xs font-medium flex items-center gap-2 border border-slate-300 dark:border-slate-700 rounded-full px-4 py-2 transition-colors duration-300 bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm whitespace-nowrap">
-            <span class="material-symbols-outlined text-sm">language</span>
-            <span class="lang-toggle-text">
-                <span class="${enClass}" data-lang="en">EN</span>
-                <span class="mx-1 opacity-50">|</span>
-                <span class="${hkClass}" data-lang="hk">中文</span>
-            </span>
-        </div>
+        <li class="nb-step">
+            <span class="nb-step-no nb-mono">${number}</span>
+            <h3>${t(titleKey)}</h3>
+            <p>${t(bodyKey)}</p>
+        </li>
     `;
 }
+
+function renderPrivacyPoint(titleKey, bodyKey) {
+    return `
+        <li class="nb-point">
+            <h3>${t(titleKey)}</h3>
+            <p>${t(bodyKey)}</p>
+        </li>
+    `;
+}
+
+let stopWave = () => {};
 
 export default {
     render() {
         const state = getState();
-        const heroVisualSrc = state.theme === 'light'
-            ? 'assets/Homepage_Day_2.jpg'
-            : 'assets/Homepage_Moon_2.jpg';
         return `
-            <main class="page page-home page-home-stitch">
-                <nav class="fixed top-0 left-0 right-0 z-50 glass-panel border-b border-slate-200 dark:border-white/10 transition-all duration-500 overflow-hidden">
-                    <div class="max-w-7xl mx-auto px-2 sm:px-6 lg:px-8">
-                        <div class="flex items-center justify-between py-2 md:py-4 h-14 md:h-20 gap-2 md:gap-4 overflow-x-auto no-scrollbar">
-                            <div class="flex-shrink-0 flex items-center gap-1.5 cursor-pointer transition-transform duration-300 hover:scale-105">
-                                <span class="material-symbols-outlined text-primary text-2xl md:text-4xl">psychology</span>
-                                <span class="font-display font-bold text-base md:text-2xl tracking-tight dark:text-white text-slate-900 transition-colors duration-500 whitespace-nowrap">
-                                    ${dualText('NeuroFocus', 'NeuroFocus')}
-                                </span>
-                            </div>
-                            <div class="flex items-center justify-end gap-1.5 md:gap-6 flex-shrink-0">
-                                ${renderThemeToggle(state.theme)}
-                                ${renderLanguageToggle(state.lang)}
-                                <button type="button" class="bg-primary hover:bg-[#4a8a98] text-white px-4 py-1.5 md:px-6 md:py-2.5 rounded-full text-xs md:text-sm font-semibold shadow-lg shadow-primary/20 transition-all duration-300 hover:-translate-y-0.5 border border-transparent whitespace-nowrap" data-enter-app>
-                                    ${dualText('Start', '進入遊戲')}
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </nav>
+            <main class="page page-home nb-page">
+                <div class="nb-shell nb-home">
+                    <header class="nb-top nb-home-top">
+                        <span class="nb-brand">NeuroFocus</span>
+                        <nav class="nb-home-nav">
+                            ${renderLanguageSwitch(state.lang)}
+                            ${state.currentUser
+                                ? `<span class="nb-home-user">${t('home_signed_in')} <strong>${state.currentUser}</strong></span>
+                                   <button type="button" class="nb-link" data-home-logout>${t('auth_logout')}</button>`
+                                : `<button type="button" class="nb-link" data-home-login>${t('home_login')}</button>`}
+                        </nav>
+                    </header>
 
-                <section class="relative pt-32 pb-20 lg:pt-48 lg:pb-32 overflow-hidden bg-gradient-light dark:bg-gradient-dark transition-colors duration-500 fade-up-element">
-                    <div class="absolute inset-0 bg-hero-glow dark:bg-hero-glow-dark z-0 pointer-events-none transition-colors duration-500"></div>
-                    <div class="absolute top-20 right-0 w-96 h-96 bg-primary/10 dark:bg-primary/20 rounded-full blur-[100px] filter opacity-60 animate-float transition-colors duration-500"></div>
-                    <div class="absolute bottom-0 left-0 w-72 h-72 bg-secondary/10 dark:bg-secondary/20 rounded-full blur-[100px] filter opacity-60 transition-colors duration-500" style="animation-delay: 2s;"></div>
-                    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 text-center">
-                        <div class="inline-flex items-center space-x-2 bg-white/80 dark:bg-slate-800/80 backdrop-blur-md border border-slate-200 dark:border-white/10 rounded-full px-4 py-1.5 mb-8 shadow-sm transition-colors duration-500">
-                            <span class="relative flex h-2.5 w-2.5">
-                                <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-                                <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-green-500"></span>
-                            </span>
-                            <span class="text-xs font-bold tracking-widest uppercase text-slate-700 dark:text-slate-200 font-display transition-colors duration-500">${dualText('Live Student Prototype · IEYI 2026', '學生原型 · IEYI 2026 · 運作中')}</span>
+                    <section class="nb-hero">
+                        <h1 class="nb-title nb-hero-title">${t('home_title')}</h1>
+                        <p class="nb-lead nb-hero-lead">${t('home_subtitle')}</p>
+                        <div class="nb-actions nb-hero-actions">
+                            <button type="button" class="nb-btn nb-btn-primary nb-btn-lg" data-lab-start>${t('home_start_test')}</button>
+                            <button type="button" class="nb-btn nb-btn-lg" data-lab-quick>${t('home_try_quick')}</button>
                         </div>
-                        <h1 class="home-title-stitch text-5xl md:text-7xl font-display font-black tracking-tight mb-8 leading-tight dark:text-white text-slate-900 drop-shadow-sm transition-colors duration-500">
-                            ${dualText('Master Focus, <br class="md:hidden"> Unlock Your Potential.', '掌握專注，<br class="md:hidden">釋放專注力潛能。')}
-                        </h1>
-                        <p class="mt-4 max-w-2xl mx-auto text-xl text-slate-600 dark:text-slate-300 font-normal leading-relaxed tracking-wide transition-colors duration-500">
-                            ${dualText('A neurofeedback platform built by Hong Kong students: your real-time focus steers a sailboat, and every session shows you — in plain numbers — when you drifted and how fast you pulled yourself back.', '由香港中學生研發嘅神經回饋訓練平台：你嘅專注力實時揸住隻帆船，每一場訓練都用清楚嘅數據話你知——你幾時分咗心、又幾快拉得返。')}
-                        </p>
-                        <div class="mt-12 flex flex-col sm:flex-row justify-center gap-5">
-                            <button type="button" class="group relative inline-flex items-center justify-center px-8 py-4 text-lg font-bold text-white transition-all duration-300 bg-primary rounded-full hover:bg-[#4a8a98] border border-transparent shadow-[0_4px_20px_rgba(93,168,184,0.4)] hover:shadow-[0_8px_30px_rgba(93,168,184,0.6)] hover:-translate-y-1" data-enter-app>
-                                ${dualText('Start Training', '開始訓練')}
-                                <span class="material-symbols-outlined ml-2 group-hover:translate-x-1 transition-transform">rocket_launch</span>
-                            </button>
-                            <a class="glass-btn group inline-flex items-center justify-center px-8 py-4 text-lg font-semibold dark:text-slate-200 text-slate-700 transition-all duration-300 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800/80 hover:-translate-y-1 shadow-sm" href="#features">
-                                <span class="material-symbols-outlined mr-2 text-primary group-hover:text-slate-900 dark:group-hover:text-white transition-colors">play_circle</span>
-                                ${dualText('See How It Works', '睇下點樣運作')}
-                            </a>
-                        </div>
-                        <!-- Experiment mode entry (TALE 2026). The page is restyled in the appearance pass. -->
-                        <div class="mt-6 flex flex-col sm:flex-row justify-center gap-5">
-                            <button type="button" class="glass-btn inline-flex items-center justify-center px-8 py-4 text-lg font-semibold dark:text-slate-200 text-slate-700 rounded-full" data-lab-start>
-                                ${dualText('Start a test', '開始實驗')}
-                            </button>
-                            <button type="button" class="glass-btn inline-flex items-center justify-center px-8 py-4 text-lg font-semibold dark:text-slate-200 text-slate-700 rounded-full" data-lab-quick>
-                                ${dualText('Try it in 1 minute', '先試 1 分鐘')}
-                            </button>
-                        </div>
-                        <div class="mt-24 relative max-w-5xl mx-auto fade-up-element" style="transition-delay: 200ms;">
-                            <div class="hero-visual-frame relative overflow-hidden shadow-[0_20px_50px_-12px_rgba(0,0,0,0.1)] dark:shadow-[0_20px_50px_-12px_rgba(0,0,0,0.5)] border border-slate-200 dark:border-white/10 bg-slate-100 dark:bg-slate-900 aspect-[16/9] group transition-colors duration-500">
-                                <div class="hero-image-shell">
-                                    <img alt="NeuroFocus hero visual" class="brain-visual" src="${heroVisualSrc}" fetchpriority="high" decoding="async">
-                                    <div class="hero-image-vignette"></div>
-                                </div>
-                                <div class="hero-focus-card hero-overlay-card absolute animate-float z-20 transition-colors duration-500">
-                                    <span class="text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider flex items-center gap-1 transition-colors duration-500">
-                                        <span class="material-symbols-outlined text-sm">bolt</span> ${dualText('Focus Level', '專注指標')}
-                                    </span>
-                                    <div class="flex items-end gap-3 mt-1">
-                                        <span class="text-4xl font-bold dark:text-white text-slate-900 tracking-tight transition-colors duration-500">86<span class="text-2xl text-slate-500 dark:text-slate-400">%</span></span>
-                                        <span class="text-xs font-bold text-emerald-600 dark:text-emerald-400 mb-2 bg-emerald-100 dark:bg-emerald-400/10 px-1.5 py-0.5 rounded border border-emerald-200 dark:border-emerald-500/20 transition-colors duration-500">▲ 3.4%</span>
-                                    </div>
-                                    <div class="hero-card-meter w-full bg-slate-200 dark:bg-slate-800 h-1.5 rounded-full mt-3 overflow-hidden border border-slate-300 dark:border-slate-700 transition-colors duration-500">
-                                        <div class="hero-card-meter-fill h-1.5 rounded-full shadow-[0_0_10px_rgba(93,168,184,0.8)]" style="width: 86%"></div>
-                                    </div>
-                                </div>
-                                <div class="hero-status-pill hero-overlay-card absolute z-20 transition-colors duration-500">
-                                    <span class="h-2 w-2 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.8)] border border-green-200 dark:border-transparent transition-colors duration-500"></span>
-                                    <span class="text-xs font-mono font-medium text-slate-700 dark:text-blue-200 transition-colors duration-500">SIGNAL STABLE: 12ms</span>
-                                    <span class="material-symbols-outlined text-primary dark:text-primary text-sm animate-pulse transition-colors duration-500">wifi</span>
-                                </div>
-                                <div class="hero-visual-note absolute z-20 text-right">
-                                    <span class="hero-note-pill transition-colors duration-500">
-                                        ${dualText('*Illustrative demo data', '*示意數據，僅供演示')}
-                                    </span>
-                                </div>
+                        <figure class="nb-wave" data-wave>
+                            <span class="nb-wave-label">${t('home_wave_label')}</span>
+                            <div class="nb-wave-window">
+                                <svg class="nb-wave-svg" viewBox="0 0 1440 96" preserveAspectRatio="none" aria-hidden="true">
+                                    <path d="${demoWavePath()}"></path>
+                                </svg>
                             </div>
-                        </div>
-                    </div>
-                </section>
+                            <figcaption>${t('home_wave_caption')}</figcaption>
+                        </figure>
+                    </section>
 
-                <section class="py-24 relative bg-slate-50 dark:bg-slate-900/50 transition-colors duration-500 fade-up-element" id="features">
-                    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                        <div class="text-center mb-20">
-                            <span class="text-primary font-bold tracking-widest text-sm uppercase mb-2 block">Core Features</span>
-                            <h2 class="text-3xl md:text-5xl font-display font-bold dark:text-white text-slate-900 mb-6 transition-colors duration-500">
-                                ${dualText('Core Features', '核心功能特點')}
-                            </h2>
-                            <p class="text-slate-600 dark:text-slate-400 max-w-3xl mx-auto text-lg leading-relaxed transition-colors duration-500">
-                                ${dualText('Neurofeedback made playable: see your state, feel the sea respond, and practise steering yourself back. Short sessions, honest numbers, visible progress.', '將神經回饋變成玩得落嘅嘢：見到自己嘅狀態、感受個海即時回應、練習點樣拉返自己。短場數、誠實數據、進步睇得見。')}
-                            </p>
-                        </div>
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
-                            <div class="glass-card p-8 rounded-3xl group hover:-translate-y-2 transition-all duration-300 hover:bg-white dark:hover:bg-slate-800/80 hover:shadow-[0_20px_40px_-10px_rgba(0,0,0,0.1)] dark:hover:shadow-[0_20px_40px_-10px_rgba(0,0,0,0.4)] hover:border-primary/30 relative overflow-hidden">
-                                <div class="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full blur-2xl -mr-16 -mt-16 transition-all duration-500 group-hover:bg-primary/20"></div>
-                                <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-100 dark:from-slate-800 to-white dark:to-slate-900 border border-slate-200 dark:border-white/10 flex items-center justify-center mb-8 group-hover:scale-110 transition-transform duration-300 shadow-sm dark:shadow-md">
-                                    <span class="material-symbols-outlined text-primary text-3xl transition-colors">monitoring</span>
-                                </div>
-                                <h3 class="text-2xl font-bold dark:text-white text-slate-900 mb-4 tracking-tight transition-colors duration-500">
-                                    ${dualText('Real-time Data Visualization', '實時數據可視化')}
-                                </h3>
-                                <p class="text-slate-600 dark:text-slate-400 text-base leading-relaxed text-justify-inter font-normal transition-colors duration-500">
-                                    ${dualText('Transform abstract EEG signals into intuitive charts. Visualize your concentration fluctuations in real-time, just as clearly as a heartbeat, helping you adjust your learning state more intelligently.', '將抽象的腦電波（EEG）轉化為簡單易懂的圖表。你能即時看到自己的專注力起伏，就像看到心跳一樣直觀，幫助你更聰明地調整學習狀態。')}
-                                </p>
-                            </div>
-                            <div class="glass-card p-8 rounded-3xl group hover:-translate-y-2 transition-all duration-300 hover:bg-white dark:hover:bg-slate-800/80 hover:shadow-[0_20px_40px_-10px_rgba(0,0,0,0.1)] dark:hover:shadow-[0_20px_40px_-10px_rgba(0,0,0,0.4)] hover:border-secondary/30 relative overflow-hidden">
-                                <div class="absolute top-0 right-0 w-32 h-32 bg-secondary/5 rounded-full blur-2xl -mr-16 -mt-16 transition-all duration-500 group-hover:bg-secondary/20"></div>
-                                <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-purple-100 dark:from-slate-800 to-white dark:to-slate-900 border border-slate-200 dark:border-white/10 flex items-center justify-center mb-8 group-hover:scale-110 transition-transform duration-300 shadow-sm dark:shadow-md">
-                                    <span class="material-symbols-outlined text-secondary text-3xl transition-colors">view_in_ar</span>
-                                </div>
-                                <h3 class="text-2xl font-bold dark:text-white text-slate-900 mb-4 tracking-tight transition-colors duration-500">
-                                    ${dualText('3D Immersive Engine', '3D 沉浸式引擎')}
-                                </h3>
-                                <p class="text-slate-600 dark:text-slate-400 text-base leading-relaxed text-justify-inter font-normal transition-colors duration-500">
-                                    ${dualText('A living ocean built with WebGL. No keyboard, no mouse — focus is the controller. Hold steady attention and the sea clears and the boat surges; drift, and the mist rolls in until you steer yourself back.', '用 WebGL 打造嘅一片活海。唔使鍵盤滑鼠——專注就係控制器。企穩專注，海面放晴、船速加快；一分心，海上就起霧，直到你拉返自己為止。')}
-                                </p>
-                            </div>
-                            <div class="glass-card p-8 rounded-3xl group hover:-translate-y-2 transition-all duration-300 hover:bg-white dark:hover:bg-slate-800/80 hover:shadow-[0_20px_40px_-10px_rgba(0,0,0,0.1)] dark:hover:shadow-[0_20px_40px_-10px_rgba(0,0,0,0.4)] hover:border-teal-500/30 relative overflow-hidden">
-                                <div class="absolute top-0 right-0 w-32 h-32 bg-teal-500/5 rounded-full blur-2xl -mr-16 -mt-16 transition-all duration-500 group-hover:bg-teal-500/20"></div>
-                                <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-teal-100 dark:from-slate-800 to-white dark:to-slate-900 border border-slate-200 dark:border-white/10 flex items-center justify-center mb-8 group-hover:scale-110 transition-transform duration-300 shadow-sm dark:shadow-md">
-                                    <span class="material-symbols-outlined text-teal-500 dark:text-teal-400 text-3xl transition-colors">sensors</span>
-                                </div>
-                                <h3 class="text-2xl font-bold dark:text-white text-slate-900 mb-4 tracking-tight transition-colors duration-500">
-                                    ${dualText('Device Connectivity', '裝置連接')}
-                                </h3>
-                                <p class="text-slate-600 dark:text-slate-400 text-base leading-relaxed text-justify-inter font-normal transition-colors duration-500">
-                                    ${dualText('Built around the NeuroSky MindWave EEG headset over Bluetooth. No headset with you? Camera Mode runs the full training loop on any device — and the input layer is designed to welcome more sensors later.', '以 NeuroSky MindWave 腦電頭帶為核心（藍牙連接）。冇頭帶在手？相機模式一樣行到成套訓練流程，任何裝置都試到；輸入層仲預留咗將來接駁更多感測器嘅空間。')}
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-                </section>
+                    <section class="nb-section">
+                        <h2 class="nb-section-title">${t('home_steps_title')}</h2>
+                        <ol class="nb-steps">
+                            ${renderStep(1, 'home_step_1', 'home_step_1_body')}
+                            ${renderStep(2, 'home_step_2', 'home_step_2_body')}
+                            ${renderStep(3, 'home_step_3', 'home_step_3_body')}
+                        </ol>
+                    </section>
 
-                <section class="py-24 relative overflow-hidden bg-white dark:bg-[#0B1120] transition-colors duration-500 fade-up-element" id="science">
-                    <div class="absolute inset-0 opacity-5 z-0 pointer-events-none science-grid-overlay"></div>
-                    <div class="absolute top-0 right-0 w-1/2 h-full bg-gradient-to-l from-slate-100/50 dark:from-primary/5 to-transparent pointer-events-none transition-colors duration-500"></div>
-                    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                        <div class="flex flex-col lg:flex-row items-center gap-20">
-                            <div class="lg:w-1/2">
-                                <span class="inline-block py-1.5 px-3 rounded-md bg-blue-50 dark:bg-slate-800/80 border border-blue-200 dark:border-white/10 text-primary text-xs font-bold tracking-wider mb-6 transition-colors duration-500">THE TECHNOLOGY</span>
-                                <h2 class="text-4xl md:text-5xl font-display font-bold dark:text-white text-slate-900 mb-8 leading-tight transition-colors duration-500">
-                                    ${dualText('Transforming Abstract Signals into <span style="font-size: 3rem;">Interactive Experiences</span>', '將抽象信號<br>轉化為互動體驗')}
-                                </h2>
-                                <p class="text-slate-600 dark:text-slate-400 mb-8 text-lg leading-relaxed text-justify-inter border-l-4 border-primary pl-6 font-normal transition-colors duration-500">
-                                    ${dualText('NeuroFocus reads the attention and meditation indices from the NeuroSky headset — measures related to the brain\'s Beta (focus) and Alpha (relaxation) rhythms — and turns them into the wind and weather of a sea you steer. We treat this as a training framework, not a clinical diagnosis: the point is that you can finally SEE your state, then practise steering it.', 'NeuroFocus 讀取 NeuroSky 頭帶輸出嘅 attention（專注）同 meditation（放鬆）指標——兩者同腦電入面 Beta、Alpha 節律相關——再將佢哋變成你揸緊嗰片海嘅風同天氣。我哋將呢啲指標當成訓練嘅設計框架，而唔係臨床診斷：重點係你終於「見到」自己嘅狀態，然後練習點樣調返佢。')}
-                                </p>
-                                <div class="space-y-8">
-                                    <div class="flex gap-5 group">
-                                        <div class="flex-shrink-0 mt-1 w-12 h-12 rounded-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-white/10 flex items-center justify-center group-hover:bg-primary group-hover:border-primary transition-all duration-300 shadow-sm">
-                                            <span class="material-symbols-outlined text-primary group-hover:text-white transition-colors">psychology_alt</span>
-                                        </div>
-                                        <div>
-                                            <h4 class="dark:text-white text-slate-900 font-bold text-xl mb-2 transition-colors duration-500">
-                                                ${dualText('Neuroplasticity', '神經可塑性')}
-                                            </h4>
-                                            <p class="text-slate-600 dark:text-slate-400 text-sm leading-relaxed font-normal transition-colors duration-500">
-                                                ${dualText('Attention research backs a simple idea: repeated practice with immediate feedback helps build steadier attention habits. That principle is our whole design — short sessions, instant feedback, progress you can point at.', '注意力研究支持一個好簡單嘅原則：重複練習＋即時回饋，有助養成更穩定嘅注意力習慣。我哋成個設計就係圍住呢句嚟做——短場數、即時回饋、指得出嘅進步。')}
-                                            </p>
-                                        </div>
-                                    </div>
-                                    <div class="flex gap-5 group">
-                                        <div class="flex-shrink-0 mt-1 w-12 h-12 rounded-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-white/10 flex items-center justify-center group-hover:bg-secondary group-hover:border-secondary transition-all duration-300 shadow-sm">
-                                            <span class="material-symbols-outlined text-secondary group-hover:text-white transition-colors">poll</span>
-                                        </div>
-                                        <div>
-                                            <h4 class="dark:text-white text-slate-900 font-bold text-xl mb-2 transition-colors duration-500">
-                                                ${dualText('Progress You Can See', '進步睇得見')}
-                                            </h4>
-                                            <p class="text-slate-600 dark:text-slate-400 text-sm leading-relaxed font-normal transition-colors duration-500">
-                                                ${dualText('Every session is summarised — stability, recovery speed, breathing rescues — into your personal trend charts, so "am I improving?" gets a real answer. Sign in and your history follows you across devices.', '每一場訓練都會整理成摘要——穩定度、恢復速度、呼吸救返——加入你嘅個人趨勢圖，「我有冇進步」有真答案。登入後，紀錄仲會跨裝置跟住你。')}
-                                            </p>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="lg:w-1/2 flex justify-center items-center relative h-[500px] w-full">
-                                <div class="absolute inset-0 flex items-center justify-center">
-                                    <div class="w-64 h-64 radar-ring border-primary/30"></div>
-                                    <div class="w-64 h-64 radar-ring border-secondary/30" style="animation-delay: 1s;"></div>
-                                    <div class="w-64 h-64 radar-ring border-cyan-500/30" style="animation-delay: 2s;"></div>
-                                    <div class="w-96 h-96 bg-gradient-to-r from-primary/10 dark:from-primary/20 to-secondary/10 dark:to-secondary/20 rounded-full blur-3xl absolute transition-colors duration-500"></div>
-                                </div>
-                                <div class="relative glass-card p-8 rounded-3xl w-80 shadow-[0_20px_50px_-12px_rgba(0,0,0,0.15)] dark:shadow-[0_20px_50px_-12px_rgba(0,0,0,0.5)] z-20 transition-colors duration-500">
-                                    <div class="flex items-center justify-between mb-6 border-b border-slate-200 dark:border-white/10 pb-4 transition-colors duration-500">
-                                        <div class="flex items-center gap-3">
-                                            <div class="h-8 w-8 rounded-full bg-green-50 dark:bg-green-500/10 border border-green-200 dark:border-green-500/30 flex items-center justify-center shadow-sm transition-colors duration-500">
-                                                <span class="material-symbols-outlined text-green-600 dark:text-green-400 text-sm font-bold transition-colors duration-500">check</span>
-                                            </div>
-                                            <span class="font-bold dark:text-white text-slate-900 text-sm transition-colors duration-500">
-                                                ${dualText('Test Complete', '完成測試')}
-                                            </span>
-                                        </div>
-                                    </div>
-                                    <div class="space-y-6">
-                                        <div>
-                                            <div class="flex justify-between text-xs font-medium text-slate-600 dark:text-slate-300 mb-2 transition-colors duration-500">
-                                                ${dualText('Alpha Waves (8-13Hz)', 'Alpha 波 (8-13Hz)')}
-                                                <span class="text-primary transition-colors duration-500">${dualText('Relaxed', '放鬆')}</span>
-                                            </div>
-                                            <div class="w-full bg-slate-200 dark:bg-slate-800 h-2 rounded-full overflow-hidden border border-slate-300 dark:border-slate-700 transition-colors duration-500">
-                                                <div class="bg-primary h-full rounded-full w-3/4 shadow-[0_0_10px_rgba(93,168,184,0.6)]"></div>
-                                            </div>
-                                        </div>
-                                        <div>
-                                            <div class="flex justify-between text-xs font-medium text-slate-600 dark:text-slate-300 mb-2 transition-colors duration-500">
-                                                ${dualText('Beta Waves (13-30Hz)', 'Beta 波 (13-30Hz)')}
-                                                <span class="text-secondary transition-colors duration-500">${dualText('Active', '活躍')}</span>
-                                            </div>
-                                            <div class="w-full bg-slate-200 dark:bg-slate-800 h-2 rounded-full overflow-hidden border border-slate-300 dark:border-slate-700 transition-colors duration-500">
-                                                <div class="bg-secondary h-full rounded-full w-1/2 shadow-[0_0_10px_rgba(139,92,246,0.6)]"></div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div class="mt-8 pt-4 border-t border-slate-200 dark:border-white/10 text-center transition-colors duration-500">
-                                        <button type="button" class="text-xs font-bold dark:text-slate-200 text-slate-700 hover:text-primary dark:hover:text-primary transition-colors flex items-center justify-center gap-1 mx-auto group" data-enter-app>
-                                            ${dualText('Play one session — get your own real report', '玩一場，攞你自己嘅真報告')}
-                                            <span class="material-symbols-outlined text-sm transition-transform group-hover:translate-x-1">arrow_forward</span>
-                                        </button>
-                                        <p class="mt-4 text-[10px] text-slate-500 font-normal tracking-wide transition-colors duration-500">
-                                            ${dualText('*Illustrative demo data', '*示意數據，僅供演示')}
-                                        </p>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </section>
+                    <section class="nb-section nb-honest">
+                        <h2>${t('home_honest')}</h2>
+                        <p>${t('home_honest_body')}</p>
+                    </section>
 
-                <section class="py-24 px-4 bg-slate-50 dark:bg-background-dark transition-colors duration-500 fade-up-element">
-                    <div class="max-w-5xl mx-auto">
-                        <div class="relative rounded-[2.5rem] overflow-hidden px-6 py-20 md:px-20 md:py-24 text-center border border-slate-200 dark:border-white/10 shadow-[0_20px_50px_-12px_rgba(0,0,0,0.1)] dark:shadow-none transition-colors duration-500">
-                            <div class="absolute inset-0 bg-gradient-to-br from-[#4a8a98] via-slate-800 to-secondary dark:from-slate-800 dark:via-slate-900 dark:to-[#1a1c29] z-0 transition-colors duration-500"></div>
-                            <div class="absolute inset-0 opacity-10 z-0 mix-blend-overlay carbon-overlay"></div>
-                            <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-primary/20 rounded-full blur-[100px] transition-colors duration-500"></div>
-                            <div class="relative z-10">
-                                <h2 class="text-4xl md:text-6xl font-display font-bold text-white mb-8 tracking-tight drop-shadow-sm transition-colors duration-500">
-                                    ${dualText('Ready to watch your focus <br>get steadier?', '準備好見住自己嘅<br>專注力變穩？')}
-                                </h2>
-                                <p class="text-slate-200 text-lg md:text-xl mb-12 max-w-2xl mx-auto font-normal transition-colors duration-500">
-                                    ${dualText('Your first voyage takes three minutes — with or without an EEG headset.', '第一場航程只需要三分鐘，有冇 EEG 頭帶都玩到。')}
-                                </p>
-                                <button type="button" class="bg-white text-slate-900 hover:bg-slate-50 hover:text-primary px-10 py-4 rounded-full font-bold text-lg shadow-[0_4px_20px_rgba(0,0,0,0.1)] dark:shadow-[0_4px_20px_rgba(255,255,255,0.1)] transition-all duration-300 hover:-translate-y-1 inline-flex items-center group border border-transparent" data-enter-app>
-                                    ${dualText('Get Started Now', '立即開始')}
-                                    <span class="material-symbols-outlined ml-2 group-hover:-translate-y-1 group-hover:translate-x-1 transition-transform">rocket_launch</span>
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </section>
+                    <section class="nb-section">
+                        <h2 class="nb-section-title">${t('home_privacy_title')}</h2>
+                        <ul class="nb-points">
+                            ${renderPrivacyPoint('home_privacy_1', 'home_privacy_1_body')}
+                            ${renderPrivacyPoint('home_privacy_2', 'home_privacy_2_body')}
+                            ${renderPrivacyPoint('home_privacy_3', 'home_privacy_3_body')}
+                        </ul>
+                    </section>
 
-                <footer class="bg-slate-100 dark:bg-slate-950 border-t border-slate-200 dark:border-white/5 pt-20 pb-10 transition-colors duration-500">
-                    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                        <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-12">
-                            <div class="flex items-center gap-3 mb-6 md:mb-0 group cursor-pointer">
-                                <span class="material-symbols-outlined text-primary text-4xl group-hover:scale-105 transition-transform duration-300">psychology</span>
-                                <div>
-                                    <span class="font-bold text-2xl dark:text-white text-slate-900 block tracking-tight transition-colors duration-500">NeuroFocus</span>
-                                    <span class="text-xs text-slate-500 tracking-wider font-semibold transition-colors duration-500">FOCUS TRAINING PROTOTYPE</span>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="flex flex-col md:flex-row justify-between items-center pt-8 border-t border-slate-200 dark:border-white/5 transition-colors duration-500">
-                            <div class="flex flex-col md:flex-row items-center gap-4">
-                                <p class="text-slate-500 text-xs text-center md:text-left font-mono transition-colors duration-500">© 2026 NeuroFocus Student Team</p>
-                                <span class="text-[10px] text-slate-500 bg-slate-200 dark:bg-slate-900 px-2.5 py-1 rounded border border-slate-300 dark:border-slate-800 transition-colors duration-500">${dualText('Project by HK Secondary School Innovation Team', '香港中學創新團隊項目')}</span>
-                            </div>
-                            <div class="mt-4 md:mt-0 flex items-center text-xs text-slate-600 dark:text-slate-400 bg-white dark:bg-slate-900 rounded-full px-4 py-1.5 border border-slate-200 dark:border-white/10 shadow-sm transition-colors duration-300">
-                                <span class="mr-2 font-medium">${dualText('Language:', '語言：')}</span>
-                                <span class="lang-toggle-text text-xs flex">
-                                    <span class="${state.lang === 'en' ? 'font-bold text-slate-900 dark:text-white cursor-pointer' : 'cursor-pointer hover:text-primary transition-colors duration-300'}" data-lang="en">EN</span>
-                                    <span class="mx-1 opacity-50">|</span>
-                                    <span class="${state.lang === 'hk' ? 'font-bold text-slate-900 dark:text-white cursor-pointer' : 'cursor-pointer hover:text-primary transition-colors duration-300'}" data-lang="hk">中文</span>
-                                </span>
-                            </div>
-                        </div>
-                    </div>
-                </footer>
+                    <footer class="nb-foot">
+                        <button type="button" class="nb-link" data-enter-app>${t('home_other_modes')}</button>
+                        <span class="nb-foot-note">${t('home_footer')} · ${t('home_footer_note')}</span>
+                    </footer>
+                </div>
             </main>
         `;
     },
@@ -341,28 +128,29 @@ export default {
     mount({ root, router }) {
         try {
             stopCameraPreview();
-        } catch (e) {}
+        } catch (e) { /* no camera was open */ }
+        document.body.classList.add('nb-body');
 
-
-
-        const fadeUpElements = root.querySelectorAll('.fade-up-element');
-        if ('IntersectionObserver' in window) {
+        // The demo line only moves while it is on screen, and not at all when
+        // the device asks for reduced motion (handled in CSS).
+        const wave = root.querySelector('[data-wave]');
+        if (wave && 'IntersectionObserver' in window) {
             const observer = new IntersectionObserver((entries) => {
-                entries.forEach((entry) => {
-                    if (entry.isIntersecting) {
-                        entry.target.classList.add('is-visible');
-                        observer.unobserve(entry.target);
-                    }
-                });
-            }, { threshold: 0.1 });
-            fadeUpElements.forEach((element) => observer.observe(element));
-            fadeUpElements[0]?.classList.add('is-visible');
-        } else {
-            fadeUpElements.forEach((element) => element.classList.add('is-visible'));
+                entries.forEach((entry) => wave.classList.toggle('is-running', entry.isIntersecting));
+            }, { threshold: 0.05 });
+            observer.observe(wave);
+            const onVisibility = () => { if (document.hidden) wave.classList.remove('is-running'); };
+            document.addEventListener('visibilitychange', onVisibility);
+            stopWave = () => {
+                observer.disconnect();
+                document.removeEventListener('visibilitychange', onVisibility);
+            };
+        } else if (wave) {
+            wave.classList.add('is-running');
         }
 
         root.querySelectorAll('[data-lang]').forEach((button) => {
-            button.addEventListener('click', async () => {
+            button.addEventListener('click', () => {
                 const lang = button.dataset.lang;
                 persistLang(lang);
                 setState({ lang });
@@ -372,31 +160,20 @@ export default {
             });
         });
 
-        const themeButton = root.querySelector('[data-theme-toggle]');
-        if (themeButton) {
-            themeButton.addEventListener('click', async () => {
-                const current = getState().theme;
-                const next = current === 'light' ? 'dark' : 'light';
-                persistTheme(next);
-                setState({ theme: next });
-                applyStoredTheme(next);
-                try {
-                    const runtime = await importGameRuntime('/pages/game/runtime.js');
-                    runtime.switchEnvironment(next === 'light' ? 'day' : 'night');
-                } catch (error) {
-                    // Ignore until the game runtime is loaded.
-                }
-                router.refresh();
-            });
-        }
+        // Training / challenge / study: clear any half-started experiment so
+        // this entry always opens their own chooser.
+        const enterOtherModes = () => {
+            setState({ testMode: 'training', setupStep: 'test', difficulty: null });
+            router.navigate('auth');
+        };
+        root.querySelectorAll('[data-enter-app], [data-home-login]').forEach((button) => {
+            button.addEventListener('click', enterOtherModes);
+        });
 
-        root.querySelectorAll('[data-enter-app]').forEach((button) => {
-            button.addEventListener('click', () => {
-                // Clear any half-started experiment so this entry always opens
-                // the training / challenge / study chooser.
-                setState({ testMode: 'training', setupStep: 'test', difficulty: null });
-                router.navigate('auth');
-            });
+        root.querySelector('[data-home-logout]')?.addEventListener('click', () => {
+            logout();
+            setState({ currentUser: null, authView: 'login' });
+            router.refresh();
         });
 
         // Experiment mode. The full test needs an account (the Setup page sends
@@ -418,5 +195,11 @@ export default {
         root.querySelectorAll('[data-lab-quick]').forEach((button) => {
             button.addEventListener('click', () => enterLab('quick'));
         });
+    },
+
+    unmount() {
+        stopWave();
+        stopWave = () => {};
+        document.body.classList.remove('nb-body');
     }
 };

@@ -39,8 +39,8 @@ export default {
                         <div class="results-print-header" aria-hidden="true">
                             <div class="print-title">NeuroFocus — ${t('results_title')}</div>
                             <div class="print-meta">
-                                <span>${t('game_player')}：<strong id="print-student-name">—</strong></span>
-                                <span>Email：<strong id="print-student-email">—</strong></span>
+                                <span>${t('game_player')}${t('colon')}<strong id="print-student-name">—</strong></span>
+                                <span>${t('results_email_label')}${t('colon')}<strong id="print-student-email">—</strong></span>
                                 <span id="print-date"></span>
                             </div>
                         </div>

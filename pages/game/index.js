@@ -40,8 +40,8 @@ export default {
                     </div>
 
                     <div id="manual-debug-panel" style="display: none;"></div>
-                    <div id="fps-meter" style="display: none;">-- FPS</div>
-                    <div id="user-info" ${state.currentUser ? '' : 'hidden'}>${t('game_player')}：<span id="display-username">${state.currentUser || '-'}</span></div>
+                    <div id="fps-meter" style="display: none;"></div>
+                    <div id="user-info" ${state.currentUser ? '' : 'hidden'}>${t('game_player')}${t('colon')}<span id="display-username">${state.currentUser || '-'}</span></div>
 
                     <div id="top-bar">
                         <div class="top-buttons">
@@ -118,12 +118,12 @@ export default {
                     <div id="focus-indicator">
                         <div id="mode-status-card">
                             <div class="status-chip-row">
-                                <span id="mode-badge" class="status-chip neutral">Idle</span>
-                                <span id="device-badge" class="status-chip neutral">Waiting</span>
+                                <span id="mode-badge" class="status-chip neutral"></span>
+                                <span id="device-badge" class="status-chip neutral"></span>
                                 <span id="eeg-signal-chip" class="eeg-signal-chip" style="display: none;"></span>
                             </div>
-                            <div id="mode-status-title">Choose mode</div>
-                            <div id="mode-status-detail">Real EEG or camera</div>
+                            <div id="mode-status-title"></div>
+                            <div id="mode-status-detail"></div>
                         </div>
 
                         <div id="eeg-dual-axis" style="display: none;">
@@ -140,7 +140,7 @@ export default {
                         </div>
 
                         <div class="label">
-                                <span data-i18n="focus_level">Focus</span>
+                                <span data-i18n="focus_level"></span>
                             <span id="focus-zone-chip" class="zone-stable" style="display: none;"></span>
                             <span id="focus-value">--</span>
                         </div>
@@ -150,7 +150,7 @@ export default {
 
                         <div id="speed-display">
                             <div class="label">
-                                <span data-i18n="speed">Speed</span>
+                                <span data-i18n="speed"></span>
                                 <span id="speed-value">0 km/h</span>
                             </div>
                             <div class="bar-container speed-bar-container">
@@ -158,11 +158,11 @@ export default {
                             </div>
                         </div>
 
-                        <div id="simulation-hint-eeg" data-i18n="eeg_simulation_hint">Waiting for mode</div>
+                        <div id="simulation-hint-eeg" data-i18n="eeg_simulation_hint"></div>
 
                         <div id="distance-display">
                             <div class="label">
-                                <span data-i18n="distance">Distance</span>
+                                <span data-i18n="distance"></span>
                                 <span id="distance-value">0.0 m</span>
                             </div>
                         </div>
@@ -185,7 +185,7 @@ export default {
                         <span id="checkpoint-banner-text"></span>
                     </div>
 
-                    <div id="flow-ring" style="display: none;" aria-label="flow charge">
+                    <div id="flow-ring" style="display: none;" aria-label="${t('game_flow_ring')}">
                         <svg viewBox="0 0 64 64" class="flow-ring-svg" aria-hidden="true">
                             <circle class="flow-ring-track" cx="32" cy="32" r="26"></circle>
                             <circle id="flow-ring-fill" class="flow-ring-fill" cx="32" cy="32" r="26"></circle>
@@ -196,7 +196,7 @@ export default {
                         </div>
                     </div>
 
-                    <div id="voyage-card" style="display: none;" aria-label="voyage map">
+                    <div id="voyage-card" style="display: none;" aria-label="${t('voyage_title')}">
                         <div class="voyage-card-head">
                             <span class="voyage-card-title" data-i18n="voyage_title">${t('voyage_title')}</span>
                             <span id="voyage-count">⚓ 0</span>
@@ -234,8 +234,8 @@ export default {
                         <div class="hologram"></div>
                         <div class="header" id="question-header">${t('game_question_title')}</div>
                         <div class="meta-row">
-                            <span id="question-skill-chip" class="question-meta-chip">Logic</span>
-                            <span id="question-band-chip" class="question-meta-chip">Ages 11-13</span>
+                            <span id="question-skill-chip" class="question-meta-chip"></span>
+                            <span id="question-band-chip" class="question-meta-chip"></span>
                         </div>
                         <div class="content" id="question-text">${t('game_loading_text')}</div>
                         <div class="options" id="question-options"></div>
@@ -248,7 +248,7 @@ export default {
 
                     <div id="streak-display">
                         <div id="streak-count">x0</div>
-                        <div id="streak-label">COMBO</div>
+                        <div id="streak-label">${t('game_combo')}</div>
                     </div>
                 </div>
             </main>

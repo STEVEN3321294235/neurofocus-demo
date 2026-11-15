@@ -99,7 +99,7 @@ function renderSignalChip() {
     // quality percentage: 100 = perfect contact, 0 = nothing on the head.
     // This chip used to read it the other way round, so a headset sitting on
     // the table (0%) proudly reported "Good signal".
-    let label = langText('冇接觸', 'No contact');
+    let label = langText('未貼到額頭', 'No contact');
     let cls = 'sig-bad';
     if (s >= 70) { label = langText('訊號良好', 'Good signal'); cls = 'sig-good'; }
     else if (s >= EEG_MIN_USABLE_SIGNAL) { label = langText('訊號弱', 'Weak signal'); cls = 'sig-weak'; }
@@ -119,8 +119,8 @@ function renderBreathingEegFeedback() {
     const label = document.getElementById('breathing-meditation-label');
     if (bar) bar.style.width = `${Math.max(0, Math.min(100, latestEEG.meditation))}%`;
     if (label) label.textContent = langText(
-        `部機見到你個腦冷靜緊落嚟（放鬆 ${Math.round(latestEEG.meditation)}）`,
-        `The headset sees your brain calming down (relax ${Math.round(latestEEG.meditation)})`
+        `頭帶見到你慢慢冷靜落嚟（放鬆 ${Math.round(latestEEG.meditation)}）`,
+        `The headband can see you calming down (calm ${Math.round(latestEEG.meditation)})`
     );
 }
 
@@ -486,7 +486,7 @@ function initStudySession() {
     const panel = document.getElementById('study-reader');
     if (panel) panel.style.display = 'flex';
     const timerLabel = document.getElementById('study-page-timer-label');
-    if (timerLabel) timerLabel.textContent = langText('本頁剩餘時間', 'Time left on this page');
+    if (timerLabel) timerLabel.textContent = langText('呢一頁剩低嘅時間', 'Time left on this page');
     const nextBtn = document.getElementById('study-next-btn');
     if (nextBtn && nextBtn.dataset.bound !== '1') {
         nextBtn.dataset.bound = '1';
@@ -573,8 +573,8 @@ function paintStudyPage() {
     const progress = document.getElementById('study-reader-progress');
     if (progress) {
         progress.textContent = langText(
-            `第 ${studySession.index + 1} / ${studySession.pages.length} 頁`,
-            `Page ${studySession.index + 1} / ${studySession.pages.length}`
+            `第 ${studySession.index + 1} 頁，共 ${studySession.pages.length} 頁`,
+            `Page ${studySession.index + 1} of ${studySession.pages.length}`
         );
     }
     const title = document.getElementById('study-reader-title');
@@ -613,10 +613,10 @@ function updateStudyNextButton(elapsedMs) {
     if (lockRemainingMs > 0) {
         disabled = true;
         const secs = Math.ceil(lockRemainingMs / 1000);
-        label = langText(`請先閱讀（${secs} 秒）`, `Keep reading (${secs}s)`);
+        label = langText(`請先讀完呢頁（${secs} 秒）`, `Keep reading (${secs} s)`);
     } else {
         disabled = false;
-        label = isLastPage ? langText('進行測驗', 'Start Quiz') : langText('下一頁', 'Next Page');
+        label = isLastPage ? langText('開始小測', 'Start the quiz') : langText('下一頁', 'Next page');
     }
     // Only touch the DOM when something actually changes (called ~50x/sec).
     if (nextBtn.dataset.k === label) return;
@@ -669,7 +669,7 @@ function buildStudyQuizBank() {
         options: (q.options?.[lang] || q.options?.hk || []).slice(),
         answer: q.answer,
         explanation: q.explanation?.[lang] || q.explanation?.hk || '',
-        skill: langText('溫習測驗', 'Study Quiz'),
+        skill: langText('溫習小測', 'Study quiz'),
         ageBand: `${studyLabel(STUDY_SUBJECT_LABELS, CONFIG.studySubject)} · ${studyLabel(STUDY_DEPTH_LABELS, CONFIG.studyDepth)}`
     }));
 }
@@ -723,7 +723,7 @@ function requestStudyQuiz() {
     applyStudyQuizUI();
 
     // Brief cue, then the first question.
-    showTransientCue(langText('📖 溫習完成，開始測驗！', '📖 Reading done — quiz time!'), 4000);
+    showTransientCue(langText('📖 讀完喇，開始小測！', '📖 Reading done. Quiz time!'), 4000);
     loadQuestionFromBank();
 }
 
@@ -903,7 +903,7 @@ function generateStroopPuzzle(index = 0) {
         options: rotated.map(label),
         answer: rotated.indexOf(display),
         explanation: isHk ? '要答字體顯示嘅顏色，唔好被字嘅意思誤導。' : 'Answer the display color, not what the word says.',
-        skill: isHk ? 'Stroop 陷阱' : 'Stroop Trap',
+        skill: isHk ? '顏色文字題' : 'Color-word test',
         ageBand: getAgeBandLabel(),
         validation: isHk ? '字體顏色先係答案' : 'The font color is the answer',
         source: 'fallback',
@@ -1322,8 +1322,8 @@ function updateGoldenMoment(deltaMs) {
             const bannerText = document.getElementById('star-banner-text');
             if (banner && bannerText) {
                 bannerText.textContent = langText(
-                    '🌅 黃金時刻——你嘅腦同時做到專注＋放鬆',
-                    '🌅 Golden hour — your brain is focused AND relaxed'
+                    '🌅 黃金時刻：你而家又專注又放鬆',
+                    '🌅 Golden moment: you are focused and calm at the same time'
                 );
                 banner.style.display = '';
                 banner.classList.remove('is-in');
@@ -1417,183 +1417,114 @@ function createTrainingAnalytics() {
 }
 
 const I18N = {
+    // HUD and loading text owned by the runtime. Same writing rules as
+    // app/i18n.js: plain words, and no mixing of the two languages in one line.
     hk: {
-        nav_features: "特色",
-        nav_benefits: "學習效益",
-        nav_research: "科學原理",
-        nav_start: "進入系統",
-        hero_title: "透過腦電波輔助的專注力增強平台",
-        hero_subtitle: "結合腦電波偵測與遊戲互動，為香港學生打造的下一代專注力訓練系統。",
-        stat_accuracy: "專注度偵測準確度",
-        stat_latency: "超低延遲回饋",
-        stat_ai: "自適應難度調整",
-        dashboard_title: "專業數據分析面板",
-        login: "登入",
-        register: "註冊",
-        start_game: "開始遊戲",
-        create_account: "建立帳號",
-        no_account: "還沒有帳號？",
-        has_account: "已有帳號？",
-        register_link: "註冊",
-        login_link: "登入",
         logout: "登出",
-        focus_level: "專注度",
-        simulate_eeg: "相機專注輸入",
-        next_question: "下一題",
-        stability: "穩定度",
-        loading_ai: "正在生成 AI 題目...",
-        game_title: "專注漂浮船探險",
-        game_subtitle: "Focus Floating Boat Adventure",
-        puzzle_title: "邏輯挑戰",
-        correct: "正確！",
-        incorrect: "錯誤，請再試一次。",
-        error_api: "請輸入 API Key 或檢查網絡",
-        loading_game: "正在生成遊戲內容 (10題)...",
-        speed: "速度",
-        select_difficulty: "選擇難度",
-        difficulty_desc: "請選擇你的挑戰等級",
-        diff_easy: "容易 (Easy)",
-        diff_medium: "普通 (Medium)",
-        diff_hard: "困難 (Hard)",
-        results_title: "挑戰總結",
-        final_score: "最終得分",
-        restart: "重新開始",
-        explanation: "解釋",
-        distance: "距離",
-        stat_distance: "總移動距離",
-        stat_accuracy: "答對百分比",
-        stat_time: "總用時",
-        play_again: "再玩一次",
         back_home: "返回首頁",
-        preparing_game: "準備遊戲場景...",
-        loading_boat: "載入船隻模型...",
-        loading_water: "載入水面材質...",
-        loading_sky: "載入天空光照...",
-        loading_ai_connect: "連接 AI 題庫...",
-        loading_ai_parse: "整理挑戰內容...",
-        loading_ai_ready: "AI 題目已就緒",
-        loading_ready: "準備完成",
-        loading_failed: "載入失敗",
-        retry: "重試",
+        focus_level: "專注分數",
+        stability: "穩定程度",
+        speed: "船速",
+        distance: "距離",
+        voyage_title: "航線圖",
+        puzzle_title: "題目",
+        game_question_title: "題目",
+        correct: "答啱！",
+        incorrect: "答錯",
+        explanation: "解釋",
+        preparing_game: "準備緊場景…",
+        loading_boat: "載入緊隻船…",
+        loading_water: "載入緊海面…",
+        loading_sky: "載入緊天空…",
+        loading_ai_connect: "連接緊人工智能題庫…",
+        loading_ai_parse: "整理緊題目…",
+        loading_ai_ready: "人工智能題目準備好",
+        loading_failed: "載入唔到",
+        retry: "再試一次",
         mode_idle: "待命",
         device_waiting: "等待中",
-        choose_mode: "選擇模式",
-        mode_real_or_sim: "選擇真實 EEG 或相機模式",
+        choose_mode: "請先揀模式",
+        mode_real_or_sim: "揀腦電波頭帶或者相機模式",
         mode_simulation: "相機模式",
         device_virtual: "相機鏡頭",
-        mode_simulation_title: "相機驅動中",
-        mode_simulation_detail: "本機鏡頭訊號",
-        mode_real: "真實 EEG",
-        state_ready: "已就緒",
-        state_searching: "搜尋中",
+        mode_simulation_title: "用緊相機",
+        mode_simulation_detail: "用呢部機嘅鏡頭",
+        mode_demo: "示範模式",
+        device_demo: "內置曲線",
+        mode_demo_title: "用緊示範模式",
+        mode_real: "腦電波頭帶",
+        state_ready: "準備好",
+        state_searching: "搵緊",
         state_connected: "已連接",
-        state_streaming: "即時數據",
+        state_streaming: "收緊數據",
         state_warning: "未有訊號",
-        state_blocked: "已阻擋",
+        state_blocked: "被阻擋",
         state_virtual: "相機",
-        mode_real_standby: "真實 EEG 待命",
-        mode_searching_device: "搜尋裝置中",
-        mode_bridge_connected: "Bridge 已連接",
-        mode_live_active: "即時 EEG 啟動中",
-        mode_signal_pending: "訊號尚未穩定",
-        mode_blocked: "EEG 受限制",
-        waiting_live_data: "等待即時腦波",
-        signal_flowing: "訊號已流入",
-        adjust_sensor: "請調整頭帶接觸",
-        permissions_check: "請檢查本機權限",
-        best_label: "最佳",
-        correct_answer: "正確答案",
-        no_explanation: "暫無解釋"
+        mode_real_standby: "頭帶待命中",
+        mode_searching_device: "搵緊頭帶",
+        mode_bridge_connected: "連接程式已接通",
+        mode_live_active: "頭帶運作中",
+        mode_signal_pending: "訊號未穩定",
+        mode_blocked: "頭帶用唔到",
+        waiting_live_data: "等緊頭帶嘅數據",
+        signal_flowing: "訊號正常",
+        adjust_sensor: "請調整頭帶嘅位置",
+        permissions_check: "請檢查電腦嘅權限設定"
     },
     en: {
-        nav_features: "Features",
-        nav_benefits: "Benefits",
-        nav_research: "Science",
-        nav_start: "Enter System",
-        hero_title: "Focus Revolution",
-        hero_subtitle: "Next-gen focus training platform for students, powered by neurofeedback and gamification.",
-        stat_accuracy: "Accuracy",
-        stat_latency: "Low Latency",
-        stat_ai: "AI Adaptive",
-        dashboard_title: "Professional Analytics Dashboard",
-        login: "Login",
-        register: "Register",
-        start_game: "Start Game",
-        create_account: "Create Account",
-        no_account: "No account?",
-        has_account: "Has account?",
-        register_link: "Register",
-        login_link: "Login",
-        logout: "Logout",
-        focus_level: "Focus Level",
-        simulate_eeg: "Camera Focus Input",
-        next_question: "Next Question",
-        stability: "Stability",
-        loading_ai: "Generating AI Puzzle...",
-        game_title: "Focus Floating Boat Adventure",
-        game_subtitle: "Experience Focus",
-        puzzle_title: "Logic Puzzle",
-        correct: "Correct!",
-        incorrect: "Incorrect, try again.",
-        error_api: "Please enter API Key or check network",
-        loading_game: "Generating Game Content (10 Qs)...",
-        speed: "Speed",
-        select_difficulty: "Select Difficulty",
-        difficulty_desc: "Choose your challenge level",
-        diff_easy: "Easy",
-        diff_medium: "Medium",
-        diff_hard: "Hard",
-        results_title: "Challenge Summary",
-        final_score: "Final Score",
-        restart: "Restart",
-        explanation: "Explanation",
+        logout: "Log out",
+        back_home: "Back to home",
+        focus_level: "Focus score",
+        stability: "Steadiness",
+        speed: "Boat speed",
         distance: "Distance",
-        stat_distance: "Total Distance",
-        stat_accuracy: "Accuracy",
-        stat_time: "Total Time",
-        play_again: "Play Again",
-        back_home: "Back to Home",
-        preparing_game: "Preparing game session...",
-        loading_boat: "Loading boat model...",
-        loading_water: "Loading water textures...",
-        loading_sky: "Loading sky lighting...",
-        loading_ai_connect: "Connecting to AI challenge set...",
-        loading_ai_parse: "Parsing challenge set...",
-        loading_ai_ready: "AI challenge set ready",
-        loading_ready: "Ready",
-        loading_failed: "Load failed",
-        retry: "Retry",
+        voyage_title: "Route map",
+        puzzle_title: "Question",
+        game_question_title: "Question",
+        correct: "Right!",
+        incorrect: "Wrong",
+        explanation: "Explanation",
+        preparing_game: "Getting the scene ready…",
+        loading_boat: "Loading the boat…",
+        loading_water: "Loading the sea…",
+        loading_sky: "Loading the sky…",
+        loading_ai_connect: "Connecting to the AI question bank…",
+        loading_ai_parse: "Sorting the questions…",
+        loading_ai_ready: "AI questions ready",
+        loading_failed: "Loading failed",
+        retry: "Try again",
         mode_idle: "Idle",
         device_waiting: "Waiting",
-        choose_mode: "Choose mode",
-        mode_real_or_sim: "Select real EEG or camera",
-        mode_simulation: "Camera Mode",
+        choose_mode: "Choose a mode first",
+        mode_real_or_sim: "Pick the headband or camera mode",
+        mode_simulation: "Camera mode",
         device_virtual: "Webcam",
-        mode_simulation_title: "Camera driving",
-        mode_simulation_detail: "On-device camera signal",
-        mode_real: "Real EEG",
+        mode_simulation_title: "Using the camera",
+        mode_simulation_detail: "This device's camera",
+        mode_demo: "Demo mode",
+        device_demo: "Built-in curve",
+        mode_demo_title: "Using demo mode",
+        mode_real: "Brainwave headband",
         state_ready: "Ready",
         state_searching: "Searching",
         state_connected: "Connected",
-        state_streaming: "Live Data",
-        state_warning: "No Signal",
+        state_streaming: "Receiving data",
+        state_warning: "No signal",
         state_blocked: "Blocked",
         state_virtual: "Camera",
-        mode_real_standby: "Real EEG standby",
-        mode_searching_device: "Searching device",
-        mode_bridge_connected: "Bridge connected",
-        mode_live_active: "Live EEG active",
-        mode_signal_pending: "Signal not ready",
-        mode_blocked: "EEG blocked",
-        waiting_live_data: "Waiting for live data",
-        signal_flowing: "Signal flowing",
-        adjust_sensor: "Adjust the sensor",
-        permissions_check: "Check local permissions",
-        best_label: "Best",
-        correct_answer: "Correct Answer",
-        no_explanation: "No explanation provided"
+        mode_real_standby: "Headband on standby",
+        mode_searching_device: "Looking for the headband",
+        mode_bridge_connected: "Link program connected",
+        mode_live_active: "Headband is working",
+        mode_signal_pending: "Signal not steady yet",
+        mode_blocked: "Headband unavailable",
+        waiting_live_data: "Waiting for headband data",
+        signal_flowing: "Signal is fine",
+        adjust_sensor: "Adjust the headband",
+        permissions_check: "Check this computer's permission settings"
     }
 };
+
 
 function langText(hk, en) {
     return CONFIG.currentLang === 'hk' ? hk : en;
@@ -1608,7 +1539,7 @@ function formatAverageRecovery(ms) {
     return `${seconds.toFixed(seconds >= 10 ? 1 : 2)}s`;
 }
 
-function showBreathingPrompt(message = langText('請留意呼吸，慢慢將注意力帶回畫面。', 'Notice your breathing and gently bring your attention back.')) {
+function showBreathingPrompt(message = langText('留意自己嘅呼吸，慢慢將注意力帶返嚟畫面。', 'Notice your breathing. Gently bring your attention back to the screen.')) {
     const promptEl = document.getElementById('breathing-prompt');
     const textEl = document.getElementById('breathing-prompt-text');
     if (!promptEl) return;
@@ -1667,20 +1598,20 @@ function renderBreathingIntervention(now = performance.now()) {
     const cycleElapsed = elapsed % 12000;
 
     let phaseClass = 'phase-inhale';
-    let phaseTitle = langText('慢慢吸氣，重新穩定', 'Slow inhale and reset');
-    let phaseText = langText('吸氣', 'Inhale');
-    let helperText = langText('跟住呼吸環由細慢慢放大，持續 4 秒吸氣。', 'Follow the ring from small to large and inhale for 4 seconds.');
+    let phaseTitle = langText('慢慢吸氣', 'Breathe in slowly');
+    let phaseText = langText('吸氣', 'Breathe in');
+    let helperText = langText('跟住個圈由細變大，用 4 秒吸氣。', 'Follow the ring as it grows. Breathe in for 4 seconds.');
 
     if (cycleElapsed >= 4000 && cycleElapsed < 8000) {
         phaseClass = 'phase-hold';
-        phaseTitle = langText('憋氣穩住節奏', 'Hold and stay steady');
-        phaseText = langText('憋氣', 'Hold');
-        helperText = langText('保持呼吸環停留在最大狀態，穩住 4 秒。', 'Keep the ring at its largest size and hold for 4 seconds.');
+        phaseTitle = langText('停一停，忍住', 'Hold it there');
+        phaseText = langText('忍住', 'Hold');
+        helperText = langText('個圈停喺最大，忍住 4 秒。', 'The ring stays at its largest. Hold for 4 seconds.');
     } else if (cycleElapsed >= 8000) {
         phaseClass = 'phase-exhale';
-        phaseTitle = langText('慢慢呼氣，睇住個霧散開', 'Slow exhale and watch the mist part');
-        phaseText = langText('呼氣', 'Exhale');
-        helperText = langText('跟住呼吸環由大慢慢收細，用 4 秒慢慢呼氣。', 'Follow the ring from large to small and exhale slowly over 4 seconds.');
+        phaseTitle = langText('慢慢呼氣，睇住啲霧散開', 'Breathe out slowly and watch the mist clear');
+        phaseText = langText('呼氣', 'Breathe out');
+        helperText = langText('跟住個圈由大變細，用 4 秒呼氣。', 'Follow the ring as it shrinks. Breathe out for 4 seconds.');
     }
 
     // The mist parts as you exhale: each cycle's exhale phase visibly clears
@@ -1752,14 +1683,14 @@ function celebrateBoost() {
     // compact bottom cue instead (positioned clear of the reader by CSS).
     if (isStudyReading()) {
         setTimeout(() => document.body.classList.remove('boost-celebrate'), FOCUS_TRAINING.boostDurationMs);
-        showTransientCue(langText('🌤 霧散返喇！專注回穩', '🌤 The mist is parting — focus restored'), 3000);
+        showTransientCue(langText('🌤 啲霧散喇！專注返嚟喇', '🌤 The mist has cleared. Your focus is back'), 3000);
         return;
     }
 
     const flash = document.getElementById('boost-flash');
     const flashText = document.getElementById('boost-flash-text');
     if (flash && flashText) {
-        flashText.textContent = langText('🌤 霧散返喇！專注全滿 5 秒，充能加速中', '🌤 The mist is parting! Full focus for 5s, charge boosted');
+        flashText.textContent = langText('🌤 啲霧散喇！之後 5 秒專注全滿，儲星會快啲', '🌤 The mist has cleared. Full focus for 5 seconds, and stars charge faster');
         flash.style.display = '';
         flash.classList.remove('is-in');
         void flash.offsetWidth; // restart CSS animation
@@ -1791,8 +1722,8 @@ function earnFlowStar() {
     const bannerText = document.getElementById('star-banner-text');
     if (banner && bannerText) {
         bannerText.textContent = langText(
-            `⭐ 心流星 +1！你保持咗 ${Math.round(FLOW_CHARGE_MS / 1000)} 秒穩定專注`,
-            `⭐ Flow star +1! You held steady focus for ${Math.round(FLOW_CHARGE_MS / 1000)}s`
+            `⭐ 專注星 +1！你穩定專注咗 ${Math.round(FLOW_CHARGE_MS / 1000)} 秒`,
+            `⭐ Focus star +1! You held steady focus for ${Math.round(FLOW_CHARGE_MS / 1000)} seconds`
         );
         banner.style.display = '';
         banner.classList.remove('is-in');
@@ -1909,8 +1840,8 @@ function renderVoyageCard(force = false) {
     const nextLine = document.getElementById('voyage-next');
     if (nextLine) {
         nextLine.textContent = langText(
-            `下一個航標仲有 ${Math.max(0, Math.round(stats.distanceToNextM))}m`,
-            `Next beacon in ${Math.max(0, Math.round(stats.distanceToNextM))}m`
+            `離下一個航標仲有 ${Math.max(0, Math.round(stats.distanceToNextM))} 米`,
+            `Next beacon in ${Math.max(0, Math.round(stats.distanceToNextM))} m`
         );
     }
     const count = document.getElementById('voyage-count');
@@ -1939,7 +1870,7 @@ function formatVoyageTotals() {
     const km = voyageTotals.distanceM / 1000;
     const beacons = Math.floor(voyageTotals.distanceM / CHECKPOINT_SPACING);
     return langText(
-        `累積 ${km.toFixed(1)} km · ${beacons} 個航標`,
+        `累積 ${km.toFixed(1)} 公里 · ${beacons} 個航標`,
         `Total ${km.toFixed(1)} km · ${beacons} beacons`
     );
 }
@@ -1952,7 +1883,7 @@ function renderVoyageLogLine() {
         return;
     }
     el.style.display = '';
-    el.textContent = `⛵ ${langText('航海日誌', 'Voyage log')}：${formatVoyageTotals()}`;
+    el.textContent = `⛵ ${langText('航海日誌', 'Voyage log')}${langText('：', ': ')}${formatVoyageTotals()}`;
 }
 
 // A gentle "welcome back to your voyage" beat after the onboarding cue.
@@ -1982,7 +1913,7 @@ function onCheckpointReached(event) {
     const bannerText = document.getElementById('checkpoint-banner-text');
     if (banner && bannerText) {
         bannerText.textContent = langText(
-            `⚓ 通過第 ${event.index} 個航標`,
+            `⚓ 經過第 ${event.index} 個航標`,
             `⚓ Beacon ${event.index} passed`
         );
         banner.style.display = '';
@@ -2025,8 +1956,8 @@ function showOnboardingCue() {
     const cueText = document.getElementById('onboarding-cue-text');
     if (!cue || !cueText) return;
     cueText.textContent = langText(
-        '🚤 隻船就係你個腦嘅倒影——集中精神，佢就會平穩加速',
-        '🚤 The boat mirrors your mind — focus, and it speeds up smoothly'
+        '🚤 隻船會跟住你嘅專注行：專心，佢就行得又穩又快',
+        '🚤 The boat follows your focus: stay focused and it sails fast and steady'
     );
     cue.style.display = '';
     cue.classList.remove('is-in');
@@ -2544,13 +2475,13 @@ function updateGameLogic(delta) {
         if (!cameraTracking.streamActive || !cameraTracking.modelReady || !cameraTracking.isPredicting) {
             focusLevel = 0;
             shouldPause = true;
-            setEEGConnectionState('warning', langText('相機串流已中斷，計時已暫停。請重新回到鏡頭授權或鏡頭畫面。', 'Camera stream stopped, timer paused. Please restore camera access or return to the camera view.'));
+            setEEGConnectionState('warning', langText('相機停咗，計時暫停。請重新允許相機，或者返去相機畫面。', 'The camera has stopped, so the timer is paused. Allow the camera again, or go back to the camera view.'));
         } else if (!cameraTracking.hasFace && !cameraTracking.faceRecentlySeen) {
             focusLevel = 0;
             shouldPause = true;
-            setEEGConnectionState('warning', langText('未偵測到人臉，專注度已歸零並暫停計時。請回到鏡頭範圍內。', 'No face detected. Focus is now 0 and the timer is paused. Please return to the camera frame.'));
+            setEEGConnectionState('warning', langText('相機見唔到你塊面，計時暫停。請返入鏡頭範圍。', 'The camera cannot see your face, so the timer is paused. Please move back into view.'));
         } else if (!cameraTracking.hasFace && cameraTracking.faceRecentlySeen) {
-            setEEGConnectionState('simulation', langText('正在重新鎖定人臉，專注值會短暫平滑維持。', 'Reacquiring your face. Focus stays smoothed briefly.'));
+            setEEGConnectionState('simulation', langText('重新搵緊你塊面，專注分數會暫時保持住。', 'Finding your face again. Your focus score is held for a moment.'));
         }
     }
 
@@ -2586,13 +2517,13 @@ function updateGameLogic(delta) {
             trainingAnalytics.lowFocusStreakMs >= FOCUS_TRAINING.promptDelayMs &&
             now < trainingAnalytics.interventionCooldownUntil
         ) {
-            showBreathingPrompt(langText('先慢慢呼吸，將視線重新集中。', 'Breathe slowly and bring your gaze back to the center.'));
+            showBreathingPrompt(langText('慢慢呼吸，將視線帶返嚟畫面中間。', 'Breathe slowly and bring your eyes back to the middle of the screen.'));
             trainingAnalytics.promptActive = true;
         } else if (
             effectiveFocusLevel <= FOCUS_TRAINING.lowThreshold &&
             trainingAnalytics.lowFocusStreakMs >= FOCUS_TRAINING.promptDelayMs
         ) {
-            showBreathingPrompt(langText('請專注呼吸，若狀態未回升將啟動呼吸引導。', 'Focus on your breathing. Guided breathing will start if focus does not recover.'));
+            showBreathingPrompt(langText('專心留意呼吸。如果專注未回升，就會開始呼吸練習。', 'Pay attention to your breathing. If your focus does not come back, a breathing exercise will start.'));
             trainingAnalytics.promptActive = true;
         } else if (trainingAnalytics.promptActive) {
             hideBreathingPrompt();
@@ -3236,7 +3167,7 @@ function hideTransitionLoader() {
 // Expose to global scope for HTML onclick
 window.startGameWithDifficulty = function(level) {
     CONFIG.difficulty = level;
-    showTransitionLoader(langText('正在鎖定關卡與場景...', 'Locking session and scene...'));
+    showTransitionLoader(langText('準備緊場景…', 'Getting the scene ready…'));
     
     // Small delay to allow loader to render before heavy lifting
     requestAnimationFrame(() => {
@@ -3269,8 +3200,8 @@ function waitForUsableEEG(timeoutMs = EEG_READY_WAIT_MS) {
                 const sig = Math.round(latestEEG.signal || 0);
                 overlayText.classList.add('countdown-waiting');
                 overlayText.textContent = latestEEG.attention > 0 || sig >= EEG_MIN_USABLE_SIGNAL
-                    ? langText(`等待穩定訊號…（${sig}%）`, `Waiting for a steady signal… (${sig}%)`)
-                    : langText('請戴好頭帶：額頭貼實、耳夾夾住耳垂', 'Fit the headset: sensor on the forehead, clip on the earlobe');
+                    ? langText(`等緊訊號穩定…（${sig}%）`, `Waiting for a steady signal… (${sig}%)`)
+                    : langText('請戴好頭帶：感應器貼緊額頭，耳夾夾住耳珠', 'Put the headband on: sensor flat on the forehead, clip on the earlobe');
             }
             if (Date.now() - startedAt >= timeoutMs) {
                 clearInterval(tick);
@@ -3454,9 +3385,9 @@ function initGameSession() {
     hideBreathingIntervention();
     updateLoadingStatus(
         isStudyMode()
-            ? langText('正在準備閱讀版面與專注監測...', 'Preparing the reader and focus monitoring...')
+            ? langText('準備緊閱讀畫面…', 'Getting the reading screen ready…')
             : isTrainingMode()
-                ? langText('正在校準專注訓練場景與感測流程...', 'Calibrating the focus training scene and sensors...')
+                ? langText('準備緊訓練場景…', 'Getting the training scene ready…')
                 : I18N[CONFIG.currentLang].preparing_game
     );
 
@@ -3482,8 +3413,8 @@ function initGameSession() {
         setEEGConnectionState(
             isConnected ? 'connected' : 'warning',
             isConnected
-                ? langText('Bridge 已連接，等待即時腦波封包。', 'Bridge connected. Waiting for live MindWave packets.')
-                : langText('已選擇真實 EEG，等待 bridge 與即時訊號。', 'Real EEG selected. Waiting for bridge and live signal.')
+                ? langText('連接程式接通咗，等緊頭帶嘅數據。', 'The link program is connected. Waiting for data from the headband.')
+                : langText('已經揀咗腦電波頭帶，等緊連接程式同訊號。', 'Brainwave headband chosen. Waiting for the link program and a signal.')
         );
     } else {
         isSimulationMode = false;
@@ -3509,8 +3440,8 @@ function initGameSession() {
         startupTimeoutId = null;
         if (sessionId !== activeGameSessionId) return;
         handleStartupFailure(langText(
-            '載入超時（網絡或裝置較慢）。已帶你返回設定頁，請再試一次。',
-            'Loading timed out (slow network or device). Back to setup — please try again.'
+            '載入用咗太耐，可能係網絡或者部機比較慢。已經帶你返去設定頁，請再試一次。',
+            'Loading took too long, perhaps a slow network or device. You are back at setup. Please try again.'
         ));
     }, 25000);
 
@@ -3524,7 +3455,7 @@ function initGameSession() {
             init3DScene();
         } catch (e) {
             console.error("Critical: init3DScene failed", e);
-            alert("3D Scene Init Error: " + e.message);
+            alert(langText('場景開唔到：', 'The scene could not start: ') + e.message);
             // We might still want to proceed or stop?
             // If scene is broken, game won't work.
             // But let's let it fall through to the Promise logic which might try to start anyway.
@@ -3546,10 +3477,10 @@ function initGameSession() {
 
     showTransitionLoader(
         isStudyMode()
-            ? langText('正在準備海景、閱讀版面與渲染品質...', 'Preparing the sea, the reader, and render quality...')
+            ? langText('準備緊海景同閱讀畫面…', 'Getting the sea and the reading screen ready…')
             : isTrainingMode()
-                ? langText('正在校準場景與渲染品質...', 'Calibrating scene and render quality...')
-                : langText('正在校準場景、題庫與渲染品質...', 'Calibrating scene, challenge set, and render quality...')
+                ? langText('準備緊場景…', 'Getting the scene ready…')
+                : langText('準備緊場景同題目…', 'Getting the scene and the questions ready…')
     );
 
     // Initial Load: keep question panel hidden until countdown finishes
@@ -3623,7 +3554,7 @@ function initGameSession() {
         );
 
         if (!hasRenderableScene) {
-            handleStartupFailure(langText('場景初始化失敗，請重新選擇輸入模式。', 'Scene initialization failed. Please choose the input mode again.'));
+            handleStartupFailure(langText('場景開唔到。請重新揀一次量度方法。', 'The scene could not start. Please choose how to measure again.'));
             return;
         }
         
@@ -3728,7 +3659,7 @@ function initGameSession() {
     }).catch(err => {
         if (sessionId !== activeGameSessionId) return;
         console.error("Critical Error during game start:", err);
-        handleStartupFailure(err?.message || langText('遊戲載入失敗，請重新選擇模式。', 'Game failed to load. Please choose the mode again.'));
+        handleStartupFailure(err?.message || langText('載入唔到。請重新揀一次模式。', 'Loading failed. Please choose the mode again.'));
         
         // Ensure loaders are hidden on error too
         const tLoader = document.getElementById('transition-loader');
@@ -3749,9 +3680,9 @@ function initGameSession() {
         if (iLoader && iLoader.style.display !== 'none') {
              iLoader.innerHTML = `
                 <div style="color: #ff4444; padding: 20px; text-align: center;">
-                    <h2>Game Load Failed</h2>
+                    <h2>${I18N[CONFIG.currentLang].loading_failed}</h2>
                     <p>${err.message}</p>
-                    <button onclick="location.reload()" style="margin-top: 20px; padding: 10px 20px; cursor: pointer;">Retry</button>
+                    <button onclick="location.reload()" style="margin-top: 20px; padding: 10px 20px; cursor: pointer;">${I18N[CONFIG.currentLang].retry}</button>
                 </div>
             `;
         }
@@ -3822,13 +3753,13 @@ function renderFocusTelemetry(level = 0) {
     if (zoneChip) {
         zoneChip.style.display = '';
         let zoneClass = 'zone-stable';
-        let zoneText = langText('穩定', 'Stable');
+        let zoneText = langText('穩定', 'Steady');
         if (safeLevel < FOCUS_TRAINING.lowThreshold) {
             zoneClass = 'zone-low';
-            zoneText = langText('分心', 'Distracted');
+            zoneText = langText('分心', 'Drifting');
         } else if (safeLevel > 80) {
             zoneClass = 'zone-flow';
-            zoneText = langText('心流', 'Flow');
+            zoneText = langText('好專注', 'In the zone');
         }
         if (zoneChip.className !== zoneClass) zoneChip.className = zoneClass;
         if (zoneChip.textContent !== zoneText) zoneChip.textContent = zoneText;
@@ -3974,7 +3905,7 @@ function startFocusSimulation() {
             baseline: 60,
             amplitude: 6,
             jitter: 3,
-            detail: langText('正在校準，訊號逐步穩定。', 'Calibrating. Signal is stabilizing.')
+            detail: langText('校準緊，訊號慢慢穩定落嚟。', 'Calibrating. The signal is settling.')
         };
 
         const createFallbackProfile = () => {
@@ -3985,7 +3916,7 @@ function startFocusSimulation() {
                     amplitude: THREE.MathUtils.randFloat(4.2, 7.2),
                     jitter: THREE.MathUtils.randFloat(1.4, 3.0),
                     duration: Math.round(THREE.MathUtils.randFloat(5, 11)),
-                    detail: langText('未授權相機，正用內置專注曲線（穩定片段）。', 'Camera not allowed. Built-in focus profile: steady segment.')
+                    detail: langText('示範模式：用緊內置曲線（穩定嘅一段）。', 'Demo mode: built-in curve, a steady stretch.')
                 };
             }
 
@@ -3994,7 +3925,7 @@ function startFocusSimulation() {
                 amplitude: THREE.MathUtils.randFloat(4.5, 8.0),
                 jitter: THREE.MathUtils.randFloat(2.4, 4.2),
                 duration: Math.round(THREE.MathUtils.randFloat(2, 4)),
-                detail: langText('未授權相機，正用內置專注曲線（短暫分心片段）。', 'Camera not allowed. Built-in focus profile: brief distraction segment.')
+                detail: langText('示範模式：用緊內置曲線（短暫分心嘅一段）。', 'Demo mode: built-in curve, a short drifting stretch.')
             };
         };
 
@@ -4004,7 +3935,7 @@ function startFocusSimulation() {
                 segmentTicks = profile.duration;
                 setEEGConnectionState('simulation', profile.detail);
             } else {
-                setEEGConnectionState('simulation', langText('相機預覽已準備，正在透過鏡頭觀察專注度。', 'Camera preview ready. Monitoring focus via camera.'));
+                setEEGConnectionState('simulation', langText('相機準備好，而家用鏡頭睇你嘅專注。', 'Camera ready. Watching your focus through the lens.'));
             }
         };
 
@@ -4023,19 +3954,19 @@ function startFocusSimulation() {
                 const cameraTracking = getCameraTrackingStatus();
                 if (!cameraTracking.streamActive || !cameraTracking.modelReady || !cameraTracking.isPredicting) {
                     focusLevel = 0;
-                    setEEGConnectionState('warning', langText('相機串流未持續運行，計時將保持暫停。', 'Camera stream is not running continuously. The timer stays paused.'));
+                    setEEGConnectionState('warning', langText('相機未持續運作，計時會保持暫停。', 'The camera is not running steadily, so the timer stays paused.'));
                 } else if (!cameraTracking.hasFace && !cameraTracking.faceRecentlySeen) {
                     focusLevel = 0;
-                    setEEGConnectionState('warning', langText('未偵測到人臉，計時已暫停，請回到鏡頭範圍。', 'No face detected. Timer paused. Please return to the camera frame.'));
+                    setEEGConnectionState('warning', langText('相機見唔到你塊面，計時暫停。請返入鏡頭範圍。', 'The camera cannot see your face, so the timer is paused. Please move back into view.'));
                 } else if (!cameraTracking.hasFace && cameraTracking.faceRecentlySeen) {
                     focusLevel = Math.max(24, cameraTracking.focusScore || focusLevel || 0);
-                    setEEGConnectionState('simulation', langText('鏡頭正在重新鎖定人臉，專注度暫時平滑維持。', 'Camera is reacquiring your face. Focus is being smoothed temporarily.'));
+                    setEEGConnectionState('simulation', langText('鏡頭重新搵緊你塊面，專注分數暫時保持住。', 'The camera is finding your face again. Your focus score is held for a moment.'));
                 } else {
                     const cameraScore = getCameraFocusScore();
                     const centeredBonus = (cameraTracking.faceCenteredness || 0) * 8;
                     const presenceBonus = (cameraTracking.facePresenceConfidence || 0) * 4;
                     focusLevel = THREE.MathUtils.clamp(cameraScore + centeredBonus + presenceBonus, 0, 100);
-                    setEEGConnectionState('simulation', langText('相機鏡頭正持續觀察專注狀態。', 'Camera is actively monitoring focus state.'));
+                    setEEGConnectionState('simulation', langText('相機睇緊你嘅專注狀態。', 'The camera is watching your focus.'));
                 }
             }
             updateFocusFromEEG(Math.round(focusLevel));
@@ -4094,7 +4025,7 @@ function loadQuestionFromBank() {
         
         qPanel.style.display = 'block';
         qHeader.textContent = I18N[CONFIG.currentLang].game_question_title;
-        qText.textContent = langText('正在補充更多題目...', 'Loading more questions...');
+        qText.textContent = langText('加緊多啲題目…', 'Loading more questions…');
         qOptions.innerHTML = '<div style="text-align:center; padding: 20px;">⏳</div>'; 
 
         const needed = TOTAL_QUESTIONS - questionBank.length;
@@ -4352,9 +4283,9 @@ function escapeHtml(value) {
 // Bilingual label for the focus input source (hero chip).
 function focusSourceLabel() {
     const src = String(CONFIG.focusSource || '');
-    if (src.includes('eeg')) return langText('真 EEG', 'Real EEG');
+    if (src.includes('eeg')) return langText('腦電波頭帶', 'Brainwave headband');
     if (src.includes('camera')) return langText('相機', 'Camera');
-    return langText('相機', 'Camera');
+    return langText('示範模式', 'Demo mode');
 }
 
 // Bilingual difficulty label (challenge hero chip).
@@ -4362,7 +4293,7 @@ function difficultyLabel() {
     const d = CONFIG.difficulty;
     if (d === 'easy') return langText('容易', 'Easy');
     if (d === 'hard') return langText('困難', 'Hard');
-    return langText('中等', 'Medium');
+    return langText('普通', 'Medium');
 }
 
 // MM:SS clock for hero/metrics (GAME_STATS.formatTime is finer, MM:SS.cs).
@@ -4382,12 +4313,12 @@ function buildHeroHTML(values) {
 
     if (isTrainingMode()) {
         let headline;
-        if (withinDelta >= 3) headline = langText('越練越穩嘅一程 ⛵', 'Steadier as the voyage went on ⛵');
+        if (withinDelta >= 3) headline = langText('越練越穩 ⛵', 'Steadier as you went ⛵');
         else if (focusedRatio >= 55) headline = langText('一段穩定專注嘅航程 ⛵', 'A steady, focused voyage ⛵');
-        else headline = langText('專注力訓練中，繼續加油 ⛵', 'Building your focus — keep going ⛵');
+        else headline = langText('專注練緊，繼續加油 ⛵', 'Your focus is growing. Keep going ⛵');
 
         const deltaChip = Math.abs(withinDelta) >= 3
-            ? `<span class="results-subchip ${withinDelta > 0 ? 'is-up' : 'is-down'}">${langText('本局', 'This session')} ${withinDelta >= 0 ? '+' : ''}${withinDelta.toFixed(1)} ${withinDelta > 0 ? '↑' : '↓'}</span>`
+            ? `<span class="results-subchip ${withinDelta > 0 ? 'is-up' : 'is-down'}">${langText('今次', 'This run')} ${withinDelta >= 0 ? '+' : ''}${withinDelta.toFixed(1)} ${withinDelta > 0 ? '↑' : '↓'}</span>`
             : '';
 
         return `
@@ -4398,18 +4329,18 @@ function buildHeroHTML(values) {
             </div>
             <h1 class="results-hero-headline">${headline}</h1>
             <div class="results-hero-sub">
-                <span class="results-subchip">${langText('專注穩定度', 'Focus stability')} <span class="accent">${Math.round(focusedRatio)}%</span></span>
+                <span class="results-subchip">${langText('專注穩定程度', 'Focus steadiness')} <span class="accent">${Math.round(focusedRatio)}%</span></span>
                 ${deltaChip}
             </div>`;
     }
 
     // Verdict copy scales with the score band.
     let verdict;
-    if (accuracy >= 100) verdict = langText('全對 — 壓力下依然清晰', 'correct — a perfect, clear-headed run');
-    else if (accuracy >= 80) verdict = langText('答對 — 壓力下專注穩定', 'correct — focus held under pressure');
-    else if (accuracy >= 60) verdict = langText('答對 — 穩步進步', 'correct — steady progress');
-    else if (accuracy >= 40) verdict = langText('答對 — 有進步空間，繼續練', 'correct — room to grow, keep training');
-    else verdict = langText('答對 — 萬事起頭難，逐步建立', 'correct — every voyage starts somewhere');
+    if (accuracy >= 100) verdict = langText('全部答啱，有壓力都好清醒', 'right. A perfect, clear-headed run');
+    else if (accuracy >= 80) verdict = langText('答啱，有壓力都保持到專注', 'right. Your focus held under pressure');
+    else if (accuracy >= 60) verdict = langText('答啱，穩步進步緊', 'right. Steady progress');
+    else if (accuracy >= 40) verdict = langText('答啱，仲有進步空間，繼續練', 'right. There is room to grow, so keep training');
+    else verdict = langText('答啱，萬事起頭難，慢慢嚟', 'right. Every start is hard, so take it step by step');
 
     // Study Mode uses the challenge score verdict but its own chips
     // (mode + subject·depth instead of a difficulty).
@@ -4428,8 +4359,8 @@ function buildHeroHTML(values) {
         </div>
         <h1 class="results-hero-headline"><span class="accent">${CONFIG.score} / ${TOTAL_QUESTIONS}</span> ${verdict}</h1>
         <div class="results-hero-sub">
-            <span class="results-subchip">${langText('正確率', 'Accuracy')} <span class="accent">${accuracy.toFixed(0)}%</span></span>
-            <span class="results-subchip">${langText('耗時', 'Total time')} <span class="accent">${formatClock(totalTimeMs)}</span></span>
+            <span class="results-subchip">${langText('答對率', 'Accuracy')} <span class="accent">${accuracy.toFixed(0)}%</span></span>
+            <span class="results-subchip">${langText('用咗時間', 'Time taken')} <span class="accent">${formatClock(totalTimeMs)}</span></span>
         </div>`;
 }
 
@@ -4448,13 +4379,13 @@ function buildMetricsHTML(values) {
             ${opts.badge ? `<span class="metric-badge">${opts.badge}</span>` : ''}
         </div>`;
 
-    const focusCard = card('🎯', langText('專注穩定度', 'Focus Stability'), `${Math.round(focusedRatio)}%`, { highlight: true });
-    const recoveryCard = card('⏱️', langText('平均恢復', 'Avg Recovery'), recoveryVal);
-    const breathingCard = card('🫁', langText('呼吸救返', 'Breathing Rescues'), String(trainingAnalytics.interventionCount));
+    const focusCard = card('🎯', langText('專注穩定程度', 'Focus steadiness'), `${Math.round(focusedRatio)}%`, { highlight: true });
+    const recoveryCard = card('⏱️', langText('拉返專注用咗幾耐（平均）', 'Time to refocus (average)'), recoveryVal);
+    const breathingCard = card('🫁', langText('呼吸練習次數', 'Breathing exercises'), String(trainingAnalytics.interventionCount));
     const fourthCard = isTrainingMode()
-        ? card('⏳', langText('訓練時長', 'Session Time'), formatClock(totalTimeMs))
-        : card('⚓', langText('航行距離', 'Distance'), `${Math.round(CONFIG.totalDistance)} m`, {
-            badge: `⚓ ${trainingAnalytics.checkpointCount} ${langText('航標', 'beacons')}`
+        ? card('⏳', langText('訓練時間', 'Training time'), formatClock(totalTimeMs))
+        : card('⚓', langText('航行距離', 'Distance sailed'), `${Math.round(CONFIG.totalDistance)} m`, {
+            badge: `⚓ ${trainingAnalytics.checkpointCount} ${langText('個航標', 'beacons')}`
         });
 
     return focusCard + recoveryCard + breathingCard + fourthCard;
@@ -4474,24 +4405,24 @@ function buildAchievementsHTML() {
         let starIcons = '';
         const glyphs = Math.min(Math.max(stars, 1), 5);
         for (let i = 0; i < glyphs; i++) starIcons += `<span class="achv-star ${stars === 0 ? 'is-empty' : ''}">★</span>`;
-        const bestChip = `<div class="achv-chip is-best">🏆 ${langText('最佳一次', 'Personal best')} ×${bestStars}</div>`;
-        const beaconChip = `⚓ ${langText('通過', 'Passed')} ${trainingAnalytics.checkpointCount} ${langText('個航標', 'beacons')} · ${langText('航行', 'sailed')} ${Math.round(CONFIG.totalDistance)} m`;
+        const bestChip = `<div class="achv-chip is-best">🏆 ${langText('最好嘅一次', 'Personal best')} ×${bestStars}</div>`;
+        const beaconChip = `⚓ ${langText('經過', 'Passed')} ${trainingAnalytics.checkpointCount} ${langText('個航標', 'beacons')} · ${langText('行咗', 'sailed')} ${Math.round(CONFIG.totalDistance)} m`;
 
         const goldenSec = Math.round(trainingAnalytics.goldenTimeMs / 1000);
         const goldenCard = goldenSec > 0
             ? `<div class="achv-golden">
                    <span class="achv-golden-icon">🌅</span>
-                   <span class="achv-golden-text">${langText('黃金時刻', 'Golden Moment')} — ${langText('「專注 + 放鬆」雙軸同時達標，維持咗', 'focus + calm held together for')} ${goldenSec}s</span>
-                   <span class="achv-golden-badge">${langText('真 EEG 專屬', 'Real EEG only')}</span>
+                   <span class="achv-golden-text">${langText('黃金時刻', 'Golden moment')} — ${langText('專注同放鬆同時達標，維持咗', 'focused and calm together for')} ${goldenSec}${langText(' 秒', ' s')}</span>
+                   <span class="achv-golden-badge">${langText('只限腦電波頭帶', 'Headband only')}</span>
                </div>`
             : `<div class="achv-golden is-locked">
                    <span class="achv-golden-icon">🌙</span>
-                   <span class="achv-golden-text">${langText('黃金時刻：當「專注」同「放鬆」兩個腦電指標同時企穩 4 秒，成個海面會轉做暖金黃昏——要真 EEG 雙軸訊號先解鎖', 'Golden Moment: hold focus AND calm together for 4s and the sea turns golden dusk — unlocks with dual-axis Real EEG')}</span>
-                   <span class="achv-golden-badge">${langText('真 EEG 專屬', 'Real EEG only')}</span>
+                   <span class="achv-golden-text">${langText('黃金時刻：專注同放鬆同時穩定 4 秒，成個海面就會變成金色黃昏。要用腦電波頭帶先做到。', 'Golden moment: stay focused and calm together for 4 seconds and the sea turns to golden dusk. It needs the brainwave headband.')}</span>
+                   <span class="achv-golden-badge">${langText('只限腦電波頭帶', 'Headband only')}</span>
                </div>`;
 
         const voyageLine = (voyageTotals && voyageTotals.distanceM >= 1)
-            ? `<p class="achv-voyage">⛵ ${langText('航海日誌', 'Voyage log')}：${formatVoyageTotals()}</p>`
+            ? `<p class="achv-voyage">⛵ ${langText('航海日誌', 'Voyage log')}${langText('：', ': ')}${formatVoyageTotals()}</p>`
             : '';
 
         return `
@@ -4500,7 +4431,7 @@ function buildAchievementsHTML() {
                 <div class="achv-grid">
                     <div class="achv-stars-card">
                         <div class="achv-stars">${starIcons}</div>
-                        <div class="achv-stars-label">${langText('心流星', 'Flow stars')} ×${stars}${langText('（今次）', ' (this run)')}</div>
+                        <div class="achv-stars-label">${langText('專注星', 'Focus stars')} ×${stars}${langText('（今次）', ' (this run)')}</div>
                         ${bestChip}
                         <div class="achv-chip">${beaconChip}</div>
                     </div>
@@ -4511,11 +4442,11 @@ function buildAchievementsHTML() {
     }
 
     const wrong = CONFIG.wrongAnswers || [];
-    const summaryChip = `<div class="review-summary-chip">✓ ${CONFIG.score} ${langText('題答對', 'correct')}</div>`;
+    const summaryChip = `<div class="review-summary-chip">✓ ${CONFIG.score} ${langText('題答啱', 'right')}</div>`;
 
     let body;
     if (wrong.length === 0) {
-        body = `<p class="review-empty">${langText('全對完成，專注表現非常穩定 ✓', 'Perfect run — your focus stayed very stable ✓')}</p>`;
+        body = `<p class="review-empty">${langText('全部答啱，專注好穩定 ✓', 'All right, with very steady focus ✓')}</p>`;
     } else {
         const items = wrong.map((item) => `
             <div class="review-item">
@@ -4528,7 +4459,7 @@ function buildAchievementsHTML() {
                 </button>
                 <div class="review-detail">
                     <div class="review-answer is-your">
-                        <div class="review-answer-label">${langText('你的答案', 'Your answer')}</div>
+                        <div class="review-answer-label">${langText('你嘅答案', 'Your answer')}</div>
                         <div class="review-answer-text">${escapeHtml(item.userChoice)}</div>
                     </div>
                     <div class="review-answer is-correct">
@@ -4537,7 +4468,7 @@ function buildAchievementsHTML() {
                     </div>
                     <div class="review-answer is-explain">
                         <div class="review-answer-label">${langText('解釋', 'Explanation')}</div>
-                        <div class="review-answer-text">${escapeHtml(item.explanation || langText('暫無解釋', 'No explanation provided'))}</div>
+                        <div class="review-answer-text">${escapeHtml(item.explanation || langText('暫時未有解釋', 'No explanation yet'))}</div>
                     </div>
                 </div>
             </div>`).join('');
@@ -4547,7 +4478,7 @@ function buildAchievementsHTML() {
     return `
         <div class="results-card">
             <div class="results-card-head">
-                <h2>${langText('答題回顧', 'Review')}</h2>
+                <h2>${langText('睇返答過嘅題目', 'Review your answers')}</h2>
                 ${summaryChip}
             </div>
             ${body}
@@ -4578,60 +4509,60 @@ function buildNextGoalHTML(values) {
     let goalKind; // 'recovery' | 'stability' | 'flow' | 'accuracy'
 
     if (isTrainingMode()) {
-        eyebrow = langText('下一個目標', 'Next voyage');
+        eyebrow = langText('下一個目標', 'Next goal');
         const stars = trainingAnalytics.flowStars;
         if (recoverySec > 5) {
             goalKind = 'recovery';
             const target = Math.max(3, Math.floor(recoverySec) - 1);
-            title = langText(`將平均恢復時間壓落 ${target} 秒內`, `Bring average recovery under ${target}s`);
+            title = langText(`將拉返專注嘅時間減到 ${target} 秒以內`, `Get your time to refocus under ${target} seconds`);
         } else if (focusedRatio < 60) {
             goalKind = 'stability';
             const target = Math.min(90, Math.max(Math.ceil(focusedRatio / 5) * 5, Math.round(focusedRatio) + 5));
-            title = langText(`維持穩定度喺 ${target}% 以上`, `Hold stability above ${target}%`);
+            title = langText(`將穩定程度保持喺 ${target}% 以上`, `Keep your steadiness above ${target}%`);
         } else if (stars < 5) {
             goalKind = 'flow';
-            title = langText(`下次試吓摘 ${stars + 1} 粒心流星`, `Try earning ${stars + 1} flow stars next voyage`);
+            title = langText(`下次試下攞 ${stars + 1} 粒專注星`, `Try for ${stars + 1} focus stars next time`);
         } else {
             goalKind = 'flow';
             const target = Math.min(90, Math.round(focusedRatio) + 3);
-            title = langText(`挑戰吓穩定度 ${target}%`, `Push stability towards ${target}%`);
+            title = langText(`試下將穩定程度推上 ${target}%`, `Try to push your steadiness to ${target}%`);
         }
     } else {
         eyebrow = langText('下一個挑戰', 'Next challenge');
         if (accuracy < 100) {
             goalKind = 'accuracy';
             const target = Math.min(100, (Math.floor(accuracy / 10) + 1) * 10);
-            title = langText(`正確率上 ${target}%`, `Push accuracy to ${target}%`);
+            title = langText(`將答對率推上 ${target}%`, `Push your accuracy to ${target}%`);
         } else if (recoverySec > 5) {
             goalKind = 'recovery';
-            title = langText('解題時恢復時間控制喺 5 秒以下', 'Keep recovery under 5s while answering');
+            title = langText('答題嘅時候，5 秒內拉返專注', 'While answering, refocus within 5 seconds');
         } else {
             goalKind = 'flow';
-            title = langText('保持全對，試吓揀難一級', 'Keep the perfect score — try a harder level');
+            title = langText('保持全部答啱，然後試下高一級難度', 'Keep the perfect score, then try a harder level');
         }
     }
 
     // Meaning lines grouped by what the player actually needs to work on.
     const insightPools = {
         recovery: [
-            langText('恢復得快 = 溫書分咗心都追得返。', 'Faster recovery = pulling yourself back when studying drifts.'),
-            langText('上堂恍神拉得返 = 少啲「頭先講咗乜」嘅慌張。', 'Snapping back in class = fewer "wait, what did I miss" moments.'),
-            langText('分心唔緊要，快啲返嚟先係本事。', 'Drifting is normal — coming back fast is the skill.')
+            langText('拉返專注快，溫書分咗心都追得返。', 'Refocusing fast means you can catch up after drifting while you study.'),
+            langText('上堂發夢都拉得返，就少啲「頭先講咗咩」嘅慌張。', 'Snapping back in class means fewer “what did I just miss” moments.'),
+            langText('分心唔緊要，快啲返嚟先係本事。', 'Drifting is normal. Coming back fast is the skill.')
         ],
         stability: [
-            langText('專注穩 = 做功課快啲完，時間留返俾自己。', 'Steadier focus = homework done sooner, more time for you.'),
-            langText('坐得定唔係天生，係練返嚟——你而家就係喺度練。', 'Sitting steady isn’t a talent — it’s trained, and this is the training.'),
-            langText('穩定專注耐啲，先追得住老師嘅節奏。', 'Holding focus longer is how you keep up with the lesson.')
+            langText('專注穩定，功課就做得快啲，時間留返俾自己。', 'Steady focus gets homework done sooner and leaves more time for you.'),
+            langText('坐得定唔係天生，係練返嚟。你而家就係練緊。', 'Sitting still is not a talent. It is trained, and this is the training.'),
+            langText('穩定專注耐啲，先跟得上老師嘅節奏。', 'Holding focus longer is how you keep up with the lesson.')
         ],
         flow: [
-            langText('入狀態快 = 打機、運動、練琴都上手快啲。', 'Getting in the zone faster helps gaming, sport and music too.'),
-            langText('一粒星 = 完全企穩 25 秒——溫書嗰陣呢種狀態最值錢。', 'One star = 25 seconds fully steady — the exact state studying needs.'),
-            langText('心流唔係等運到，係練得出嚟。', 'Flow isn’t luck — it’s trainable.')
+            langText('快啲入到狀態，打機、運動、練琴都會上手快啲。', 'Getting into the zone faster helps with games, sport and music too.'),
+            langText('一粒星即係完全穩定咗 25 秒。溫書最需要呢種狀態。', 'One star means 25 fully steady seconds. That is the state studying needs.'),
+            langText('入到狀態唔係靠運氣，係練得出嚟。', 'Being in the zone is not luck. It can be trained.')
         ],
         accuracy: [
-            langText('壓力下保持冷靜 = 考試少啲低級失誤。', 'Staying calm under pressure = fewer careless mistakes in tests.'),
-            langText('答錯唔緊要，睇返個解釋先係真正上分位。', 'Missing one is fine — reading the explanation is where the marks come from.'),
-            langText('難題面前唔慌，先係真本事。', 'Not panicking at hard questions is the real skill.')
+            langText('有壓力都保持冷靜，考試就少啲粗心錯。', 'Staying calm under pressure means fewer careless mistakes in exams.'),
+            langText('答錯唔緊要，睇返解釋先係真正學到嘢。', 'Getting one wrong is fine. Reading the explanation is where you learn.'),
+            langText('見到難題都唔慌，先係真本事。', 'Not panicking at a hard question is the real skill.')
         ]
     };
     const pool = insightPools[goalKind] || insightPools.stability;
@@ -4683,16 +4614,16 @@ function buildStudyReadingHTML(report) {
         <section class="results-card study-res-card">
             <div class="results-card-head">
                 <div>
-                    <h2>📖 ${langText('溫習階段', 'Reading Phase')}</h2>
+                    <h2>📖 ${langText('閱讀部分', 'Reading part')}</h2>
                     <p class="results-card-sub">${escapeHtml(subjectLabel)}</p>
                 </div>
             </div>
             <div class="study-res-metrics">
-                ${metric(langText('總閱讀時長', 'Total reading'), dur(r.totalReadMs))}
-                ${metric(langText('閱讀專注度', 'Reading focus'), r.focusPct + '%')}
-                ${metric(langText('分心恢復次數', 'Distractions'), r.distractions)}
-                ${metric(langText('呼吸介入', 'Interventions'), r.interventions)}
-                ${metric(langText('平均恢復', 'Avg recovery'), r.avgRecoveryMs > 0 ? dur(r.avgRecoveryMs) : '—')}
+                ${metric(langText('閱讀總時間', 'Total reading time'), dur(r.totalReadMs))}
+                ${metric(langText('閱讀時嘅專注', 'Focus while reading'), r.focusPct + '%')}
+                ${metric(langText('分心後拉返嘅次數', 'Times you refocused'), r.distractions)}
+                ${metric(langText('呼吸練習次數', 'Breathing exercises'), r.interventions)}
+                ${metric(langText('拉返專注用咗幾耐（平均）', 'Time to refocus (average)'), r.avgRecoveryMs > 0 ? dur(r.avgRecoveryMs) : '—')}
             </div>
             <div class="study-res-pages">${pageRows}</div>
         </section>`;
@@ -4709,13 +4640,13 @@ function buildStudyQuizHeaderHTML(report) {
         <section class="results-card study-res-card">
             <div class="results-card-head">
                 <div>
-                    <h2>✍️ ${langText('答題階段', 'Quiz Phase')}</h2>
-                    <p class="results-card-sub">${langText('固定審核測驗卷', 'Fixed reviewed paper')}</p>
+                    <h2>✍️ ${langText('答題部分', 'Quiz part')}</h2>
+                    <p class="results-card-sub">${langText('固定試卷', 'Fixed quiz paper')}</p>
                 </div>
             </div>
             <div class="study-res-metrics">
                 ${metric(langText('分數', 'Score'), `${q.correct}/${q.total}`)}
-                ${metric(langText('答題專注度', 'Answering focus'), q.focusPct + '%')}
+                ${metric(langText('答題時嘅專注', 'Focus while answering'), q.focusPct + '%')}
             </div>
         </section>`;
 }
@@ -4857,7 +4788,7 @@ function renderSessionDashboard() {
 
     if (curveHost) {
         if (samples.length < 5) {
-            curveHost.innerHTML = `<p class="dash-empty">${langText('本局時間太短，未足以繪製專注曲線。', 'This session was too short to draw a focus curve.')}</p>`;
+            curveHost.innerHTML = `<p class="dash-empty">${langText('今次時間太短，畫唔到專注線。', 'This run was too short to draw a focus line.')}</p>`;
         } else {
             // Plot geometry: values span the full box (0 → bottom, 100 → top);
             // axis labels live in HTML outside the stretchy SVG so text never
@@ -4892,8 +4823,8 @@ function renderSessionDashboard() {
                     </div>
                 </div>
                 <div class="dash-curve-legend">
-                    <span class="dash-legend-line"></span>${langText('專注值 (%)', 'Focus (%)')}
-                    <span class="dash-legend-threshold"></span>${langText('穩定線', 'Stable line')} (${FOCUS_TRAINING.stableThreshold}%)
+                    <span class="dash-legend-line"></span>${langText('專注分數（%）', 'Focus score (%)')}
+                    <span class="dash-legend-threshold"></span>${langText('穩定線', 'Steady line')} (${FOCUS_TRAINING.stableThreshold}%)
                 </div>`;
         }
     }
@@ -4933,7 +4864,7 @@ async function renderHistoryTrend() {
     }
 
     if (!Array.isArray(history) || history.length < 2) {
-        host.innerHTML = `<p class="dash-empty">${langText('多玩幾局就會解鎖你嘅進度趨勢圖。', 'Play a few more sessions to unlock your trend chart.')}</p>`;
+        host.innerHTML = `<p class="dash-empty">${langText('再做幾次，就會見到你嘅進度圖。', 'Do a few more runs and your progress chart will appear.')}</p>`;
         return;
     }
 
@@ -4973,18 +4904,18 @@ async function renderHistoryTrend() {
             const diffPct = ((prevAvg - latest) / prevAvg) * 100;
             if (diffPct >= 5) {
                 headline = `<div class="trend-headline is-up"><span class="trend-arrow">▲</span> ${langText(
-                    `分心後拉返專注快咗 ${diffPct.toFixed(0)}%（對比你之前幾局平均）`,
-                    `You recover from distraction ${diffPct.toFixed(0)}% faster than your recent average`
+                    `分心之後拉返專注，快咗 ${diffPct.toFixed(0)}%（同你之前幾次嘅平均比）`,
+                    `You refocused ${diffPct.toFixed(0)}% faster than your recent average`
                 )}</div>`;
             } else if (diffPct <= -5) {
                 headline = `<div class="trend-headline is-down"><span class="trend-arrow">▼</span> ${langText(
-                    `今局恢復速度慢過你之前平均 ${Math.abs(diffPct).toFixed(0)}%，好正常，繼續練`,
-                    `Recovery was ${Math.abs(diffPct).toFixed(0)}% slower than your recent average — keep training`
+                    `今次拉返專注慢咗 ${Math.abs(diffPct).toFixed(0)}%（同之前平均比）。好正常，繼續練`,
+                    `You refocused ${Math.abs(diffPct).toFixed(0)}% slower than your recent average. That is normal, so keep training`
                 )}</div>`;
             } else {
                 headline = `<div class="trend-headline is-flat"><span class="trend-arrow">▶</span> ${langText(
-                    '恢復速度同你最近平均相若',
-                    'Recovery speed is in line with your recent average'
+                    '拉返專注嘅速度，同你最近嘅平均差唔多',
+                    'Your time to refocus is close to your recent average'
                 )}</div>`;
             }
         }
@@ -4994,15 +4925,15 @@ async function renderHistoryTrend() {
         ${headline}
         <div class="dash-trend-grid">
             <div class="dash-trend-block">
-                <h4>${langText('專注穩定度 %', 'Focus Stability %')}</h4>
+                <h4>${langText('專注穩定程度（%）', 'Focus steadiness (%)')}</h4>
                 <div class="dash-bars">${bars(focusValues, (v) => `${v.toFixed(0)}%`)}</div>
             </div>
             <div class="dash-trend-block">
-                <h4>${langText('恢復時間（秒）', 'Recovery Time (s)')}</h4>
+                <h4>${langText('拉返專注用咗幾耐（秒）', 'Time to refocus (seconds)')}</h4>
                 <div class="dash-bars">${bars(recoveryValues, (v) => `${v.toFixed(1)}s`, true)}</div>
             </div>
         </div>
-        <p class="dash-trend-note">${langText(`最近 ${trendHistory.length} 局，最右邊係今次。恢復時間 0 = 嗰局冇分心要救。`, `Last ${trendHistory.length} sessions; rightmost is this one. Recovery 0 = no distraction to recover from.`)}</p>`;
+        <p class="dash-trend-note">${langText(`最近 ${trendHistory.length} 次，最右邊係今次。時間係 0，即係嗰次冇分心。`, `Your last ${trendHistory.length} runs. The rightmost is this one. A time of 0 means you did not drift in that run.`)}</p>`;
 }
 
 // Shared bar renderer for the trend charts (each bar labels its own value; a
@@ -5035,7 +4966,7 @@ function renderStudyHistoryTrend() {
 
     const history = getStudyHistory(12);
     if (!Array.isArray(history) || history.length < 2) {
-        host.innerHTML = `<p class="dash-empty">${langText('再做多一兩次學習模式，就會解鎖你嘅跨場趨勢。', 'Do a couple more study sessions to unlock your cross-session trend.')}</p>`;
+        host.innerHTML = `<p class="dash-empty">${langText('再做一兩次學習模式，就會見到你嘅進度圖。', 'Do one or two more study runs and your progress chart will appear.')}</p>`;
         return;
     }
 
@@ -5053,18 +4984,18 @@ function renderStudyHistoryTrend() {
             const diffPct = ((prevAvg - latest) / prevAvg) * 100;
             if (diffPct >= 5) {
                 headline = `<div class="trend-headline is-up"><span class="trend-arrow">▲</span> ${langText(
-                    `溫習時分心後拉返專注快咗 ${diffPct.toFixed(0)}%（對比你之前幾場平均）`,
-                    `You recover from distraction while studying ${diffPct.toFixed(0)}% faster than your recent average`
+                    `溫習時分心之後拉返專注，快咗 ${diffPct.toFixed(0)}%（同你之前幾次嘅平均比）`,
+                    `While studying, you refocused ${diffPct.toFixed(0)}% faster than your recent average`
                 )}</div>`;
             } else if (diffPct <= -5) {
                 headline = `<div class="trend-headline is-down"><span class="trend-arrow">▼</span> ${langText(
-                    `今場恢復速度慢過之前平均 ${Math.abs(diffPct).toFixed(0)}%，好正常，繼續練`,
-                    `Recovery was ${Math.abs(diffPct).toFixed(0)}% slower than your recent average — keep training`
+                    `今次拉返專注慢咗 ${Math.abs(diffPct).toFixed(0)}%（同之前平均比）。好正常，繼續練`,
+                    `You refocused ${Math.abs(diffPct).toFixed(0)}% slower than your recent average. That is normal, so keep training`
                 )}</div>`;
             } else {
                 headline = `<div class="trend-headline is-flat"><span class="trend-arrow">▶</span> ${langText(
-                    '恢復速度同你最近平均相若',
-                    'Recovery speed is in line with your recent average'
+                    '拉返專注嘅速度，同你最近嘅平均差唔多',
+                    'Your time to refocus is close to your recent average'
                 )}</div>`;
             }
         }
@@ -5074,15 +5005,15 @@ function renderStudyHistoryTrend() {
         ${headline}
         <div class="dash-trend-grid">
             <div class="dash-trend-block">
-                <h4>${langText('溫習專注穩定度 %', 'Reading Focus Stability %')}</h4>
+                <h4>${langText('閱讀時嘅專注穩定程度（%）', 'Focus steadiness while reading (%)')}</h4>
                 <div class="dash-bars">${renderTrendBars(focusValues, (v) => `${v.toFixed(0)}%`)}</div>
             </div>
             <div class="dash-trend-block">
-                <h4>${langText('分心恢復時間（秒）', 'Recovery Time (s)')}</h4>
+                <h4>${langText('拉返專注用咗幾耐（秒）', 'Time to refocus (seconds)')}</h4>
                 <div class="dash-bars">${renderTrendBars(recoveryValues, (v) => `${v.toFixed(1)}s`, true)}</div>
             </div>
         </div>
-        <p class="dash-trend-note">${langText(`最近 ${history.length} 場學習模式，最右邊係今次。恢復時間 0 = 嗰場冇分心要救。分數用固定卷，屬記憶影響，唔放趨勢。`, `Last ${history.length} study sessions; rightmost is this one. Recovery 0 = no distraction to recover from. Quiz score uses a fixed paper, so it is kept out of the trend.`)}</p>`;
+        <p class="dash-trend-note">${langText(`最近 ${history.length} 次學習模式，最右邊係今次。時間係 0，即係嗰次冇分心。小測每次都係同一份卷，分數會受記憶影響，所以唔放入進度圖。`, `Your last ${history.length} study runs. The rightmost is this one. A time of 0 means you did not drift. The quiz is the same paper every time, so memory affects the score and it is left out of this chart.`)}</p>`;
 }
 
 // Alias for compatibility if needed, but we should use ROUTER
@@ -5386,13 +5317,13 @@ async function fetchBatchQuestions(count = 10, isInitial = true) {
             reason: error?.message || String(error)
         });
         if (lowerMessage.includes('401') || lowerMessage.includes('unauthorized') || lowerMessage.includes('missing deepseek_api_key') || lowerMessage.includes('server misconfiguration')) {
-            updateLoadingStatus(langText('AI 服務設定缺失或金鑰無效，已切換本地題庫。', 'AI service misconfigured or key invalid. Switching to local question bank.'));
+            updateLoadingStatus(langText('人工智能出題服務未設定好，已經改用內置題目。', 'The AI question service is not set up correctly. Using built-in questions instead.'));
         } else if (lowerMessage.includes('429')) {
-            updateLoadingStatus(langText('AI 題庫請求過多，稍後重試並先使用本地題庫。', 'AI rate limit reached. Retrying later and using local fallback now.'));
+            updateLoadingStatus(langText('人工智能出題服務太多人用，已經改用內置題目。', 'The AI question service is busy. Using built-in questions for now.'));
         } else if (lowerMessage.includes('abort')) {
-            updateLoadingStatus(langText('AI 題庫回應逾時，先使用本地題庫。', 'AI request timed out. Using local fallback now.'));
+            updateLoadingStatus(langText('人工智能出題等咗太耐，先用內置題目。', 'The AI question service took too long. Using built-in questions for now.'));
         } else if (lowerMessage.includes('empty question list') || lowerMessage.includes('missing questions') || lowerMessage.includes('invalid json')) {
-            updateLoadingStatus(langText('AI 回傳格式異常，已切換本地題庫。', 'AI returned an invalid format. Switching to local fallback.'));
+            updateLoadingStatus(langText('人工智能出嘅題目格式有問題，已經改用內置題目。', 'The AI questions came back in the wrong format. Using built-in questions instead.'));
         }
         
         // If it's a timeout or network error, silently fall back
@@ -5642,7 +5573,7 @@ function startStroopCountdown(data) {
             return;
         }
         if (timerEl) {
-            timerEl.textContent = `⏱ ${Math.ceil(remainingMs / 1000)}s`;
+            timerEl.textContent = `⏱ ${Math.ceil(remainingMs / 1000)}${langText(' 秒', ' s')}`;
             timerEl.classList.toggle('is-urgent', remainingMs <= 3000);
         }
     };
@@ -5665,7 +5596,7 @@ function handleStroopTimeout(data) {
 
     CONFIG.wrongAnswers.push({
         question: `${data.question} [${data.word}]`,
-        userChoice: langText('（超時未答）', '(time out)'),
+        userChoice: langText('（超時，未有作答）', '(ran out of time)'),
         correctChoice: data.options[data.answer],
         explanation: data.explanation
     });
@@ -6906,20 +6837,54 @@ function updateModeSelectionHelper(title, detail) {
     if (detailEl) detailEl.textContent = detail;
 }
 
+// Turns a status line into what the HUD shows. The link program (eeg_bridge.py)
+// and the connection code report in English; this is the one place that puts
+// those lines into the player's language, in plain words. Lines that are
+// already written in the player's language pass straight through.
 function compactStatusMessage(message = '') {
     const text = String(message || '').trim();
     const lower = text.toLowerCase();
     if (!text) return '';
-    if (lower.includes('operation not permitted')) return langText('埠口存取被拒', 'Port access denied');
-    if (lower.includes('grant bluetooth/serial access')) return langText('請授權藍牙或序列埠', 'Grant serial access');
-    if (lower.includes('searching')) return langText('正在搜尋已配對 MindWave', 'Searching paired MindWave');
-    if (lower.includes('opening paired mindwave serial port')) return langText('正在開啟 MindWave 埠口', 'Opening paired MindWave');
-    if (lower.includes('mindwave serial connected')) return langText('MindWave 已連接', 'MindWave connected');
-    if (lower.includes('no eeg data yet')) return langText('尚未收到即時腦波', 'No live signal yet');
-    if (lower.includes('waiting for user to choose eeg equipment')) return langText('EEG 待命中', 'EEG idle');
-    if (lower.includes('bridge connected')) return langText('Bridge 已就緒', 'Bridge ready');
-    if (lower.includes('unable to reach the local eeg bridge')) return langText('Bridge 無法連接', 'Bridge unavailable');
-    return text.length > 48 ? `${text.slice(0, 45)}...` : text;
+    if (lower.includes('operation not permitted') || lower.includes('port access denied')) {
+        return langText('電腦唔俾開啟頭帶嘅連接埠', 'This computer refused access to the headband port');
+    }
+    if (lower.includes('grant bluetooth/serial access')) return langText('請允許使用藍牙或者連接埠', 'Please allow Bluetooth or serial access');
+    if (lower.includes('live mindwave data received')) {
+        const numbers = text.match(/\d+/g) || [];
+        return langText(
+            `收緊數據：訊號 ${numbers[0] || '--'}%，專注分數 ${numbers[1] || '--'}`,
+            `Receiving data: signal ${numbers[0] || '--'}%, focus score ${numbers[1] || '--'}`
+        );
+    }
+    if (lower.includes('signal timed out')) {
+        return langText('訊號斷咗。頭帶返嚟之後會自動重新配對。', 'The signal dropped. Pairing resumes by itself when the headband is back.');
+    }
+    if (lower.includes('headset is not answering')) {
+        return langText('頭帶冇回應。請將頭帶熄咗再開返。', 'The headband is not answering. Switch it off and on again.');
+    }
+    if (lower.includes('trying the next port')) return langText('呢個連接埠冇數據，試緊下一個', 'No data on this port. Trying the next one');
+    if (lower.includes('mindwave not found')) {
+        return langText('搵唔到頭帶。請先喺藍牙設定配對。', 'Headband not found. Pair it in Bluetooth settings first.');
+    }
+    if (lower.includes('serial connection error')) return langText('頭帶連線出錯，會再試', 'Headband connection error. Trying again');
+    if (lower.includes('trying mindwave serial port')) return langText('試緊連接頭帶', 'Trying to reach the headband');
+    if (lower.includes('searching')) return langText('搵緊已經配對嘅頭帶', 'Looking for your paired headband');
+    if (lower.includes('opening paired mindwave serial port') || lower.includes('opening your paired mindwave')) {
+        return langText('開啟緊頭帶連線', 'Opening the headband connection');
+    }
+    if (lower.includes('mindwave serial connected')) return langText('頭帶已經連接', 'Headband connected');
+    if (lower.includes('no eeg data yet')) return langText('未收到頭帶數據。請檢查電源同感應器。', 'No headband data yet. Check its power and the sensor.');
+    if (lower.includes('waiting for user to choose eeg equipment')) return langText('頭帶待命中', 'Headband on standby');
+    if (lower.includes('bridge connected')) return langText('連接程式準備好', 'Link program ready');
+    if (lower.includes('unable to reach the local eeg bridge')) return langText('連唔到頭帶連接程式', 'Cannot reach the headband link program');
+    if (lower.includes('choose a mode to begin')) return langText('請先揀一個模式。', 'Choose a mode to begin.');
+    if (lower.includes('manual focus slider')) return langText('手動滑桿開咗，呢個唔係真實數據。', 'The manual slider is on. This is not real data.');
+    // Anything else in English is a link-program line we have no wording for.
+    // Chinese readers get a pointer to that window instead of raw English.
+    if (CONFIG.currentLang === 'hk' && !/[\u3400-\u9fff]/.test(text)) {
+        return '頭帶連接程式有新訊息，請睇下佢個視窗。';
+    }
+    return text;
 }
 
 function setEEGConnectionState(state, detail = '') {
@@ -6937,12 +6902,15 @@ function updateModeStatusUI() {
     if (!modeBadge || !deviceBadge || !titleEl || !detailEl) return;
 
     if (selectedInputMode === 'simulation') {
-        setChipState(modeBadge, I18N[CONFIG.currentLang].mode_simulation, 'warning');
-        setChipState(deviceBadge, I18N[CONFIG.currentLang].device_virtual, 'warning');
-        titleEl.textContent = I18N[CONFIG.currentLang].mode_simulation_title;
+        // Wording only: the built-in curve is "demo mode", the webcam is
+        // "camera mode". The behaviour behind both is unchanged.
+        const usingCamera = CONFIG.focusSource === 'camera-ready';
+        setChipState(modeBadge, I18N[CONFIG.currentLang][usingCamera ? 'mode_simulation' : 'mode_demo'], 'warning');
+        setChipState(deviceBadge, I18N[CONFIG.currentLang][usingCamera ? 'device_virtual' : 'device_demo'], 'warning');
+        titleEl.textContent = I18N[CONFIG.currentLang][usingCamera ? 'mode_simulation_title' : 'mode_demo_title'];
         detailEl.textContent = CONFIG.focusSource === 'camera-ready'
-            ? langText('相機鏡頭已準備，正在實時觀察你的專注狀態。', 'Camera is ready and actively monitoring your focus state.')
-            : langText('未授權相機，正使用內置專注曲線。', 'Camera not allowed. Using the built-in focus profile.');
+            ? langText('相機準備好，而家即時睇緊你嘅專注狀態。', 'Camera ready. It is watching your focus right now.')
+            : langText('示範模式：用緊內置曲線。', 'Demo mode: using the built-in curve.');
         return;
     }
 
@@ -6950,7 +6918,7 @@ function updateModeStatusUI() {
         setChipState(modeBadge, I18N[CONFIG.currentLang].mode_real, 'info');
         const map = {
             idle: [I18N[CONFIG.currentLang].state_ready, 'info', I18N[CONFIG.currentLang].mode_real_standby, eegStatusDetail || I18N[CONFIG.currentLang].mode_real_standby],
-            searching: [I18N[CONFIG.currentLang].state_searching, 'info', I18N[CONFIG.currentLang].mode_searching_device, eegStatusDetail || langText('正在搜尋已配對裝置', 'Searching paired MindWave')],
+            searching: [I18N[CONFIG.currentLang].state_searching, 'info', I18N[CONFIG.currentLang].mode_searching_device, eegStatusDetail || langText('搵緊已經配對嘅頭帶', 'Looking for your paired headband')],
             connected: [I18N[CONFIG.currentLang].state_connected, 'info', I18N[CONFIG.currentLang].mode_bridge_connected, eegStatusDetail || I18N[CONFIG.currentLang].waiting_live_data],
             streaming: [I18N[CONFIG.currentLang].state_streaming, 'success', I18N[CONFIG.currentLang].mode_live_active, eegStatusDetail || I18N[CONFIG.currentLang].signal_flowing],
             warning: [I18N[CONFIG.currentLang].state_warning, 'warning', I18N[CONFIG.currentLang].mode_signal_pending, eegStatusDetail || I18N[CONFIG.currentLang].adjust_sensor],
@@ -6960,7 +6928,7 @@ function updateModeStatusUI() {
         const [deviceLabel, tone, title, detail] = map[eegConnectionState] || map.idle;
         setChipState(deviceBadge, deviceLabel, tone);
         titleEl.textContent = title;
-        detailEl.textContent = detail;
+        detailEl.textContent = compactStatusMessage(detail);
         return;
     }
 
@@ -7023,8 +6991,8 @@ function animate() {
 
 
 
-    I18N.hk.eeg_simulation_hint = "目前由相機偵測專注度，並非 EEG 數據";
-    I18N.en.eeg_simulation_hint = "Camera Mode: focus from webcam, not EEG";
+    I18N.hk.eeg_simulation_hint = "而家用相機睇專注，唔係腦電波數據";
+    I18N.en.eeg_simulation_hint = "Camera mode: focus comes from the webcam, not brainwaves";
     I18N.hk.disconnect_eeg = "中斷連接";
     I18N.en.disconnect_eeg = "Disconnect";
     
@@ -7174,14 +7142,14 @@ function animate() {
                             // advice: wait vs adjust the headset.
                             if (linkAlive && signal >= EEG_MIN_USABLE_SIGNAL) {
                                 setEEGConnectionState('warning', langText(
-                                    `訊號 ${Math.round(signal)}%，但頭帶仲未計到專注值——保持接觸幾秒，計時暫停中。如果一直係 0，請檢查耳夾有冇夾實耳垂。`,
-                                    `Signal ${Math.round(signal)}%, but the headset has no attention reading yet — hold still for a few seconds; the timer is paused. If it stays at 0, check that the ear clip is gripping the earlobe.`
+                                    `訊號 ${Math.round(signal)}%，但頭帶未計到專注分數。保持唔好郁幾秒，計時暫停緊。如果一直係 0，請睇下耳夾有冇夾實耳珠。`,
+                                    `Signal ${Math.round(signal)}%, but the headband has no focus score yet. Hold still for a few seconds. The timer is paused. If it stays at 0, check that the ear clip grips your earlobe.`
                                 ));
                                 updateConnectBtn(`Waiting for reading (${Math.round(signal)}%)`, false, true);
                             } else {
                                 setEEGConnectionState('warning', langText(
-                                    `訊號太弱（${Math.round(signal)}%），計時已暫停。請調整額頭感測器同耳夾。`,
-                                    `Signal too weak (${Math.round(signal)}%) — the timer is paused. Adjust the forehead sensor and ear clip.`
+                                    `訊號太弱（${Math.round(signal)}%），計時暫停。請調整額頭感應器同耳夾。`,
+                                    `The signal is too weak (${Math.round(signal)}%), so the timer is paused. Adjust the forehead sensor and the ear clip.`
                                 ));
                                 updateConnectBtn(`Poor Signal (${Math.round(signal)}%)`, false, true);
                             }
@@ -7229,7 +7197,7 @@ function animate() {
                 resetFocusTelemetry(selectedInputMode === 'eeg');
                 removeDebugOverlay();
                 if (selectedInputMode === 'eeg' && !suppressBridgeAutoReconnect) {
-                    setEEGConnectionState('searching', langText('EEG bridge 已中斷，系統正持續嘗試重新連接。', 'EEG bridge disconnected. The system is trying to reconnect continuously.'));
+                    setEEGConnectionState('searching', langText('頭帶連接程式斷咗，系統會不斷嘗試重新連接。', 'The headband link program dropped. We keep trying to reconnect.'));
                     scheduleBridgeReconnect();
                 }
                 updateConnectBtn("Connect EEG", false, false);
@@ -7240,7 +7208,7 @@ function animate() {
             bridgeSocket.onerror = (e) => {
                 console.error("Bridge WebSocket Error", e);
                 if (selectedInputMode === 'eeg' && eegModeActive) {
-                    setEEGConnectionState('searching', langText('EEG bridge 連線失敗，正準備重新嘗試。', 'EEG bridge connection failed. Preparing another retry.'));
+                    setEEGConnectionState('searching', langText('連接唔到頭帶連接程式，準備再試。', 'Could not connect to the headband link program. Trying again.'));
                     scheduleBridgeReconnect();
                 }
                 updateConnectBtn("Bridge Connection Failed", false, false);
@@ -7260,7 +7228,7 @@ function animate() {
 
         const delayMs = Math.min(10000, 1000 * Math.pow(2, Math.min(bridgeReconnectAttempts, 3)));
         if (bridgeReconnectAttempts === MAX_BRIDGE_RECONNECT_ATTEMPTS) {
-            setEEGConnectionState('warning', langText('重連咗好多次仍未成功——請檢查 Python bridge 視窗仲行緊未、頭帶有冇電。系統會繼續自動重試。', 'Still reconnecting after many attempts — check that the Python bridge window is running and the headset has power. The system keeps retrying automatically.'));
+            setEEGConnectionState('warning', langText('重新連接咗好多次都未得。請睇下連接程式個視窗仲行緊未，同埋頭帶有冇電。系統會繼續自動再試。', 'Still not connected after many tries. Check that the link program window is running and that the headband has power. We keep trying automatically.'));
         }
 
         bridgeReconnectAttempts += 1;
@@ -7326,7 +7294,7 @@ function animate() {
         resetFocusTelemetry(selectedInputMode === 'eeg');
         removeDebugOverlay();
         if (selectedInputMode === 'eeg') {
-            setEEGConnectionState('idle', langText('真實 EEG 已停止，如要重連請重新選擇 EEG 裝置。', 'Real EEG stopped. Choose EEG Equipment when you want to reconnect.'));
+            setEEGConnectionState('idle', langText('已經停用腦電波頭帶。想再用，請重新揀腦電波頭帶。', 'The brainwave headband is switched off here. Choose it again when you want to reconnect.'));
         }
         updateConnectBtn("Connect EEG", false, false);
         stopConnectionWatchdog();
@@ -7498,8 +7466,8 @@ function animate() {
         setEEGConnectionState(
             'simulation',
             CONFIG.focusSource === 'camera-ready'
-                ? langText('相機鏡頭已準備。遊戲正透過相機觀察你的專注度。', 'Camera is ready. The game is monitoring your focus via camera.')
-                : langText('未授權相機，正使用內置專注曲線。', 'Camera not allowed. Using the built-in focus profile.')
+                ? langText('相機準備好，而家用鏡頭睇你嘅專注。', 'Camera ready. Watching your focus through the lens.')
+                : langText('示範模式：用緊內置曲線。', 'Demo mode: using the built-in curve.')
         );
         updateConnectBtn("Camera Mode", false, true);
         startFocusSimulation();
@@ -7512,18 +7480,18 @@ function animate() {
             hintEl.classList.remove('pairing', 'simulation', 'live');
             if (selectedInputMode === 'simulation') {
                 hintEl.textContent = CONFIG.focusSource === 'camera-ready'
-                    ? langText('Camera active · tracking focus', 'Camera active · tracking focus')
-                    : langText('內置專注曲線', 'Built-in focus profile');
+                    ? langText('相機開緊 · 睇緊專注', 'Camera on · watching focus')
+                    : langText('示範模式 · 內置曲線', 'Demo mode · built-in curve');
                 hintEl.style.display = 'block';
                 hintEl.style.color = '#fde047';
                 hintEl.classList.add('simulation');
             } else if (selectedInputMode === 'eeg' && hasLiveEEGData) {
-                hintEl.textContent = langText('Live MindWave signal', 'Live MindWave signal');
+                hintEl.textContent = langText('收緊頭帶嘅即時訊號', 'Live signal from the headband');
                 hintEl.style.display = 'block';
                 hintEl.style.color = '#86efac';
                 hintEl.classList.add('live');
             } else if (selectedInputMode === 'eeg') {
-                hintEl.textContent = langText('配對中，持續搜尋 MindWave...', 'Pairing in progress. Searching MindWave...');
+                hintEl.textContent = langText('配對緊，繼續搵頭帶…', 'Pairing. Still looking for the headband…');
                 hintEl.style.display = 'block';
                 hintEl.style.color = '#93c5fd';
                 hintEl.classList.add('pairing');
@@ -7774,12 +7742,12 @@ async function activateEEGMode() {
 
     resetFocusTelemetry(true);
     updateModeSelectionHelper(
-        langText('真實 EEG 已待命', 'Real EEG Armed'),
-        langText('正在搜尋已配對的 MindWave。', 'Searching your paired MindWave.')
+        langText('準備連接頭帶', 'Getting the headband ready'),
+        langText('搵緊已經配對嘅頭帶。', 'Looking for your paired headband.')
     );
     setEEGConnectionState(
         'searching',
-        langText('正在搜尋已配對的 MindWave，並啟動本機 EEG bridge...', 'Searching your paired MindWave and opening the local EEG bridge...')
+        langText('搵緊已經配對嘅頭帶，同時開啟連接程式…', 'Looking for your paired headband and starting the link program…')
     );
     updateSimulationHint();
 
@@ -7793,7 +7761,7 @@ async function activateEEGMode() {
         if (liveResult.reason === 'no-live-data') {
             setEEGConnectionState(
                 'warning',
-                langText('已連接到 bridge，但未收到真實腦波。請確認頭帶已開機、重新配對並保持感測器貼合。', 'Bridge connected, but no live EEG arrived. Confirm the headset is powered on, paired again, and the sensor is touching well.')
+                langText('連接程式接通咗，但未收到腦電波。請睇下頭帶開咗未、重新配對，再將感應器貼緊。', 'The link program is connected, but no brainwaves have arrived. Check that the headband is on, pair it again, and press the sensor on firmly.')
             );
         }
         return liveResult;
@@ -7801,7 +7769,7 @@ async function activateEEGMode() {
 
     setEEGConnectionState(
         'streaming',
-        langText('真實 EEG 已確認連接，可以開始遊戲。', 'Live EEG confirmed. You can start the game now.')
+        langText('頭帶已經連接好，可以開始。', 'The headband is connected. You can start.')
     );
     // Remember that this machine is the EEG station. A page refresh or a trip
     // back to Home wipes the in-memory mode, and at a booth that meant

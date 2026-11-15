@@ -218,3 +218,51 @@ test('order: every block of four has two of each', () => {
 });
 
 console.log(`\n${passed} tests passed`);
+
+// ---------- CSV files ----------
+{
+    const csv = await import('../pages/lab/labCsv.js');
+    const session = {
+        id: 'lab_test', user: 'tester 01/張', startedAt: '2026-11-20T04:05:00.000Z', source: 'eeg', order: 'off-first',
+        seed: 1, limitMs: 2000,
+        rest: { focusMean: 50, indexMean: 0.4, goodSeconds: 30 },
+        conditions: {
+            on: { position: 2, rating: 5, task: summarizeTrials([trial(true, 600), trial(false, 700, false)]), signal: summarizeSeconds([row(true, 50, 0.5)], 1) },
+            off: { position: 1, rating: 7, task: summarizeTrials([trial(true, 500), trial(true, 650, false)]), signal: summarizeSeconds([row(true, 60, 0.6)], 1) }
+        },
+        seconds: [{ sec: 1, phase: 'test', cond: 'on', phaseSec: 1, score: 50, signal: 90, good: true, bands: { delta: 1, theta: 2, lowAlpha: 3, highAlpha: 4, lowBeta: 5, highBeta: 6, lowGamma: 7, midGamma: 8 }, index: 11 / 9 }],
+        trials: [{ phase: 'test', cond: 'on', seq: 1, no: 1, word: 'red', ink: 'blue', congruent: false, response: 'blue', correct: true, rtMs: 612, timeout: false, atSec: 0.7 }]
+    };
+    session.comparison = compareConditions(session.conditions.on, session.conditions.off);
+
+    test('csv: summary has one row per test and every column filled in order', () => {
+        const lines = csv.summaryCsv([session, session]).trim().split('\r\n');
+        assert.equal(lines.length, 3);
+        assert.equal(lines[0].split(',').length, csv.SUMMARY_HEADER.length);
+        assert.equal(lines[1].split(',').length, csv.SUMMARY_HEADER.length);
+        assert.ok(lines[0].startsWith('user,test_id,started_at,input_source,order'));
+    });
+
+    test('csv: per-second file has second, phase, focus score, signal, 8 bands and our index', () => {
+        assert.deepEqual(csv.SECONDS_HEADER, [
+            'second', 'phase', 'condition', 'phase_second', 'focus_score', 'signal', 'signal_good',
+            'delta', 'theta', 'lowAlpha', 'highAlpha', 'lowBeta', 'highBeta', 'lowGamma', 'midGamma', 'own_index'
+        ]);
+        const lines = csv.secondsCsv(session).trim().split('\r\n');
+        assert.equal(lines[1], '1,test,on,1,50,90,1,1,2,3,4,5,6,7,8,1.2222');
+    });
+
+    test('csv: per-answer file has question number, type, correct and reaction time', () => {
+        const lines = csv.trialsCsv(session).trim().split('\r\n');
+        assert.equal(lines[1], 'test,on,1,1,red,blue,mismatch,blue,1,612,0,0.7');
+    });
+
+    test('csv: file name uses the user name only, made safe, with a rehearsal tag', () => {
+        const name = csv.fileName(session, 'summary');
+        assert.match(name, /^neurofocus_tester_01_張_\d{8}-\d{4}_summary\.csv$/);
+        assert.match(csv.fileName({ ...session, source: 'demo' }, 'seconds'), /_seconds_DEMO\.csv$/);
+        assert.match(csv.fileName({ ...session, source: 'camera' }, 'answers'), /_answers_CAMERA\.csv$/);
+        assert.ok(!name.includes('@'));
+    });
+    console.log(`\n${passed} tests passed (including CSV)`);
+}

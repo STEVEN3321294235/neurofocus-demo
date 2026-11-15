@@ -8,6 +8,8 @@
 //   node scripts/e2e_tale.mjs old-modes       # training, challenge, study still work
 //   node scripts/e2e_tale.mjs old-frontend    # NF_BASE = a copy of the OLD site + new bridge
 //   node scripts/e2e_tale.mjs offline         # every non-local request blocked
+//   node scripts/e2e_tale.mjs language-scan --lang=hk|en   # reads every screen for mixed language
+//   node scripts/e2e_tale.mjs screenshots     # Home, Setup, results at 1440 px and 390 px
 //
 // Rehearsal runs use ?labfast=1 (every stage at one tenth of its length; the
 // app only honours it when the input is not the brainwave headband).
@@ -29,9 +31,12 @@ const lang = (args.find((a) => a.startsWith('--lang=')) || '--lang=hk').split('=
 fs.mkdirSync(OUT, { recursive: true });
 
 const log = (...m) => console.log(new Date().toISOString().slice(11, 19), ...m);
+// Kept so a failed run can save a screenshot and the page's own errors.
+let lastPage = null;
+let lastErrors = [];
 const KEY_FOR = { red: 'KeyD', blue: 'KeyF', green: 'KeyJ', yellow: 'KeyK' };
 
-async function launch({ camera = false, offline = false } = {}) {
+async function launch({ camera = false, offline = false, viewport = { width: 1440, height: 900 }, scale = 1 } = {}) {
     const browser = await chromium.launch({
         args: [
             '--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist',
@@ -39,12 +44,15 @@ async function launch({ camera = false, offline = false } = {}) {
         ]
     });
     const context = await browser.newContext({
-        viewport: { width: 1440, height: 900 },
+        viewport,
+        deviceScaleFactor: scale,
         acceptDownloads: true,
         permissions: camera ? ['camera'] : []
     });
     const page = await context.newPage();
+    lastPage = page;
     const errors = [];
+    lastErrors = errors;
     page.on('pageerror', (e) => errors.push(`pageerror: ${e.message}`));
     page.on('console', (m) => { if (m.type() === 'error') errors.push(`console: ${m.text()}`); });
     page.on('dialog', (d) => d.accept());
@@ -308,9 +316,278 @@ async function runOldModes(page) {
     return out;
 }
 
+// ---- language scan ---------------------------------------------------------
+// Reads the text that is actually on screen and reports anything in the wrong
+// language. Allowed everywhere: the name NeuroFocus, the language switch,
+// the user name, single key letters (D F J K) and unit symbols.
+async function scanText(page, tag, found) {
+    const hits = await page.evaluate((language) => {
+        const cjk = /[\u3400-\u9fff]/;
+        const allowed = (text) => text
+            .replace(/NeuroFocus/g, ' ')
+            .replace(/tester01/gi, ' ')
+            .replace(/\b(?:km\/h|km|ms|m|s|x\d+)\b/gi, ' ');
+        const out = [];
+        const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+        let node;
+        while ((node = walker.nextNode())) {
+            const text = node.textContent.trim();
+            if (!text) continue;
+            const el = node.parentElement;
+            if (!el || el.closest('script, style, noscript, .material-symbols-outlined, [data-lang], #fps-meter, #manual-debug-panel')) continue;
+            const style = getComputedStyle(el);
+            if (style.display === 'none' || style.visibility === 'hidden') continue;
+            const box = el.getBoundingClientRect();
+            if (box.width === 0 && box.height === 0) continue;
+            let shown = true;
+            for (let p = el; p && p !== document.body; p = p.parentElement) {
+                const ps = getComputedStyle(p);
+                if (ps.display === 'none' || ps.visibility === 'hidden' || p.hidden) { shown = false; break; }
+            }
+            if (!shown) continue;
+            const wrong = language === 'en' ? cjk.test(text) : /[A-Za-z]{2,}/.test(allowed(text));
+            if (wrong) out.push(text.slice(0, 90));
+        }
+        return out;
+    }, lang);
+    hits.forEach((text) => found.push(`${tag}: ${text}`));
+    return hits.length;
+}
+
+async function runLanguageScan(page, context) {
+    const found = [];
+    const visited = [];
+    const look = async (tag) => { visited.push(tag); await scanText(page, tag, found); };
+    const home = async () => { await page.goto(`${BASE}/?labfast=1#home`); await page.waitForSelector('[data-lab-start]'); };
+
+    // Signed out: home, log in, sign up.
+    await page.evaluate(() => localStorage.removeItem('current_user'));
+    await home();
+    await look('home (signed out)');
+    await page.click('[data-home-login]');
+    await page.waitForSelector('[data-submit-auth]');
+    await look('log in');
+    await page.click('[data-switch-auth]');
+    await page.waitForSelector('#auth-username');
+    await look('sign up');
+    await page.click('[data-submit-auth]');
+    await page.waitForTimeout(300);
+    await look('sign up error');
+
+    // Quick try-out, signed out.
+    await home();
+    await page.click('[data-lab-quick]');
+    await page.waitForSelector('[data-lab-demo]');
+    await look('setup: try-out');
+    await page.click('[data-lab-demo]');
+    await page.waitForSelector('#lab-layer [data-stage="check"]', { timeout: 90000 });
+    await look('try-out: signal check');
+    await passCheck(page);
+    await look('try-out: intro');
+    await page.click('[data-stage="quick-intro"] [data-card-go]');
+    await page.waitForSelector('[data-stage="stroop"]');
+    await look('try-out: answering');
+    await page.waitForSelector('[data-stage="quick-2"]');
+    await look('try-out: on the phone');
+    await page.waitForSelector('[data-stage="quick-result"]', { timeout: 60000 });
+    await look('try-out: result card');
+
+    // Signed in from here on.
+    await page.evaluate(() => localStorage.setItem('current_user', 'tester01'));
+    await page.goto(`${BASE}/?labfast=1#home`);
+    await page.reload();
+    await page.waitForSelector('[data-lab-start]');
+    await look('home (signed in)');
+
+    // Full test, every stage.
+    await page.click('[data-lab-start]');
+    await page.waitForSelector('[data-lab-demo]');
+    await look('setup: full test');
+    await page.click('[data-mode="simulation"]');
+    await page.waitForSelector('[data-camera-deny]');
+    await look('setup: camera permission');
+    await page.click('[data-camera-deny]');
+    await page.waitForSelector('#lab-layer [data-stage="check"]', { timeout: 90000 });
+    await look('full: signal check');
+    await passCheck(page);
+    await look('full: practice intro');
+    await page.click('[data-stage="practice-intro"] [data-card-go]');
+    await page.waitForSelector('[data-stage="stroop"]');
+    await look('full: practice');
+    await page.waitForSelector('[data-stage="rest"]', { timeout: 60000 });
+    await look('full: quiet sitting');
+    await page.waitForSelector('[data-stage="cond-intro"]', { timeout: 60000 });
+    await look('full: test 1 intro');
+    await page.click('[data-stage="cond-intro"] [data-card-go]');
+    await page.waitForSelector('[data-stage="stroop"][data-phase="test"]');
+    await look('full: test 1');
+    await answerUntilDone(page);
+    await page.waitForSelector('[data-stage="rate"]', { timeout: 60000 });
+    await look('full: self-rating');
+    await page.click('[data-rate="4"]');
+    await page.click('[data-rate-go]');
+    await page.waitForSelector('[data-stage="switch"]');
+    await look('full: switch');
+    await page.waitForSelector('[data-switch-go]:not([disabled])', { timeout: 60000 });
+    await look('full: switch ready');
+    await page.click('[data-switch-go]');
+    await page.waitForSelector('[data-stage="stroop"][data-phase="test"]');
+    await answerUntilDone(page);
+    await page.waitForSelector('[data-stage="rate"]', { timeout: 60000 });
+    await page.click('[data-rate="8"]');
+    await page.click('[data-rate-go]');
+    await page.waitForSelector('.page-lab-results', { timeout: 30000 });
+    await page.waitForTimeout(1300);
+    await look('your answer');
+    await page.click('[data-lab-home]');
+    await page.waitForSelector('[data-lab-start]');
+
+    // Training / challenge / study and their setup steps.
+    await page.click('[data-enter-app]');
+    await page.waitForSelector('[data-continue-setup]');
+    await look('log in (already signed in)');
+    await page.click('[data-continue-setup]');
+    await page.waitForSelector('[data-test-mode="training"]');
+    await look('setup: choose mode');
+    await page.click('#setup-settings-btn');
+    await look('setup: data menu');
+    await page.click('#setup-settings-btn');
+    await page.click('[data-test-mode="training"]');
+    await page.waitForSelector('[data-mode="eeg"]');
+    await look('setup: how to measure');
+    await chooseBuiltInCurve(page);
+    await page.waitForSelector('#training-duration-slider');
+    await look('setup: training length');
+    await page.evaluate(() => {
+        const slider = document.getElementById('training-duration-slider');
+        slider.value = '30';
+        slider.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+    await page.click('[data-training-start]');
+    await page.waitForFunction(() => document.getElementById('ui-container')?.style.opacity === '1', null, { timeout: 120000 });
+    await page.waitForTimeout(4500);
+    await look('training: on screen');
+    await page.click('#game-settings-btn');
+    await look('training: settings panel');
+    await page.click('#game-settings-btn');
+    await page.waitForSelector('.page-results', { timeout: 180000 });
+    await page.waitForTimeout(1500);
+    await look('training: results');
+
+    await page.click('#btn-home');
+    await page.waitForSelector('[data-enter-app]');
+    await toSetupGoal(page);
+    await page.click('[data-test-mode="challenge"]');
+    await chooseBuiltInCurve(page);
+    await page.waitForSelector('[data-difficulty="easy"]');
+    await look('setup: difficulty');
+    await page.click('[data-difficulty="hard"]');
+    await page.waitForSelector('#question-panel .option-btn', { timeout: 120000 });
+    await look('challenge: first question');
+    const deadline = Date.now() + 240000;
+    let scans = 0;
+    while (Date.now() < deadline) {
+        if (await page.$('.page-results')) break;
+        const btn = await page.$('#question-panel .option-btn:not([disabled])');
+        if (btn) {
+            if (scans < 9) { scans += 1; await look(`challenge: question ${scans + 1}`); }
+            try { await btn.click({ timeout: 1000 }); } catch (e) { /* re-rendered */ }
+        }
+        await page.waitForTimeout(300);
+    }
+    await page.waitForSelector('.page-results', { timeout: 30000 });
+    await page.waitForTimeout(1500);
+    await page.evaluate(() => document.querySelectorAll('.review-item').forEach((el) => el.classList.add('is-open')));
+    await look('challenge: results');
+
+    await page.click('#btn-home');
+    await page.waitForSelector('[data-enter-app]');
+    await toSetupGoal(page);
+    await page.click('[data-test-mode="study"]');
+    await page.waitForSelector('[data-subject="biology"]');
+    await look('setup: subject');
+    await page.click('[data-subject="biology"]');
+    await page.waitForSelector('[data-depth="foundation"]');
+    await look('setup: level');
+    return { visited, found };
+}
+
 async function main() {
     const report = { scenario, realTime, lang };
-    if (scenario === 'old-modes') {
+    if (scenario === 'screenshots') {
+        // One rehearsal test first so the results page has something to show.
+        const { browser, page, errors } = await launch({ scale: 2 });
+        await open(page, { user: 'tester01' });
+        const shot = (name, opts = {}) => page.screenshot({ path: path.join(OUT, `shot-${name}.png`), ...opts });
+        const sizes = [['1440', { width: 1440, height: 900 }], ['390', { width: 390, height: 844 }]];
+        await runFull(page, 'demo', { accuracy: [0.86, 0.95] });
+        report.shots = [];
+        for (const [label, size] of sizes) {
+            await page.setViewportSize(size);
+            await page.goto(`${BASE}/?labfast=1#lab-results`);
+            await page.reload();
+            await page.waitForSelector('.page-lab-results .nb-verdict');
+            await page.waitForTimeout(1400);
+            await shot(`results-${label}`, { fullPage: true });
+            await page.goto(`${BASE}/?labfast=1#home`);
+            await page.waitForSelector('[data-lab-start]');
+            await page.waitForTimeout(500);
+            await shot(`home-${label}`, { fullPage: true });
+            report.overflow = report.overflow || {};
+            report.overflow[`home-${label}`] = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+            await page.click('[data-lab-start]');
+            await page.waitForSelector('[data-lab-demo]');
+            await page.waitForTimeout(300);
+            await shot(`setup-test-${label}`, { fullPage: true });
+            report.overflow[`setup-${label}`] = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+            await page.click('[data-mode="simulation"]');
+            await page.waitForSelector('[data-camera-deny]');
+            await page.waitForTimeout(300);
+            await shot(`setup-camera-${label}`, { fullPage: true });
+            await page.click('[data-back-mode]');
+            await page.waitForSelector('[data-back-test]');
+            await page.click('[data-back-test]');
+            await page.waitForSelector('[data-lab-start]');
+            await page.click('[data-enter-app]');
+            await page.waitForSelector('[data-continue-setup]');
+            await page.click('[data-continue-setup]');
+            await page.waitForSelector('[data-test-mode="training"]');
+            await page.waitForTimeout(300);
+            await shot(`setup-modes-${label}`, { fullPage: true });
+            await page.click('[data-test-mode="training"]');
+            await chooseBuiltInCurve(page);
+            await page.waitForSelector('#training-duration-slider');
+            await page.waitForTimeout(300);
+            await shot(`setup-length-${label}`, { fullPage: true });
+            report.overflow[`results-${label}`] = 0;
+            report.shots.push(label);
+        }
+        // The test screen itself, at desktop size.
+        await page.setViewportSize({ width: 1440, height: 900 });
+        await page.goto(`${BASE}/?labfast=0#home`);
+        await page.waitForSelector('[data-lab-start]');
+        await enterGame(page, { mode: 'lab', source: 'demo' });
+        await page.waitForTimeout(800);
+        await shot('test-check-1440');
+        await passCheck(page);
+        await page.waitForTimeout(400);
+        await shot('test-practice-intro-1440');
+        await page.click('[data-stage="practice-intro"] [data-card-go]');
+        await page.waitForSelector('[data-stage="stroop"] [data-word].is-shown');
+        await page.waitForTimeout(300);
+        await shot('test-questions-1440');
+        report.errors = errors;
+        await browser.close();
+    } else if (scenario === 'language-scan') {
+        const { browser, context, page, errors } = await launch();
+        await open(page, {});
+        const result = await runLanguageScan(page, context);
+        report.screens = result.visited.length;
+        report.visited = result.visited;
+        report.wrongLanguage = [...new Set(result.found)];
+        report.errors = errors;
+        await browser.close();
+    } else if (scenario === 'old-modes') {
         const { browser, page, errors } = await launch();
         await open(page, { user: 'tester01' });
         report.modes = await runOldModes(page);
@@ -429,11 +706,19 @@ async function main() {
     } else {
         throw new Error(`Unknown scenario: ${scenario}`);
     }
-    fs.writeFileSync(path.join(OUT, `report-${scenario}${realTime ? '-realtime' : ''}.json`), JSON.stringify(report, null, 2));
+    const suffix = `${realTime ? '-realtime' : ''}${scenario === 'language-scan' ? `-${lang}` : ''}`;
+    fs.writeFileSync(path.join(OUT, `report-${scenario}${suffix}.json`), JSON.stringify(report, null, 2));
     console.log(JSON.stringify(report, null, 2));
 }
 
-main().catch((error) => {
+main().catch(async (error) => {
     console.error('E2E FAILED:', error);
+    try {
+        if (lastPage) {
+            await lastPage.screenshot({ path: path.join(OUT, `failure-${scenario}.png`) });
+            console.error('hash at failure:', await lastPage.evaluate(() => window.location.hash));
+        }
+        console.error('page errors:', JSON.stringify(lastErrors, null, 2));
+    } catch (e) { /* page already gone */ }
     process.exit(1);
 });
