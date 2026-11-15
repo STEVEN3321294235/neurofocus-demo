@@ -40,7 +40,10 @@ async function launch({ camera = false, offline = false, viewport = { width: 144
     const browser = await chromium.launch({
         args: [
             '--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist',
-            ...(camera ? ['--use-fake-ui-for-media-stream', '--use-fake-device-for-media-stream'] : [])
+            ...(camera ? ['--use-fake-ui-for-media-stream', '--use-fake-device-for-media-stream'] : []),
+            // A looping video with a real face (Y4M), so the camera check can
+            // pass. Without it, Chrome's fake camera shows a test pattern.
+            ...(camera && process.env.NF_FAKE_VIDEO ? [`--use-file-for-fake-video-capture=${process.env.NF_FAKE_VIDEO}`] : [])
         ]
     });
     const context = await browser.newContext({

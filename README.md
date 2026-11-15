@@ -18,10 +18,14 @@
 
 ## 快速上手
 
-**本地行（唔使 EEG，用 Simulation 模式測試）**
+**本地行（唔使頭帶，用示範模式或者相機模式測試）**
 ```bash
-node server.js          # 開 http://localhost:8000
+python3 serve_local.py  # 開 http://localhost:8000/#home
 ```
+> ⚠️ `node server.js` 而家唔建議用：佢冇將 `.mjs` 設定為 JavaScript，所以 MediaPipe 檔案（`vendor/mediapipe/vision_bundle.mjs`）會被瀏覽器拒絕，首頁會成頁白。呢個 bug 喺 `main` 已經存在。`server.js` 喺 TALE 任務入面唔准改，所以一律用 `serve_local.py`。
+
+**TALE 2026 實驗模式**：首頁「開始實驗」（約 5 分鐘，要登入）同「先試 1 分鐘」（唔使登入、唔儲存）。
+改動同測試方法見 [`docs/TALE_CHANGES.md`](docs/TALE_CHANGES.md)；任務原文同計劃書喺 `docs/tale/`。
 
 **真 EEG（Windows 現場）**：見手冊 Part 8，或雙擊 `start_2a_demo_windows.bat`。
 
