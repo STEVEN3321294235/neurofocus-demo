@@ -8,5 +8,7 @@
 @import url('./pages/results.css');
 @import url('./shared/clay-liquid.css');
 @import url('/vendor/fonts/ibm-plex/ibm-plex.css');
+@import url('/vendor/fonts/source-serif-4/source-serif-4.css');
+@import url('/vendor/fonts/noto-serif-tc/noto-serif-tc.css');
 @import url('./shared/glass.css');
 @import url('./pages/lab.css');

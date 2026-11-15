@@ -32,7 +32,39 @@
 
 /* ---- hero ---- */
 .nb-hero {
-    max-width: 58rem;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    max-width: 38rem;
+    min-height: calc(100vh - 12rem);
+    min-height: calc(100dvh - 12rem);
+}
+
+/* Each scroll stop is tall enough for the shape to form beside it. */
+.nb-tall {
+    min-height: 70vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.nb-tall > .nb-steps,
+.nb-tall > .nb-points,
+.nb-tall > .nb-ticker {
+    max-width: 44rem;
+}
+
+.nb-tall .nb-steps,
+.nb-tall .nb-points {
+    grid-template-columns: minmax(0, 1fr);
+}
+
+/* See-through cards let the shape show behind; blur only where it is cheap. */
+html:not([data-platform="windows"]) .nb-step,
+html:not([data-platform="windows"]) .nb-point,
+html:not([data-platform="windows"]) .nb-honest {
+    -webkit-backdrop-filter: blur(12px) saturate(130%);
+    backdrop-filter: blur(12px) saturate(130%);
 }
 
 .nb-pulse {
@@ -58,10 +90,10 @@
 }
 
 .nb-hero-title {
-    font-size: clamp(2.75rem, 1.2rem + 6.4vw, 6rem);
-    font-weight: 650;
-    line-height: 1.04;
-    letter-spacing: -0.04em;
+    font-size: clamp(2.75rem, 1.2rem + 5.6vw, 5.5rem);
+    font-weight: 600;
+    line-height: 1.08;
+    letter-spacing: -0.02em;
 }
 
 .nb-hero-lead {
@@ -316,6 +348,8 @@ html:not([data-platform="windows"]) .nb-wave {
 }
 
 .nb-honest {
+    max-width: 44rem;
+    min-height: 0;
     padding: clamp(1.75rem, 4vw, 3rem);
     border: 1px solid var(--nb-border);
     border-radius: calc(var(--nb-radius) + 6px);
@@ -357,6 +391,17 @@ html:not([data-platform="windows"]) .nb-wave {
 }
 
 @media (max-width: 760px) {
+    .nb-hero {
+        min-height: calc(100vh - 6rem);
+        min-height: calc(100dvh - 6rem);
+        justify-content: flex-end;
+        padding-bottom: 2rem;
+    }
+
+    .nb-tall {
+        min-height: 0;
+    }
+
     .nb-steps,
     .nb-points {
         grid-template-columns: minmax(0, 1fr);

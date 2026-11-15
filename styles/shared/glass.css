@@ -45,8 +45,12 @@
     --nb-radius-sm: 12px;
     --nb-ease: cubic-bezier(0.19, 1, 0.22, 1);
     --nb-ease-in: cubic-bezier(0.76, 0, 0.24, 1);
-    --nb-sans: "Inter", "IBM Plex Sans", "PingFang HK", "PingFang TC", "Microsoft JhengHei", "Noto Sans TC", "Noto Sans CJK TC", system-ui, sans-serif;
-    --nb-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, "PingFang HK", "Microsoft JhengHei", monospace;
+    /* Serif in both languages: Source Serif 4 for English, Noto Serif TC for
+       Chinese (both self-hosted, and designed as one family). The name
+       --nb-sans is kept so older rules keep working. */
+    --nb-serif: "Source Serif 4", "Noto Serif TC", "Songti TC", "PMingLiU", "Noto Serif CJK TC", Georgia, serif;
+    --nb-sans: var(--nb-serif);
+    --nb-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, "Noto Serif TC", monospace;
     /* Kept for older rules that still read these names. */
     --nb-paper: var(--nb-bg);
     --nb-wash: var(--nb-surface);
@@ -121,20 +125,30 @@ main.page.nb-page {
     letter-spacing: normal;
 }
 
-/* Fine grid + three soft glows behind every notebook page. The glows are
-   radial gradients (cheap), drifting slowly by transform only. */
+/* Three soft glows behind every glass page (no grid: the team did not want a
+   notebook look). Radial gradients are cheap; they drift by transform only. */
 .nb-backdrop {
     position: fixed;
     inset: 0;
-    z-index: -1;
+    z-index: -2;
     pointer-events: none;
     overflow: hidden;
-    background-image:
-        linear-gradient(var(--nb-grid-line) 1px, transparent 1px),
-        linear-gradient(90deg, var(--nb-grid-line) 1px, transparent 1px);
-    background-size: 56px 56px;
-    mask-image: radial-gradient(ellipse 90% 70% at 50% 20%, #000 40%, transparent 100%);
-    -webkit-mask-image: radial-gradient(ellipse 90% 70% at 50% 20%, #000 40%, transparent 100%);
+}
+
+/* The Home triangle scene: fixed behind the text, above the glows. */
+.nb-scene {
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    width: 100vw;
+    height: 100vh;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 1.4s ease;
+}
+
+.nb-scene.is-ready {
+    opacity: 1;
 }
 
 .nb-glow {
@@ -259,9 +273,9 @@ html:not([data-platform="windows"]) .nb-top {
 .nb-question {
     margin: 0;
     font-size: clamp(2rem, 1.2rem + 3.2vw, 3.25rem);
-    font-weight: 650;
-    line-height: 1.12;
-    letter-spacing: -0.025em;
+    font-weight: 600;
+    line-height: 1.15;
+    letter-spacing: -0.015em;
     text-wrap: balance;
 }
 
@@ -275,9 +289,9 @@ html:not([data-platform="windows"]) .nb-top {
 .nb-verdict {
     margin: 0.85rem 0 0;
     font-size: clamp(1.75rem, 1.1rem + 2.6vw, 3rem);
-    font-weight: 650;
-    line-height: 1.18;
-    letter-spacing: -0.025em;
+    font-weight: 600;
+    line-height: 1.22;
+    letter-spacing: -0.015em;
     text-wrap: balance;
 }
 

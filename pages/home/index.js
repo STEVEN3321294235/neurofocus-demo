@@ -10,7 +10,7 @@ import { setLang as persistLang } from '../../services/storageService.js';
 import { logout } from '../../services/authService.js';
 import { stopCameraPreview } from '../../services/focusInputService.js?v=2026-07-28-2';
 import {
-    backdropHTML, bindThemeToggle, playIntro, rollLabel, startReveals, themeToggleHTML
+    backdropHTML, bindThemeToggle, playIntro, prefersReducedMotion, rollLabel, startReveals, themeToggleHTML
 } from '../../components/motion.js?v=2026-07-28-2';
 
 // One period of a made-up brainwave trace, as SVG path data. Built from sine
@@ -78,6 +78,7 @@ export default {
         return `
             <main class="page page-home nb-page">
                 ${backdropHTML()}
+                <canvas class="nb-scene" data-scene aria-hidden="true"></canvas>
                 <div class="nb-shell nb-home">
                     <header class="nb-top nb-home-top" data-reveal>
                         <span class="nb-brand">NeuroFocus</span>
@@ -91,7 +92,7 @@ export default {
                         </nav>
                     </header>
 
-                    <section class="nb-hero">
+                    <section class="nb-hero" data-shape="0">
                         <p class="nb-eyebrow" data-reveal><span class="nb-pulse" aria-hidden="true"></span>${t('home_kicker')}</p>
                         <h1 class="nb-title nb-hero-title" data-split="80">${t('home_title')}</h1>
                         <p class="nb-lead nb-hero-lead" data-reveal style="--d:350ms">${t('home_subtitle')}</p>
@@ -106,7 +107,7 @@ export default {
                         </dl>
                     </section>
 
-                    <figure class="nb-wave" data-wave data-reveal style="--d:700ms">
+                    <figure class="nb-wave" data-wave data-shape="1" data-reveal style="--d:700ms">
                         <div class="nb-wave-head">
                             <span class="nb-wave-label">${t('home_wave_label')}</span>
                             <span class="nb-wave-caption">${t('home_wave_caption')}</span>
@@ -119,13 +120,13 @@ export default {
                         </div>
                     </figure>
 
-                    <section class="nb-section">
+                    <section class="nb-section nb-tall" data-shape="2">
                         <h2 class="nb-section-title" data-reveal>${t('home_ideas_title')}</h2>
                         ${renderTicker()}
                         <p class="nb-fine" data-reveal>${t('home_ideas_note')}</p>
                     </section>
 
-                    <section class="nb-section">
+                    <section class="nb-section nb-tall" data-shape="3">
                         <h2 class="nb-section-title" data-reveal>${t('home_steps_title')}</h2>
                         <ol class="nb-steps">
                             ${renderStep(1, 'home_step_1', 'home_step_1_body', 0)}
@@ -134,12 +135,12 @@ export default {
                         </ol>
                     </section>
 
-                    <section class="nb-section nb-honest" data-reveal>
+                    <section class="nb-section nb-honest" data-shape="4" data-reveal>
                         <h2 data-split>${t('home_honest')}</h2>
                         <p>${t('home_honest_body')}</p>
                     </section>
 
-                    <section class="nb-section">
+                    <section class="nb-section nb-tall" data-shape="5">
                         <h2 class="nb-section-title" data-reveal>${t('home_privacy_title')}</h2>
                         <ul class="nb-points">
                             ${renderPrivacyPoint('◎', 'home_privacy_1', 'home_privacy_1_body', 0)}
@@ -166,6 +167,24 @@ export default {
         await playIntro(t('intro_loading'));
         const stopReveals = startReveals(root);
 
+        // The triangle scene loads after the page is on screen, so the text is
+        // never held back by the 3D library. If WebGL is missing, the page
+        // simply has no scene.
+        let scene = null;
+        const canvas = root.querySelector('[data-scene]');
+        const anchors = Array.from(root.querySelectorAll('[data-shape]'))
+            .sort((a, b) => Number(a.dataset.shape) - Number(b.dataset.shape));
+        import('./brainScene.js?v=2026-07-28-2').then(({ mountBrainScene }) => {
+            if (!canvas.isConnected) return;
+            scene = mountBrainScene(canvas, anchors, {
+                reduceMotion: prefersReducedMotion(),
+                lowPower: document.documentElement.dataset.platform === 'windows'
+            });
+        }).catch((error) => {
+            console.warn('3D scene unavailable:', error);
+            canvas.remove();
+        });
+
         // The demo line and the ticker only move while they are on screen.
         const movers = Array.from(root.querySelectorAll('[data-wave], [data-ticker]'));
         let observer = null;
@@ -182,6 +201,7 @@ export default {
         };
         document.addEventListener('visibilitychange', onVisibility);
         cleanup = () => {
+            scene?.destroy();
             stopReveals();
             observer?.disconnect();
             document.removeEventListener('visibilitychange', onVisibility);
