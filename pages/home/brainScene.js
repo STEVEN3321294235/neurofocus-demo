@@ -109,52 +109,46 @@ function normalise(out) {
     return out;
 }
 
-// ---- 0: brain, side view, front to the right ----------------------------------
+// ---- 0: brain (cerebrum only), side view, front to the right ---------------------
+// Only the large upper brain, so the outline never looks like a mushroom.
+// The surface is pushed out along ridges (gyri) and in along grooves (sulci),
+// so it has real bumps, plus the two named grooves: the lateral sulcus above
+// the temporal lobe and the central sulcus over the top.
 function brain(n, r) {
     const out = new Float32Array(n * 3);
-    // Folds: a smooth 3D pattern; points are thinned out where it is near zero,
-    // which draws the grooves (sulci) between the ridges (gyri).
-    const fold = (x, y, z) => Math.sin(5.6 * x + 3.1 * y + 0.7) * Math.sin(4.3 * y - 3.4 * z + 0.3)
-        + 0.75 * Math.sin(7.2 * z + 3.8 * x - 1.1) * Math.sin(5.9 * x - 2.1 * y);
+    const fold = (x, y, z) => Math.sin(5.2 * x + 2.9 * y + 0.7) * Math.sin(4.1 * y - 3.2 * z + 0.3)
+        + 0.8 * Math.sin(6.8 * z + 3.6 * x - 1.1) * Math.sin(5.4 * x - 2.0 * y)
+        + 0.35 * Math.sin(11 * x + 9 * z) * Math.sin(10 * y - 7 * x);
     let i = 0;
     let guard = 0;
     while (i < n && guard < n * 40) {
         guard += 1;
-        const pick = r();
-        let x; let y; let z;
-        if (pick < 0.72) {
-            // Cerebrum
-            const [ux, uy, uz] = onSphere(r);
-            x = ux * 1.55; y = uy * 1.0; z = uz * 1.15;
-            if (y < -0.25) y = -0.25 + (y + 0.25) * 0.5;            // flat underside
-            if (x > 0.5) y += (x - 0.5) * 0.12;                       // forehead lifts a little
-            const f = Math.abs(fold(x, y, z));
-            if (f < 0.2 && r() < 0.96) continue;                      // groove (almost empty)
-            if (f > 0.55 && r() < 0.35) continue;                     // keep ridges as lines, not slabs
-            // Lateral sulcus: a gap that separates the temporal lobe.
-            const sulcusY = -0.12 + (x + 0.2) * 0.32;
-            if (x > -0.3 && x < 1.05 && Math.abs(y - sulcusY) < 0.05 && Math.abs(z) > 0.55) continue;
-            // Central sulcus: a clear groove from the top running down and back.
-            if (y > -0.05 && Math.abs(x - (0.12 - 0.38 * (1 - y))) < 0.04 && Math.abs(z) > 0.25) continue;
-            z += Math.sign(z || 1) * 0.06;                            // gap between the halves
-        } else if (pick < 0.82) {
-            // Temporal lobe: a bulge under the lateral sulcus.
-            const [ux, uy, uz] = onSphere(r);
-            x = 0.35 + ux * 0.75; y = -0.42 + uy * 0.32; z = uz * 1.0;
-            if (Math.abs(uz) < 0.45) continue;                        // outer faces only
-            if (Math.abs(fold(x, y, z)) < 0.2 && r() < 0.95) continue;
-        } else if (pick < 0.96) {
-            // Cerebellum with thin stripes (folia).
-            const [ux, uy, uz] = onSphere(r);
-            x = -1.0 + ux * 0.55; y = -0.72 + uy * 0.32; z = uz * 0.8;
-            if (Math.sin(uy * 34) < -0.2) continue;
-        } else {
-            // Brain stem.
-            const t = r();
-            const a = r() * Math.PI * 2;
-            const rad = 0.1 * (1 - t * 0.25);
-            x = -0.3 - t * 0.16 + Math.cos(a) * rad; y = -0.5 - t * 0.6; z = Math.sin(a) * rad;
+        const [ux, uy, uz] = onSphere(r);
+        // Base outline: longer front-to-back, rounder at the back, flatter
+        // underneath, with the temporal lobe bulging low at the front-middle.
+        let x = ux * 1.6;
+        let y = uy * 1.02;
+        let z = uz * 1.18;
+        if (x < -0.6) y *= 0.92;                                     // back rounds off
+        if (y < -0.2) {
+            const temporal = Math.max(0, 1 - Math.abs(x - 0.25) / 0.95); // bulge under the middle
+            y = -0.2 + (y + 0.2) * (0.38 + 0.5 * temporal);
         }
+        if (x > 0.55) y += (x - 0.55) * 0.1;                          // forehead lifts a little
+        // Bumps: push the surface out on ridges and in on grooves.
+        const f = fold(x, y, z);
+        const bump = 1 + 0.075 * Math.tanh(f * 2.6);
+        x *= bump; y *= bump; z *= bump;
+        const groove = Math.abs(f) < 0.16;
+        if (groove && r() < 0.88) continue;                          // grooves read as gaps
+        // Lateral sulcus (a long groove sloping up towards the back).
+        const sulcusY = -0.16 + (0.9 - x) * -0.18;
+        if (x > -0.5 && x < 1.15 && Math.abs(y - sulcusY) < 0.055 && Math.abs(uz) > 0.45) continue;
+        // Central sulcus: from the top, down and slightly forward.
+        if (y > -0.1 && Math.abs(x - (-0.05 + 0.32 * (1 - y))) < 0.045 && Math.abs(uz) > 0.2) continue;
+        // The gap between the two halves, seen along the top.
+        if (y > 0.35 && Math.abs(z) < 0.07) continue;
+        z += Math.sign(z || 1) * 0.04;
         out.set([x, y, z], i * 3);
         i += 1;
     }
