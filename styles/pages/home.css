@@ -36,7 +36,7 @@
    Phones: the stage sits above the text. */
 .nb-pair {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(0, 0.92fr);
+    grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.05fr);
     align-items: center;
     gap: clamp(1.5rem, 4vw, 4rem);
     min-height: 78vh;
