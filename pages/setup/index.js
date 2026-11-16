@@ -359,7 +359,24 @@ export default {
     async mount({ root, router }) {
         const state = getState();
         document.body.classList.add('nb-body');
-        root.querySelectorAll('.setup-card > *').forEach((el, i) => {
+        // Two columns: what this step is about (left) and the choices (right).
+        // CSS stacks them on portrait screens and puts them side by side on
+        // landscape ones, so the step fits one screen.
+        const card = root.querySelector('.setup-card');
+        if (card && !card.querySelector('.setup-col-intro')) {
+            const intro = document.createElement('div');
+            intro.className = 'setup-col-intro';
+            const choices = document.createElement('div');
+            choices.className = 'setup-col-panel';
+            const header = root.querySelector('.setup-header');
+            if (header) intro.appendChild(header);
+            Array.from(card.children).forEach((el) => {
+                const isIntro = el.matches('h2, p, .lab-brief, .mode-helper-card');
+                (isIntro ? intro : choices).appendChild(el);
+            });
+            card.append(intro, choices);
+        }
+        root.querySelectorAll('.setup-col-intro > *, .setup-col-panel > *').forEach((el, i) => {
             el.setAttribute('data-reveal', '');
             el.style.setProperty('--d', `${Math.min(i, 6) * 60}ms`);
         });

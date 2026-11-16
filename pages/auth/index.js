@@ -2,26 +2,44 @@ import { t } from '../../app/i18n.js?v=2026-07-28-2';
 import { getState, setState } from '../../app/state.js';
 import { login, register, logout } from '../../services/authService.js';
 import { syncRuntimeState } from '../../services/eegBridgeService.js?v=2026-07-28-2';
+import { backdropHTML, bindThemeToggle, prefersReducedMotion, rollLabel, startReveals, themeToggleHTML } from '../../components/motion.js?v=2026-07-28-2';
+
+// Log-in / sign-up page, in the same glass style as Home. Wide screens: a short
+// intro with the brain shape on the left, the form on the right. Phones: the
+// form only. Sized to fit one screen without scrolling.
+let cleanup = () => {};
 
 function renderAuthForm(state) {
     const isLogin = state.authView !== 'register';
-
     return `
-        <div class="auth-card">
-            <h2>${isLogin ? t('auth_login_title') : t('auth_register_title')}</h2>
-            <p>${isLogin ? t('auth_login_desc') : t('auth_register_desc')}</p>
-            <div class="auth-form">
-                ${isLogin ? '' : `<input id="auth-username" type="text" placeholder="${t('auth_username_placeholder')}" value="${state.currentUser || ''}">
-                <p class="auth-hint">${t('auth_username_hint')}</p>`}
-                <input id="auth-email" type="email" placeholder="${t('auth_email_placeholder')}">
-                <input id="auth-password" type="password" placeholder="${t('auth_password_placeholder')}">
-                <button type="button" class="primary-btn" data-submit-auth>${isLogin ? t('auth_submit_login') : t('auth_submit_register')}</button>
+        <div class="auth-glass" data-reveal style="--d:120ms">
+            <div class="auth-tabs" role="tablist">
+                <button type="button" class="auth-tab ${isLogin ? 'is-on' : ''}" ${isLogin ? 'aria-selected="true"' : 'data-switch-auth'}>${t('auth_login_title')}</button>
+                <button type="button" class="auth-tab ${isLogin ? '' : 'is-on'}" ${isLogin ? 'data-switch-auth' : 'aria-selected="true"'}>${t('auth_register_title')}</button>
             </div>
-            <div class="auth-inline-actions">
-                <button type="button" class="text-btn" data-switch-auth>${isLogin ? t('auth_need_account') : t('auth_has_account')}</button>
-                <button type="button" class="text-btn" data-back-home>${t('back_home')}</button>
+            <p class="auth-desc">${isLogin ? t('auth_login_desc') : t('auth_register_desc')}</p>
+            <div class="auth-fields">
+                ${isLogin ? '' : `
+                <label class="auth-field">
+                    <span>${t('auth_username_placeholder')}</span>
+                    <input id="auth-username" type="text" autocomplete="nickname" value="${state.currentUser || ''}">
+                    <small>${t('auth_username_hint')}</small>
+                </label>`}
+                <label class="auth-field">
+                    <span>${t('auth_email_placeholder')}</span>
+                    <input id="auth-email" type="email" autocomplete="email">
+                </label>
+                <label class="auth-field">
+                    <span>${t('auth_password_placeholder')}</span>
+                    <input id="auth-password" type="password" autocomplete="${isLogin ? 'current-password' : 'new-password'}">
+                </label>
             </div>
-            <p class="auth-message" id="auth-message"></p>
+            <button type="button" class="nb-btn nb-btn-primary nb-btn-lg auth-submit" data-submit-auth>${rollLabel(isLogin ? t('auth_submit_login') : t('auth_submit_register'))}</button>
+            <p class="auth-message" id="auth-message" aria-live="polite"></p>
+            <div class="auth-foot">
+                <button type="button" class="nb-link" data-switch-auth>${isLogin ? t('auth_need_account') : t('auth_has_account')}</button>
+                <button type="button" class="nb-link" data-back-home>${t('back_home')}</button>
+            </div>
         </div>
     `;
 }
@@ -29,13 +47,15 @@ function renderAuthForm(state) {
 function renderSessionCard(state) {
     const separator = state.lang === 'en' ? ', ' : '，';
     return `
-        <div class="auth-card">
-            <h2>${t('auth_session_ready')}${separator}${state.currentUser}</h2>
-            <p>${t('auth_session_desc')}</p>
-            <div class="auth-actions-stack">
-                <button type="button" class="primary-btn" data-continue-setup>${t('continue')}</button>
-                <button type="button" class="secondary-btn" data-logout-user>${t('auth_logout')}</button>
-                <button type="button" class="text-btn" data-back-home>${t('back_home')}</button>
+        <div class="auth-glass" data-reveal style="--d:120ms">
+            <h2 class="auth-hello">${t('auth_session_ready')}${separator}<span class="nb-mono">${state.currentUser}</span></h2>
+            <p class="auth-desc">${t('auth_session_desc')}</p>
+            <div class="auth-stack">
+                <button type="button" class="nb-btn nb-btn-primary nb-btn-lg" data-continue-setup>${rollLabel(t('continue'))}<span class="nb-arrow" aria-hidden="true">→</span></button>
+                <button type="button" class="nb-btn" data-logout-user>${rollLabel(t('auth_logout'))}</button>
+            </div>
+            <div class="auth-foot">
+                <button type="button" class="nb-link" data-back-home>${t('back_home')}</button>
             </div>
         </div>
     `;
@@ -45,28 +65,65 @@ export default {
     render() {
         const state = getState();
         return `
-            <main class="page page-auth">
-                <section class="page-shell narrow-shell auth-layout auth-layout-compact">
-                    <div class="auth-panel auth-panel-compact">
-                        <header class="page-header">
-                            <div>
-                                <span class="eyebrow">NeuroFocus</span>
-                                <h1>${t('auth_title')}</h1>
-                                <p class="page-support">${t('auth_intro_desc')}</p>
-                            </div>
-                        </header>
+            <main class="page page-auth nb-page">
+                ${backdropHTML()}
+                <canvas class="nb-scene" data-scene aria-hidden="true"></canvas>
+                <div class="auth-wrap">
+                    <header class="auth-top" data-reveal>
+                        <span class="nb-brand">NeuroFocus</span>
+                        ${themeToggleHTML(t)}
+                    </header>
+                    <section class="auth-intro" data-shape="0">
+                        <div class="auth-intro-text">
+                            <p class="nb-eyebrow" data-reveal>${t('auth_title')}</p>
+                            <h1 class="auth-title" data-split="60">${t('home_title')}</h1>
+                            <p class="nb-lead" data-reveal style="--d:200ms">${t('auth_intro_desc')}</p>
+                        </div>
+                        <div class="auth-slot" data-slot aria-hidden="true"></div>
+                    </section>
+                    <section class="auth-side">
                         ${state.currentUser ? renderSessionCard(state) : renderAuthForm(state)}
-                    </div>
-                </section>
+                    </section>
+                </div>
             </main>
         `;
     },
 
+    unmount() {
+        cleanup();
+        cleanup = () => {};
+        document.body.classList.remove('nb-body');
+    },
+
     mount({ root, router }) {
-        const backHome = root.querySelector('[data-back-home]');
-        if (backHome) {
-            backHome.addEventListener('click', () => router.navigate('home'));
+        document.body.classList.add('nb-body');
+        const stopReveals = startReveals(root);
+        bindThemeToggle(root, () => router.refresh());
+
+        // The brain shape from Home, beside the intro on wide screens only.
+        let scene = null;
+        const canvas = root.querySelector('[data-scene]');
+        if (window.matchMedia('(min-width: 900px) and (min-height: 560px)').matches) {
+            import('../home/brainScene.js?v=2026-07-28-2').then(({ mountBrainScene }) => {
+                if (!canvas.isConnected) return;
+                scene = mountBrainScene(canvas, [root.querySelector('[data-shape="0"]')], {
+                    reduceMotion: prefersReducedMotion(),
+                    lowPower: document.documentElement.dataset.platform === 'windows'
+                });
+            }).catch(() => canvas.remove());
+        } else {
+            canvas.remove();
         }
+        cleanup = () => { scene?.destroy(); stopReveals(); };
+
+        // Enter in any box submits the form.
+        root.querySelectorAll('.auth-field input').forEach((input) => {
+            input.addEventListener('keydown', (event) => {
+                if (event.key === 'Enter') root.querySelector('[data-submit-auth]')?.click();
+            });
+        });
+
+        root.querySelectorAll('[data-back-home]').forEach((button) => button.addEventListener('click', () => router.navigate('home')));
 
         const continueButton = root.querySelector('[data-continue-setup]');
         if (continueButton) {
@@ -88,14 +145,13 @@ export default {
             });
         }
 
-        const switchButton = root.querySelector('[data-switch-auth]');
-        if (switchButton) {
+        root.querySelectorAll('[data-switch-auth]').forEach((switchButton) => {
             switchButton.addEventListener('click', () => {
                 const next = getState().authView === 'register' ? 'login' : 'register';
                 setState({ authView: next });
                 router.refresh();
             });
-        }
+        });
 
         const submitButton = root.querySelector('[data-submit-auth]');
         if (submitButton) {

@@ -1119,3 +1119,95 @@ html:not([data-platform="windows"]) .nb-top {
         display: none;
     }
 }
+
+/* ---- Loading screen (all pages), in the style of the Home intro ----------------
+   Same background as the glass pages, message bottom-left, a large counter
+   bottom-right and a thin line along the bottom (app/main.js drives the
+   counter). The old boat and spinner are hidden. */
+#transition-loader {
+    background: var(--nb-bg) !important;
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
+}
+
+#transition-loader::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background:
+        radial-gradient(60vmax 60vmax at 0% 0%, var(--nb-glow-1), transparent 62%),
+        radial-gradient(60vmax 60vmax at 100% 10%, var(--nb-glow-2), transparent 62%);
+    pointer-events: none;
+}
+
+#transition-loader .loader-content {
+    position: absolute !important;
+    inset: 0;
+    display: grid !important;
+    grid-template-columns: 1fr auto;
+    grid-template-rows: auto 1fr auto;
+    align-items: end !important;
+    gap: 0.75rem 2rem !important;
+    padding: clamp(1.25rem, 4vw, 3rem) !important;
+    text-align: left;
+    color: var(--nb-ink);
+}
+
+#transition-loader .loader-scene,
+#transition-loader .spinner {
+    display: none;
+}
+
+#transition-loader .loader-brand {
+    grid-column: 1 / -1;
+    grid-row: 1;
+    align-self: start;
+    font-family: var(--nb-serif);
+    font-size: 1rem;
+    font-weight: 600;
+    letter-spacing: 0;
+    color: var(--nb-ink);
+}
+
+#transition-loader .loading-text {
+    grid-column: 1;
+    grid-row: 3;
+    max-width: 28rem;
+    font-family: var(--nb-serif);
+    font-size: clamp(0.95rem, 0.85rem + 0.4vw, 1.125rem);
+    letter-spacing: 0;
+    color: var(--nb-muted) !important;
+    animation: none;
+}
+
+#transition-loader .loader-count {
+    grid-column: 2;
+    grid-row: 3;
+    font-family: var(--nb-mono);
+    font-size: clamp(4rem, 14vw, 10rem);
+    font-weight: 500;
+    line-height: 0.85;
+    letter-spacing: -0.04em;
+    color: var(--nb-ink);
+    font-variant-numeric: tabular-nums;
+}
+
+#transition-loader .loader-bar {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: auto;
+    height: 2px;
+    border-radius: 0;
+    background: var(--nb-rule);
+}
+
+#transition-loader .loader-bar-fill {
+    width: 100%;
+    background: var(--nb-accent);
+    transform: scaleX(0);
+    transform-origin: left center;
+    animation: none;
+    transition: transform 0.3s ease;
+}

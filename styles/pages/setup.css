@@ -678,3 +678,180 @@
     opacity: 0.55;
     cursor: progress;
 }
+
+/* ---- Two-column step layout (TALE 2026) --------------------------------------
+   setup/index.js splits each step into an intro column and a choices column.
+   Landscape: side by side, one screen, no scrolling. Portrait: stacked. */
+.page-setup.nb-page .setup-col-intro,
+.page-setup.nb-page .setup-col-panel {
+    min-width: 0;
+}
+
+.page-setup.nb-page .setup-col-intro .setup-header {
+    margin-bottom: clamp(1rem, 3vh, 2rem);
+}
+
+.page-setup.nb-page .setup-col-panel > .setup-option-grid:first-child,
+.page-setup.nb-page .setup-col-panel > .difficulty-list:first-child,
+.page-setup.nb-page .setup-col-panel > .camera-consent-shell:first-child,
+.page-setup.nb-page .setup-col-panel > .training-slider-card:first-child {
+    margin-top: 0;
+}
+
+@media (orientation: landscape) and (min-width: 640px) {
+    .page-setup.nb-page .page-shell {
+        width: min(76rem, 100%);
+        min-height: 100vh;
+        min-height: 100dvh;
+        display: flex;
+        align-items: center;
+        padding: clamp(1rem, 3vh, 2rem) clamp(1.25rem, 3vw, 2.5rem);
+    }
+
+    .page-setup.nb-page .setup-panel {
+        width: 100%;
+    }
+
+    .page-setup.nb-page .setup-card {
+        display: grid;
+        grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr);
+        align-items: center;
+        gap: clamp(2rem, 5vw, 4.5rem);
+    }
+
+    .page-setup.nb-page .setup-col-intro .setup-header {
+        border-bottom: 0;
+        padding-bottom: 0;
+    }
+
+    .page-setup.nb-page .setup-col-panel .setup-option-grid {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 0.6rem;
+    }
+
+    .page-setup.nb-page .setup-col-panel .option-card {
+        min-height: 0;
+        padding: clamp(0.8rem, 2vh, 1.1rem) 1.15rem;
+    }
+
+    .page-setup.nb-page .setup-col-panel .camera-preview-frame {
+        min-height: 0;
+        height: clamp(11rem, 34vh, 17rem);
+    }
+
+    .page-setup.nb-page .setup-col-panel .setup-footer-actions {
+        margin-top: clamp(0.8rem, 2.5vh, 1.5rem);
+        padding-top: clamp(0.6rem, 2vh, 1rem);
+    }
+
+    .page-setup.nb-page .lab-brief {
+        margin-bottom: clamp(1rem, 3vh, 1.5rem);
+    }
+}
+
+/* The old page grid (styles/pages/auth.css) must not squeeze the panel. */
+.page-setup.nb-page .setup-layout {
+    display: block;
+}
+
+/* Portrait phones: drop the repeated helper box so a step fits one screen. */
+@media (orientation: portrait) and (max-width: 700px) {
+    .page-setup.nb-page .mode-helper-card {
+        display: none;
+    }
+
+    .page-setup.nb-page .setup-col-intro .setup-header {
+        margin-bottom: 0.75rem;
+    }
+
+    .page-setup.nb-page .setup-col-panel .option-card {
+        min-height: 0;
+        padding: 0.8rem 1rem;
+    }
+
+    .page-setup.nb-page .lab-brief {
+        margin-bottom: 1rem;
+        padding: 0.9rem 1rem;
+    }
+}
+
+/* Short landscape screens (phones turned sideways): tighter still. */
+@media (orientation: landscape) and (max-height: 560px) {
+    .page-setup.nb-page .page-shell {
+        padding-top: 0.6rem;
+        padding-bottom: 0.6rem;
+    }
+
+    .page-setup.nb-page .setup-col-intro .page-header h1 {
+        font-size: 1.4rem;
+    }
+
+    .page-setup.nb-page .setup-col-intro .setup-header {
+        margin-bottom: 0.5rem;
+    }
+
+    .page-setup.nb-page .setup-card h2 {
+        font-size: 1.15rem;
+    }
+
+    .page-setup.nb-page .setup-card > p,
+    .page-setup.nb-page .setup-col-intro > p,
+    .page-setup.nb-page .lab-brief-label,
+    .page-setup.nb-page .lab-brief-desc,
+    .page-setup.nb-page .mode-helper-card,
+    .page-setup.nb-page .setup-col-panel .option-card span {
+        display: none;
+    }
+
+    .page-setup.nb-page .lab-brief {
+        margin-bottom: 0.6rem;
+        padding: 0.6rem 0.9rem;
+    }
+
+    .page-setup.nb-page .lab-brief-question {
+        font-size: 1rem;
+    }
+
+    .page-setup.nb-page .setup-col-panel .option-card {
+        padding: 0.55rem 0.9rem;
+    }
+
+    .page-setup.nb-page .setup-col-panel .setup-option-grid {
+        gap: 0.4rem;
+    }
+
+    .page-setup.nb-page .setup-col-panel .camera-preview-frame {
+        height: 38vh;
+    }
+
+    .page-setup.nb-page .setup-col-panel .camera-consent-copy {
+        display: none;
+    }
+}
+
+/* Laptops with a short screen: the helper box is the first thing to go. */
+@media (orientation: landscape) and (max-height: 820px) {
+    .page-setup.nb-page .mode-helper-card {
+        display: none;
+    }
+}
+
+/* Undo the old centred, narrow Setup frame (styles/pages/auth.css). */
+.page-setup.nb-page {
+    display: block;
+}
+
+.page-setup.nb-page .setup-layout-compact,
+.page-setup.nb-page .setup-panel-compact {
+    width: 100%;
+    max-width: none;
+    margin: 0;
+}
+
+@media (orientation: landscape) and (min-width: 640px) {
+    /* Keep the step vertically centred on landscape screens. */
+    .page-setup.nb-page .page-shell.setup-layout {
+        display: flex;
+        align-items: center;
+    }
+}

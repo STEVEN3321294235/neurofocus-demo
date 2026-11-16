@@ -124,3 +124,264 @@
         padding: 1.1rem;
     }
 }
+
+/* ===== Log-in page, glass style (TALE 2026 redesign) =====================
+   One screen, no scrolling at the usual device sizes. Wide screens: intro
+   with the brain shape on the left, form on the right. Narrow or short
+   screens: the form only. Tokens come from styles/shared/glass.css. */
+.page-auth.nb-page {
+    display: block;
+    min-height: 100vh;
+    min-height: 100dvh;
+}
+
+.page-auth.nb-page .auth-wrap {
+    display: grid;
+    grid-template-columns: minmax(0, 1.05fr) minmax(20rem, 26rem);
+    grid-template-rows: auto minmax(0, 1fr);
+    column-gap: clamp(2rem, 5vw, 5rem);
+    width: min(72rem, 100%);
+    min-height: 100vh;
+    min-height: 100dvh;
+    margin: 0 auto;
+    padding: clamp(0.85rem, 2.5vh, 1.5rem) clamp(1rem, 3vw, 2rem) clamp(1rem, 3vh, 2rem);
+}
+
+.page-auth.nb-page .auth-top {
+    grid-column: 1 / -1;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.5rem 0.6rem 0.5rem 1rem;
+    border: 1px solid var(--nb-border);
+    border-radius: 999px;
+    background: var(--nb-surface);
+    box-shadow: var(--nb-highlight);
+}
+
+.page-auth.nb-page .auth-intro {
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr);
+    align-content: center;
+    min-height: 0;
+    padding: clamp(1rem, 4vh, 3rem) 0;
+}
+
+.page-auth.nb-page .auth-title {
+    margin: 0;
+    font-size: clamp(2rem, 1.2rem + 3vw, 3.5rem);
+    font-weight: 600;
+    line-height: 1.12;
+    letter-spacing: -0.015em;
+}
+
+.page-auth.nb-page .auth-slot {
+    min-height: 12rem;
+}
+
+.page-auth.nb-page .auth-side {
+    display: flex;
+    align-items: center;
+    min-height: 0;
+    padding: clamp(0.75rem, 3vh, 2rem) 0;
+}
+
+.page-auth.nb-page .auth-glass {
+    width: 100%;
+    padding: clamp(1.1rem, 3vh, 1.75rem) clamp(1.1rem, 2.5vw, 1.75rem);
+    border: 1px solid var(--nb-border);
+    border-radius: calc(var(--nb-radius) + 4px);
+    background: var(--nb-surface);
+    box-shadow: var(--nb-highlight), var(--nb-shadow);
+}
+
+html:not([data-platform="windows"]) .page-auth.nb-page .auth-glass,
+html:not([data-platform="windows"]) .page-auth.nb-page .auth-top {
+    -webkit-backdrop-filter: blur(16px) saturate(140%);
+    backdrop-filter: blur(16px) saturate(140%);
+}
+
+.page-auth.nb-page .auth-tabs {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    padding: 4px;
+    border: 1px solid var(--nb-border);
+    border-radius: 999px;
+}
+
+.page-auth.nb-page .auth-tab {
+    min-height: 2.4rem;
+    border-radius: 999px;
+    color: var(--nb-muted);
+    font-weight: 550;
+    transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.page-auth.nb-page .auth-tab.is-on {
+    background: var(--nb-ink);
+    color: var(--nb-bg);
+}
+
+.page-auth.nb-page .auth-desc {
+    margin: clamp(0.6rem, 1.8vh, 1rem) 0 0;
+    color: var(--nb-muted);
+    font-size: 0.9375rem;
+}
+
+.page-auth.nb-page .auth-hello {
+    margin: 0;
+    font-size: clamp(1.4rem, 1.1rem + 1vw, 1.875rem);
+    font-weight: 600;
+    line-height: 1.25;
+}
+
+.page-auth.nb-page .auth-fields {
+    display: grid;
+    gap: clamp(0.55rem, 1.6vh, 0.9rem);
+    margin-top: clamp(0.75rem, 2vh, 1.25rem);
+}
+
+.page-auth.nb-page .auth-field {
+    display: grid;
+    gap: 0.3rem;
+    font-size: 0.8125rem;
+    color: var(--nb-muted);
+}
+
+.page-auth.nb-page .auth-field input {
+    width: 100%;
+    min-height: 2.875rem;
+    padding: 0.55rem 0.95rem;
+    border: 1px solid var(--nb-border);
+    border-radius: 12px;
+    background: var(--nb-surface-2);
+    box-shadow: none;
+    color: var(--nb-ink);
+    font: inherit;
+    font-size: 1rem;
+    transition: border-color 0.25s ease;
+}
+
+.page-auth.nb-page .auth-field input:focus {
+    outline: none;
+    border-color: var(--nb-accent);
+}
+
+.page-auth.nb-page .auth-field small {
+    font-size: 0.75rem;
+    color: var(--nb-faint);
+}
+
+.page-auth.nb-page .auth-submit,
+.page-auth.nb-page .auth-stack .nb-btn {
+    width: 100%;
+    margin-top: clamp(0.8rem, 2.2vh, 1.25rem);
+}
+
+.page-auth.nb-page .auth-stack {
+    display: grid;
+    gap: 0.6rem;
+}
+
+.page-auth.nb-page .auth-stack .nb-btn + .nb-btn {
+    margin-top: 0;
+}
+
+.page-auth.nb-page .auth-message {
+    min-height: 1.2rem;
+    margin: 0.6rem 0 0;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: var(--nb-bad);
+    font-size: 0.875rem;
+}
+
+.page-auth.nb-page .auth-message:empty {
+    min-height: 0;
+    margin: 0;
+}
+
+.page-auth.nb-page .auth-foot {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-top: clamp(0.6rem, 1.8vh, 1rem);
+    font-size: 0.875rem;
+}
+
+/* Narrow or short screens: the form only, centred, still one screen. */
+@media (max-width: 899px), (max-height: 559px) {
+    .page-auth.nb-page .auth-wrap {
+        grid-template-columns: minmax(0, 1fr);
+        grid-template-rows: auto auto minmax(0, 1fr);
+        width: min(30rem, 100%);
+    }
+
+    .page-auth.nb-page .auth-intro {
+        grid-template-rows: auto;
+        padding: clamp(1rem, 4vh, 2rem) 0 0;
+    }
+
+    .page-auth.nb-page .auth-intro .nb-lead {
+        display: none;
+    }
+
+    .page-auth.nb-page .auth-title {
+        font-size: clamp(1.6rem, 1.2rem + 2vw, 2.2rem);
+    }
+
+    .page-auth.nb-page .auth-slot {
+        display: none;
+    }
+
+    .page-auth.nb-page .auth-side {
+        align-items: flex-start;
+    }
+}
+
+/* Phones turned sideways (short and wide): no intro; the form splits into two
+   columns so it fits the height. */
+@media (orientation: landscape) and (max-height: 559px) {
+    .page-auth.nb-page .auth-wrap {
+        grid-template-rows: minmax(0, 1fr);
+        width: min(46rem, 100%);
+        padding-top: 0.5rem;
+        padding-bottom: 0.5rem;
+    }
+
+    .page-auth.nb-page .auth-intro {
+        display: none;
+    }
+
+    .page-auth.nb-page .auth-top {
+        padding-top: 0.3rem;
+        padding-bottom: 0.3rem;
+    }
+
+    .page-auth.nb-page .auth-side {
+        align-items: center;
+        padding: 0.5rem 0;
+    }
+
+    .page-auth.nb-page .auth-glass {
+        display: grid;
+        grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+        column-gap: 1.25rem;
+        align-items: start;
+        padding: 0.9rem 1rem;
+    }
+
+    .page-auth.nb-page .auth-tabs { grid-column: 1; grid-row: 1; }
+    .page-auth.nb-page .auth-desc { grid-column: 1; grid-row: 2; margin-top: 0.5rem; font-size: 0.8125rem; }
+    .page-auth.nb-page .auth-field { font-size: 0.75rem; gap: 0.15rem; }
+    .page-auth.nb-page .auth-hello { grid-column: 1; grid-row: 1; }
+    .page-auth.nb-page .auth-foot { grid-column: 1; grid-row: 3; align-self: end; flex-direction: column; align-items: flex-start; gap: 0.3rem; }
+    .page-auth.nb-page .auth-fields { grid-column: 2; grid-row: 1 / span 2; margin-top: 0; gap: 0.4rem; }
+    .page-auth.nb-page .auth-stack { grid-column: 2; grid-row: 1 / span 3; }
+    .page-auth.nb-page .auth-submit { grid-column: 2; grid-row: 3; margin-top: 0.6rem; min-height: 2.75rem; }
+    .page-auth.nb-page .auth-message { grid-column: 2; grid-row: 4; }
+    .page-auth.nb-page .auth-field input { min-height: 2.15rem; padding: 0.3rem 0.8rem; }
+    .page-auth.nb-page .auth-top { display: none; }
+    .page-auth.nb-page .auth-field small { display: none; }
+}

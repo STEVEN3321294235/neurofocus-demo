@@ -729,7 +729,8 @@ export function mountBrainScene(canvas, anchors, { reduceMotion = false, lowPowe
 
     const worldPerPx = () => (2 * DIST * Math.tan((FOV * Math.PI) / 360)) / window.innerHeight;
     const stageAt = (i) => {
-        const rect = slots[i].getBoundingClientRect();
+        // A page may have fewer stages than shapes (the log-in page has one).
+        const rect = slots[Math.min(i, slots.length - 1)].getBoundingClientRect();
         const k = worldPerPx();
         return {
             x: (rect.left + rect.width / 2 - window.innerWidth / 2) * k,
