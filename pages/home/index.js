@@ -13,25 +13,6 @@ import {
     backdropHTML, bindThemeToggle, playIntro, prefersReducedMotion, rollLabel, startReveals, themeToggleHTML
 } from '../../components/motion.js?v=2026-07-28-2';
 
-// One period of a made-up brainwave trace, as SVG path data. Built from sine
-// waves whose lengths divide the period exactly, so two copies set side by
-// side join without a seam and can scroll forever.
-function demoWavePath(period = 720, height = 120, phase = 0, scale = 1) {
-    const mid = height / 2;
-    const parts = [];
-    for (let x = 0; x <= period * 2; x += 4) {
-        const p = (x % period) / period;
-        const y = mid - scale * (
-            Math.sin(p * Math.PI * 2 * 3 + phase) * 16
-            + Math.sin(p * Math.PI * 2 * 11 + 0.8 + phase) * 9
-            + Math.sin(p * Math.PI * 2 * 29 + 1.9) * 5
-            + Math.sin(p * Math.PI * 2 * 47 + 0.3) * 2.5
-        );
-        parts.push(`${x === 0 ? 'M' : 'L'}${x} ${y.toFixed(1)}`);
-    }
-    return parts.join(' ');
-}
-
 function renderLanguageSwitch(lang) {
     return `
         <span class="nb-lang" role="group">
@@ -92,61 +73,73 @@ export default {
                         </nav>
                     </header>
 
-                    <section class="nb-hero" data-shape="0">
-                        <p class="nb-eyebrow" data-reveal><span class="nb-pulse" aria-hidden="true"></span>${t('home_kicker')}</p>
-                        <h1 class="nb-title nb-hero-title" data-split="80">${t('home_title')}</h1>
-                        <p class="nb-lead nb-hero-lead" data-reveal style="--d:350ms">${t('home_subtitle')}</p>
-                        <div class="nb-actions nb-hero-actions" data-reveal style="--d:480ms">
-                            <button type="button" class="nb-btn nb-btn-primary nb-btn-lg" data-lab-start>${rollLabel(t('home_start_test'))}<span class="nb-arrow" aria-hidden="true">→</span></button>
-                            <button type="button" class="nb-btn nb-btn-lg" data-lab-quick>${rollLabel(t('home_try_quick'))}</button>
+                    <section class="nb-pair nb-hero" data-shape="0">
+                        <div class="nb-pair-text">
+                            <p class="nb-eyebrow" data-reveal><span class="nb-pulse" aria-hidden="true"></span>${t('home_kicker')}</p>
+                            <h1 class="nb-title nb-hero-title" data-split="80">${t('home_title')}</h1>
+                            <p class="nb-lead nb-hero-lead" data-reveal style="--d:350ms">${t('home_subtitle')}</p>
+                            <div class="nb-actions nb-hero-actions" data-reveal style="--d:480ms">
+                                <button type="button" class="nb-btn nb-btn-primary nb-btn-lg" data-lab-start>${rollLabel(t('home_start_test'))}<span class="nb-arrow" aria-hidden="true">→</span></button>
+                                <button type="button" class="nb-btn nb-btn-lg" data-lab-quick>${rollLabel(t('home_try_quick'))}</button>
+                            </div>
+                            <dl class="nb-facts" data-reveal style="--d:600ms">
+                                <div><dt class="nb-mono">5</dt><dd>${t('home_stat_1')}</dd></div>
+                                <div><dt class="nb-mono">90</dt><dd>${t('home_stat_2')}</dd></div>
+                                <div><dt class="nb-mono">3</dt><dd>${t('home_stat_3')}</dd></div>
+                            </dl>
                         </div>
-                        <dl class="nb-facts" data-reveal style="--d:600ms">
-                            <div><dt class="nb-mono">5</dt><dd>${t('home_stat_1')}</dd></div>
-                            <div><dt class="nb-mono">90</dt><dd>${t('home_stat_2')}</dd></div>
-                            <div><dt class="nb-mono">3</dt><dd>${t('home_stat_3')}</dd></div>
-                        </dl>
+                        <div class="nb-slot" data-slot aria-hidden="true"></div>
                     </section>
 
-                    <figure class="nb-wave" data-wave data-shape="1" data-reveal style="--d:700ms">
-                        <div class="nb-wave-head">
-                            <span class="nb-wave-label">${t('home_wave_label')}</span>
-                            <span class="nb-wave-caption">${t('home_wave_caption')}</span>
+                    <section class="nb-pair" data-shape="1">
+                        <div class="nb-pair-text">
+                            <p class="nb-eyebrow" data-reveal><span class="nb-tag">${t('home_wave_label')}</span></p>
+                            <h2 class="nb-pair-title" data-split>${t('home_wave_title')}</h2>
+                            <p class="nb-lead" data-reveal>${t('home_wave_body')}</p>
+                            <p class="nb-fine" data-reveal>${t('home_wave_caption')}</p>
                         </div>
-                        <div class="nb-wave-window">
-                            <svg class="nb-wave-svg" viewBox="0 0 1440 120" preserveAspectRatio="none" aria-hidden="true">
-                                <path class="nb-wave-back" d="${demoWavePath(720, 120, 1.7, 0.7)}"></path>
-                                <path class="nb-wave-front" d="${demoWavePath()}"></path>
-                            </svg>
+                        <div class="nb-slot" data-slot aria-hidden="true"></div>
+                    </section>
+
+                    <section class="nb-pair" data-shape="2">
+                        <div class="nb-pair-text">
+                            <h2 class="nb-section-title" data-reveal>${t('home_ideas_title')}</h2>
+                            ${renderTicker()}
+                            <p class="nb-fine" data-reveal>${t('home_ideas_note')}</p>
                         </div>
-                    </figure>
-
-                    <section class="nb-section nb-tall" data-shape="2">
-                        <h2 class="nb-section-title" data-reveal>${t('home_ideas_title')}</h2>
-                        ${renderTicker()}
-                        <p class="nb-fine" data-reveal>${t('home_ideas_note')}</p>
+                        <div class="nb-slot" data-slot aria-hidden="true"></div>
                     </section>
 
-                    <section class="nb-section nb-tall" data-shape="3">
-                        <h2 class="nb-section-title" data-reveal>${t('home_steps_title')}</h2>
-                        <ol class="nb-steps">
-                            ${renderStep(1, 'home_step_1', 'home_step_1_body', 0)}
-                            ${renderStep(2, 'home_step_2', 'home_step_2_body', 90)}
-                            ${renderStep(3, 'home_step_3', 'home_step_3_body', 180)}
-                        </ol>
+                    <section class="nb-pair" data-shape="3">
+                        <div class="nb-pair-text">
+                            <h2 class="nb-section-title" data-reveal>${t('home_steps_title')}</h2>
+                            <ol class="nb-steps">
+                                ${renderStep(1, 'home_step_1', 'home_step_1_body', 0)}
+                                ${renderStep(2, 'home_step_2', 'home_step_2_body', 90)}
+                                ${renderStep(3, 'home_step_3', 'home_step_3_body', 180)}
+                            </ol>
+                        </div>
+                        <div class="nb-slot" data-slot aria-hidden="true"></div>
                     </section>
 
-                    <section class="nb-section nb-honest" data-shape="4" data-reveal>
-                        <h2 data-split>${t('home_honest')}</h2>
-                        <p>${t('home_honest_body')}</p>
+                    <section class="nb-pair" data-shape="4">
+                        <div class="nb-pair-text nb-honest" data-reveal>
+                            <h2 data-split>${t('home_honest')}</h2>
+                            <p>${t('home_honest_body')}</p>
+                        </div>
+                        <div class="nb-slot" data-slot aria-hidden="true"></div>
                     </section>
 
-                    <section class="nb-section nb-tall" data-shape="5">
-                        <h2 class="nb-section-title" data-reveal>${t('home_privacy_title')}</h2>
-                        <ul class="nb-points">
-                            ${renderPrivacyPoint('◎', 'home_privacy_1', 'home_privacy_1_body', 0)}
-                            ${renderPrivacyPoint('◇', 'home_privacy_2', 'home_privacy_2_body', 90)}
-                            ${renderPrivacyPoint('↻', 'home_privacy_3', 'home_privacy_3_body', 180)}
-                        </ul>
+                    <section class="nb-pair" data-shape="5">
+                        <div class="nb-pair-text">
+                            <h2 class="nb-section-title" data-reveal>${t('home_privacy_title')}</h2>
+                            <ul class="nb-points">
+                                ${renderPrivacyPoint('◎', 'home_privacy_1', 'home_privacy_1_body', 0)}
+                                ${renderPrivacyPoint('◇', 'home_privacy_2', 'home_privacy_2_body', 90)}
+                                ${renderPrivacyPoint('↻', 'home_privacy_3', 'home_privacy_3_body', 180)}
+                            </ul>
+                        </div>
+                        <div class="nb-slot" data-slot aria-hidden="true"></div>
                     </section>
 
                     <footer class="nb-foot" data-reveal>
@@ -185,8 +178,8 @@ export default {
             canvas.remove();
         });
 
-        // The demo line and the ticker only move while they are on screen.
-        const movers = Array.from(root.querySelectorAll('[data-wave], [data-ticker]'));
+        // The ticker only moves while it is on screen.
+        const movers = Array.from(root.querySelectorAll('[data-ticker]'));
         let observer = null;
         if ('IntersectionObserver' in window) {
             observer = new IntersectionObserver((entries) => {

@@ -30,36 +30,60 @@
     color: var(--nb-ink);
 }
 
-/* ---- hero ---- */
-.nb-hero {
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    max-width: 38rem;
-    min-height: calc(100vh - 12rem);
-    min-height: calc(100dvh - 12rem);
+/* ---- sections: text beside an empty stage for the 3D shape ----
+   brainScene.js draws each section's shape inside its [data-slot], so the
+   shape never sits on top of text. Wide screens: text left, stage right.
+   Phones: the stage sits above the text. */
+.nb-pair {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 0.92fr);
+    align-items: center;
+    gap: clamp(1.5rem, 4vw, 4rem);
+    min-height: 78vh;
+    min-height: 78dvh;
+    margin-top: clamp(2rem, 6vw, 4rem);
 }
 
-/* Each scroll stop is tall enough for the shape to form beside it. */
-.nb-tall {
-    min-height: 70vh;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
+.nb-pair.nb-hero {
+    min-height: calc(100vh - 8rem);
+    min-height: calc(100dvh - 8rem);
+    margin-top: 0;
 }
 
-.nb-tall > .nb-steps,
-.nb-tall > .nb-points,
-.nb-tall > .nb-ticker {
-    max-width: 44rem;
+.nb-pair-text {
+    min-width: 0;
 }
 
-.nb-tall .nb-steps,
-.nb-tall .nb-points {
+.nb-slot {
+    align-self: stretch;
+    min-height: 22rem;
+    pointer-events: none;
+}
+
+.nb-pair-title {
+    margin: 0;
+    font-size: clamp(1.75rem, 1.2rem + 2vw, 2.75rem);
+    font-weight: 600;
+    line-height: 1.2;
+    letter-spacing: -0.015em;
+    text-wrap: balance;
+}
+
+.nb-tag {
+    padding: 0.1rem 0.65rem;
+    border: 1px solid var(--nb-border-strong);
+    border-radius: 999px;
+    color: var(--nb-ink);
+    font-size: 0.75rem;
+    letter-spacing: 0.06em;
+}
+
+.nb-pair .nb-steps,
+.nb-pair .nb-points {
     grid-template-columns: minmax(0, 1fr);
 }
 
-/* See-through cards let the shape show behind; blur only where it is cheap. */
+/* See-through cards; blur only where it is cheap. */
 html:not([data-platform="windows"]) .nb-step,
 html:not([data-platform="windows"]) .nb-point,
 html:not([data-platform="windows"]) .nb-honest {
@@ -132,84 +156,6 @@ html:not([data-platform="windows"]) .nb-honest {
     font-size: 0.875rem;
     line-height: 1.35;
     color: var(--nb-muted);
-}
-
-/* ---- demo brainwave card ---- */
-.nb-wave {
-    margin: clamp(3rem, 8vw, 5rem) 0 0;
-    padding: 1rem 1.25rem 0.75rem;
-    border: 1px solid var(--nb-border);
-    border-radius: var(--nb-radius);
-    background: var(--nb-surface);
-    box-shadow: var(--nb-highlight), var(--nb-shadow);
-    overflow: hidden;
-}
-
-html:not([data-platform="windows"]) .nb-wave {
-    -webkit-backdrop-filter: blur(10px);
-    backdrop-filter: blur(10px);
-}
-
-.nb-wave-head {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 0.5rem 0.9rem;
-}
-
-.nb-wave-label {
-    padding: 0.1rem 0.6rem;
-    border: 1px solid var(--nb-border-strong);
-    border-radius: 999px;
-    font-size: 0.75rem;
-    font-weight: 600;
-    letter-spacing: 0.06em;
-}
-
-.nb-wave-caption {
-    font-size: 0.8125rem;
-    color: var(--nb-muted);
-}
-
-.nb-wave-window {
-    height: clamp(5.5rem, 14vw, 8rem);
-    margin-top: 0.5rem;
-    overflow: hidden;
-    -webkit-mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
-    mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
-}
-
-.nb-wave-svg {
-    display: block;
-    width: 200%;
-    height: 100%;
-}
-
-.nb-wave-svg path {
-    fill: none;
-    stroke-linejoin: round;
-    vector-effect: non-scaling-stroke;
-}
-
-.nb-wave-front {
-    stroke: var(--nb-accent);
-    stroke-width: 2;
-}
-
-.nb-wave-back {
-    stroke: var(--nb-violet);
-    stroke-width: 1.5;
-    opacity: 0.45;
-}
-
-.nb-wave.is-running .nb-wave-svg {
-    animation: nb-wave-flow 30s linear infinite;
-    will-change: transform;
-}
-
-@keyframes nb-wave-flow {
-    from { transform: translate3d(0, 0, 0); }
-    to { transform: translate3d(-50%, 0, 0); }
 }
 
 /* ---- ticker of later questions ---- */
@@ -348,8 +294,6 @@ html:not([data-platform="windows"]) .nb-wave {
 }
 
 .nb-honest {
-    max-width: 44rem;
-    min-height: 0;
     padding: clamp(1.75rem, 4vw, 3rem);
     border: 1px solid var(--nb-border);
     border-radius: calc(var(--nb-radius) + 6px);
@@ -391,15 +335,28 @@ html:not([data-platform="windows"]) .nb-wave {
 }
 
 @media (max-width: 760px) {
-    .nb-hero {
-        min-height: calc(100vh - 6rem);
-        min-height: calc(100dvh - 6rem);
-        justify-content: flex-end;
-        padding-bottom: 2rem;
+    .nb-pair,
+    .nb-pair.nb-hero {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 1rem;
+        min-height: 0;
+        margin-top: 3.5rem;
     }
 
-    .nb-tall {
+    .nb-pair.nb-hero {
+        margin-top: 0;
+    }
+
+    /* The stage goes above the text and keeps a fixed share of the screen. */
+    .nb-slot {
+        order: -1;
         min-height: 0;
+        height: 34vh;
+        height: 34svh;
+    }
+
+    .nb-pair.nb-hero .nb-slot {
+        height: 38svh;
     }
 
     .nb-steps,
@@ -441,7 +398,6 @@ html:not([data-platform="windows"]) .nb-wave {
 }
 
 @media (prefers-reduced-motion: reduce) {
-    .nb-wave.is-running .nb-wave-svg,
     .nb-ticker.is-running .nb-ticker-track,
     .nb-pulse::after {
         animation: none;
